@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}    
+<div id='create_invoice' class='container mb-3'>
+    <form action="{% url 'procurement:invoices_create' %}", method="post">
+            {% csrf_token %} 
+
+                {{form|crispy}}
+                <input type="hidden",name='temp_file_group',value='{{temp_file_group}}'>
+
+            <button type="submit" class="btn btn-primary">Save Invoice</button>
+    </form>
+<div>
+{%endblock content%}

@@ -1,0 +1,29 @@
+{% load partials %}
+
+
+
+<table id='delivery-table' class='table table-hover table-bordered'>
+    <thead>
+        <tr>
+        <th>item</th>
+            <th>Qty</th>
+        </tr>
+    </thead>
+    <tbody id="delivery-lines-table">
+        {% for line in del_lines  %}
+            {% partial line%}
+        {% endfor %}
+    </tbody>
+</table>
+
+
+{% partialdef line %}
+<tr id="line-{{ line.line_id }}">
+    <td>{{ line.item }}</td>
+    <td>{{ line.qty }}</td>
+</tr>
+{%endpartialdef %}
+
+
+
+

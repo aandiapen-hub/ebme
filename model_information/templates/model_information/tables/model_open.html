@@ -1,0 +1,4 @@
+{% with record_url=None %}
+    {% url "model_information:model_view" pk=record.pk as record_url %}
+    {% include "tables/open_record.html" with record_url=record_url %}
+{% endwith %}

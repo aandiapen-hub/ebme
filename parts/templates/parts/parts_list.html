@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load partials %}
+{% load render_table from django_tables2 %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}
+<div class="container-flex p-3 row-gap-3">
+    <section id="title" class="row">
+        <article class="col-12">
+            <h1>Parts</h1>
+        </article>
+
+
+        <!-- Button to create a new Part -->
+         <article class="col-auto">
+            {% if perms.parts.add_tblpartslist %}
+            <a
+            class="btn btn-outline-secondary"
+            href='{% url 'parts:create_part' %}'>
+            <i class="bi bi-plus-lg"></i>   
+            </a>
+            {% endif %}
+        </article>
+
+        <!--Multiple parts edits buttons-->
+        <article class="col-auto ms-auto">
+            {% if perms.parts.change_tblpartslist %}
+                <button type='button'
+                    class="btn btn-outline-warning"
+                    hx-get="{% url 'parts:bulk_update_part' %}"
+                    hx-include='#filter-form, #row_select_form'
+                    hx-push-url='true'>
+                    Edit <i class="bi bi-pencil-fill"></i>
+                </button>
+            {% endif %}
+        </article>
+    </section>
+</div>
+
+{% include "filter_table.html" with app_link='parts:parts' %}
+
+
+
+{% endblock content %}

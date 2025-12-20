@@ -1,0 +1,37 @@
+
+<div id="extracted_data" class="col">
+
+          {% if extracted_data %}
+          <button class="btn btn-outline-info btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_{{group}}" aria-expanded="false" aria-controls="collapse_{{group}}">
+            View raw data
+          </button>
+          <a type="button" class="btn btn-sm btn-outline-primary" href="{{action}}">Process</a>
+
+
+          {% endif %}
+        
+        <div class= {% if extracted_data %} "collapse" {% else %} "collapse-show" {% endif %} id="collapse_{{group}}">
+        {% if extracted_data %}
+          <a href='{% url "documents:update_extracted_data" temp_file_group=group %}' type="button" class="btn btn-outline-primary btn-sm">Amend Extracted Data</a>
+          <button class='btn btn-sm btn-outline-danger'
+            hx-post="{% url 'documents:delete_extracted_data' group=group %}"
+            hx-trigger='click',
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-swap='outerHTML'
+            hx-target='#collapse_{{group}}'
+            hx-select='#collapse_{{group}}'>
+            Delete Extracted data
+          </button>
+
+        {% endif %}
+
+          <ul>
+          {% for key,value in extracted_data.items %}
+              <li>{{key}} : {{value}}</li>
+              {% empty %}
+              {% include "documents/partials/temp_file_reader_buttons.html" %}
+          {% endfor %}
+          </ul>
+        </div>
+        
+</div>

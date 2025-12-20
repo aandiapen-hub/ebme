@@ -1,0 +1,39 @@
+
+<td>
+<form method='post'>
+    {% csrf_token %}
+        {{ form.checkid }}
+        <button
+        hx-post="{% url 'jobs:testscarriedout_update' pk=check.testid %}"
+        hx-target="#check-{{ check.testid }}"
+        hx-swap="outerHTML"
+        type="button"
+        class='btn btn-secondary' 
+        hx-vals='{"result":"Pass"}'>
+        Clear
+        </button>
+
+        <button
+        hx-post="{% url 'jobs:testscarriedout_update' pk=check.testid %}"
+        hx-target="#check-{{ check.testid }}"
+        hx-swap="outerHTML"
+        type="button"
+        class='btn btn-secondary' 
+        hx-vals='{"result":"Fail"}'>
+        Fail
+        </button>
+
+        <button
+        hx-post="{% url 'jobs:testscarriedout_update' pk=check.testid %}"
+        hx-target="#check-{{ check.testid }}"
+        hx-swap="outerHTML"
+        type="button"
+        class='btn btn-secondary' 
+        hx-vals='{"result":"n/a"}'>
+        Not Applicable
+        </button>
+
+    
+</form>
+</td>
+

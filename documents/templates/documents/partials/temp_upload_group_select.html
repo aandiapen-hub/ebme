@@ -1,0 +1,47 @@
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+<div class="container">
+
+  <div class='row'>
+
+  <div id="images_div" class='row g-3 justify-content-evenly'>
+      {% for group,temp_files in temp_files_groups.items %}
+        <div class="col-auto border">
+          <form
+            hx-post='{% url "documents:link_temporary_document" %}'
+            hx-trigger="click from:#submit_button_{{group}}" 
+            hx-target="this"
+            hx-include="#link_row, #link_table"
+            hx-swap="outerHTML"
+            hx-on::after-Request= "bootstrap.Modal.getInstance(document.getElementById('modals-here')).hide();"
+            hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
+
+            <h5>File Group: {{group}}</h5>
+            {% for file in temp_files %}
+            {% include "documents/partials/temp_file.html" %}
+            {% endfor %}
+            {{form|crispy}}
+
+            <input type="hidden" name="group" value="{{ group }}">
+            <button type="button" class="btn btn-outline-primary" id="submit_button_{{group}}">Save and Link</button>
+          </form>
+        </div>
+      {% endfor %}
+
+</div>
+</div>
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Image Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body d-flex justify-content-center">
+        <div id="modal-image-container"></div>
+      </div>  
+    </div>
+  </div>
+</div>

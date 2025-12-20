@@ -1,0 +1,28 @@
+<!-- Button trigger modal -->
+<button id='column_chooser_button' type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#columnChooserModal">
+  Pick Columns
+</button>
+
+<!-- Modal -->
+<div class="modal fade" id="columnChooserModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="columnChooserModalLabel" aria-hidden="true">
+  <div class="modal-dialog  modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="#columnChooserModallabel">Choose Columns</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body"
+        hx-get="{% url 'users:column_chooser' %}?appmodel={{column_chooser_model}}&success_url={{app_link}}"
+        hx-include='#filter-form'
+        hx-trigger="click from:#column_chooser_button"
+        hx-swap="innerHTML"
+        >
+        
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+

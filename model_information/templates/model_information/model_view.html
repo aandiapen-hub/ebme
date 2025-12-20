@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="model-detail" class='container bg-white p-2'>
+      <div class="row"> 
+        <div class="col">
+          <p><small class="text-muted">ID: </small>{{object.modelid}}</p>
+          <p><small class="text-muted">Model Name: </small>{{object.modelname}}</p>
+          <p><small class="text-muted">Brand: </small>{{object.brandid}}</p>
+          <p><small class="text-muted">Category: </small>{{object.categoryid}}</p>
+          <p><small class="text-muted">GTIN: </small>{{object.gtin}}</p>
+          
+        </div>
+        <div class='col text-end'>
+        <!--Documents --> 
+        {% include "documents/partials/generic_document_partial.html" with link_row=object.modelid app_model="assets.tblModel" link_table="tblModel"%}
+          <div id="edit_div" class="dropdown">
+            <button class="btn btn-outline-white border-white dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu border-light dropdown-menu-end ">
+              <li class='dropdown-item'>
+                <!--Model Edit Button-->
+                {% if perms.assets.change_tblmodel %}
+
+                  <button
+                    hx-get="{% url 'model_information:update_model' pk=object.modelid %}"
+                    hx-target="#model-detail"
+                    hx-swap='outerHTML'
+                    hx-trigger="click"
+                    class="btn text-primary">Edit
+                  </button>
+                {% endif %}
+              </li>
+              <li class='dropdown-item'>
+                {% if perms.assets.delete_tblmodel %}
+                  <button
+                  hx-get="{% url 'model_information:delete_model' pk=object.modelid %}"
+                  hx-target="#modals-here"
+                  hx-trigger="click"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modals-here"
+                  class="btn text-danger">Delete
+                </button>
+                {% endif %}
+              </li>
+            </ul>
+
+     
+        </div>
+      </div>
+    </div>
+  <!--Checklist-->
+  <div id="checklist"
+    hx-get="{% url 'model_information:checklist' %}?modelid={{object.modelid}}"
+    hx-trigger="load, refreshDiv from:body"
+    hx-target="#checklist"
+    hx-swap='innerHTML'>
+  </div>    
+  
+
+  <div id="set-select-script">
+      <script>
+        const modelSelect = document.getElementById('id_modelid');
+        if (modelSelect) {
+            var option = new Option('{{ object.modelname }}', '{{ object.modelid }}', true, true);
+            $('#id_modelid').append(option).trigger('change');
+        }
+
+        if (typeof modal === 'undefined') {
+        let modal = bootstrap.Modal.getInstance(document.getElementById('modals-here'));
+        if (modal) modal.hide();
+        }
+    </script>
+  </div>
+{% endblock content %}
+
+
+
+
+

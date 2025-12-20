@@ -1,0 +1,9 @@
+
+<h3>Gtin Identitied but not on record.</h3>
+<a type='button' class='btn btn-outline-secondary' href="{% url 'model_information:create_model' %}?gtin={{ gtin }}">
+    Create new Model
+</a>
+or 
+<a type='button' class='btn btn-outline-secondary' href="{% url 'parts:create_part' %}?gtin={{ gtin }}">
+    Create new Part
+</a>

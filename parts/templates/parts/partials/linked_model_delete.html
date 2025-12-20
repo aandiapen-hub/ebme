@@ -1,0 +1,29 @@
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+<tr>
+    <td id='delete_td'>
+    <form
+        hx-post="{{request.path}}"
+        hx-trigger='submit'
+        hx-target='#row-{{object.pk}}'
+        hx-swap='outerHTML'>
+        {% csrf_token %}
+        {{ form|crispy}}    
+    
+        <button id="save_button" class="btn btn-sm btn-outline-danger" type="submit">Confirm Delete?</button>
+        
+        <button
+        hx-get="{% url 'parts:linked_models_detail' pk=object.pk %}"
+        hx-trigger='click'
+        hx-target='#row-{{object.pk}}'
+        hx-swap='outerHTML'
+        id="cancel_button"
+        class="btn btn-outline-primary btn-sm">Cancel</button>
+
+        </form>
+
+
+
+
+</td>
+</tr>

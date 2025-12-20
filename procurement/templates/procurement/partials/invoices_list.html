@@ -1,0 +1,21 @@
+
+<h4>Invoices</h4>
+<ul class="list-group">
+        {% for invoice in invoices  %}
+        <li class="list-group-item">
+            <a
+        class="link-offset-2 link-underline link-underline-opacity-0"
+        href="{% url 'procurement:invoices_detail' invoice.pk %}">
+            <strong>{{ invoice.invoice_id }}</strong>
+        </a>{{invoice}}
+
+        </li>
+                
+                    
+                
+
+
+        {% endfor %}
+
+
+

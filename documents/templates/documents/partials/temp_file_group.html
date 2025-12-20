@@ -1,0 +1,27 @@
+{% load static %}
+<div id="group_{{ group }}" class="col-auto border">
+          {% for file in temp_files %}
+          {% include "documents/partials/temp_file.html" %}
+          {% endfor %}
+              <div id="extracted_data" class="col">
+                  <div>
+                    <div
+                      hx-get="{% url 'documents:get_extracted_data' group=group %}"
+                      hx-trigger='load'
+                      hx-target='this'
+                      hx-swap='outerHTML'>
+                    </div>
+                  </div>
+              </div>
+
+              <form id='add_image_{{ group }}' enctype="multipart/form-data" method="post"
+                hx-post="{% url 'documents:create_temp_files' %}?group={{ group }}"
+                hx-target="#group_{{ group }}"
+                hx-swap="afterbegin"
+                hx-trigger='change'
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                {% include "documents/partials/temp_file_input.html" %}
+              </form>
+
+             
+</div>

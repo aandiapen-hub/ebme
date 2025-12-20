@@ -1,0 +1,7 @@
+<div class='container' id='asset_details' >
+    <div id="temp_files"
+    hx-get="{% url 'documents:user_temp_files' %}?success_url={{ success_url}}&target={{ target }}"
+    hx-trigger='load'
+    hx-swap='outerHTML'> 
+    </div>
+</div>

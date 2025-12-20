@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+
+{% block content %}
+
+<div id='create_delivery' class="container">
+
+    <form action="{% url 'procurement:deliveries_create' %}" method="post">
+        {{ form.media }} 
+        {% csrf_token %}
+        
+        {{ form|crispy }}
+        <input type="hidden" name="temp_file_group" value="{{ temp_file_group }}">
+
+        <h4>Items</h4>
+            <div class="container">
+                <div class='row g-3'>
+                {{ formset.management_form }}
+                {% for form in formset %}
+
+                        <div class="col-sm-6 mb-3 mb-sm-0">    
+                            <div id="card-{{forloop.counter}}" class="card border-primary">
+                                <div class="card-header">
+                                <h5>{{form.instance.item.part_number}}</h5>
+                                </div>
+
+                                <div class="card-body "> 
+                                    <div>
+                                        {{ form.line_id.label }}: {{ form.line_id }}
+
+                                        {% for error in form.line_id.errors %}
+                                            <div class="text-danger">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    <div>
+                                        {{ form.item.label}}: {{ form.item }}
+                                        {% for error in form.item.errors %}
+                                            <div class="text-danger">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    <div>
+                                        {{ form.delivery.label }}: {{ form.delivery }}
+                                        {% for error in form.delivery.errors %}
+                                            <div class="text-danger">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    <div>
+                                        {{ form.qty.label}}: {{ form.qty }}
+                                        {% for error in form.qty.errors %}
+                                            <div class="text-danger">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+
+                                    <div>
+
+                                        <button class='btn btn-sm btn-outline-info'
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target='#additional-info-{{forloop.counter}}'
+                                        hx-ignore>
+                                        More
+                                        </button>
+
+                                        {% if formset.can_delete %}
+                                        Delete: {{ form.DELETE }}
+                                        {% endif %}
+                                    </div>
+
+                                    <div id='additional-info-{{forloop.counter}}' class='collapse collapse'>
+                                        <div>
+                                            {{ form.line_description.label_tag }}
+                                            {{ form.line_description }}
+                                            {% for error in line_description.errors %}
+                                                <div class="text-danger">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                
+            {% endfor %}
+                </div>
+            </div>
+
+
+
+        <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+</div>
+{% endblock %}

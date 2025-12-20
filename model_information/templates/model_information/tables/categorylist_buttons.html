@@ -1,0 +1,22 @@
+
+{% if perms.assets.change_tblcategories %}
+    <button
+        hx-get="{% url 'model_information:update_category' pk=record.categoryid %}"
+        hx-target="#modals-here"
+        hx-trigger="click"
+        data-bs-toggle="modal"
+        data-bs-target="#modals-here"
+        class="btn btn-sm btn-outline-primary"
+        type='button'>Edit <i class="bi bi-pencil-fill"></i>
+{% endif %}
+
+{% if perms.assets.delete_tblcategories %}
+    <button
+    hx-get="{% url 'model_information:delete_category' pk=record.categoryid %}"
+    hx-target="#modals-here"
+    hx-trigger="click"
+    data-bs-toggle="modal"
+    data-bs-target="#modals-here"
+    class="btn btn-sm btn-outline-danger ms-3"
+    type='button'>Delete <i class="bi bi-file-earmark-x"></i>
+{% endif %}

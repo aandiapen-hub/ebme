@@ -1,0 +1,22 @@
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+{% load static %}
+
+    <div class="row">
+        <div class="col">
+            <h3>Upload Document</h3>
+
+            <form id='add_image_new' enctype="multipart/form-data" method="post"
+            hx-post="{% url 'documents:create_temp_files' %}"
+            hx-target="#images_div"
+            hx-swap="afterbegin"
+            hx-indicator="#spinner"
+            hx-trigger='change'
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                {% include "documents/partials/temp_file_input.html" %}
+                <input type="hidden" name="group" value="new">
+            <img  id="spinner" class="htmx-indicator" src="{% static 'spinners/3-dots-fade.svg' %}">
+            </form>
+
+        </div>
+    </div>
+

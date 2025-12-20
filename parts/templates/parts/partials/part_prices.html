@@ -1,0 +1,72 @@
+
+{% load partials %}
+
+    <div class='col-12 bg-white p-2'>
+      <button id="add_price" class="btn btn-sm btn-secondary"
+      id="parts_price_list"
+      hx-get="{% url 'parts:part_prices_create' %}?partid={{partid}}"
+      hx-trigger="click"
+      hx-target="#price_table_body"
+      hx-swap="afterbegin">Add Price
+    </button>
+    </div>
+
+
+<table id='price_table' class="table table-hover">
+    <thead id='price_table_head' class="table-head">
+        <tr>
+
+            <td>
+                Effective Date
+            </td>
+            <td>
+                Price
+            </td>
+        </tr>
+
+    </thead >
+    <tbody id='price_table_body'>    
+        {% for part_price in price_list %}
+        {% partial part_price %}
+        {% endfor %}
+
+    </tbody>
+</table>
+
+{% partialdef part_price %}
+            <tr id="row-{{part_price.pk}}">
+             <td>
+                {{part_price.effectivedate}}
+             </td>
+             <td>
+                £{{part_price.price}} 
+             </td>
+             <td  id="price_action_buttons-{{part_price.pk}}">
+                <button id="update_price_button"
+                hx-get="{% url 'parts:part_prices_update' pk=part_price.pk %}"
+                hx-target="#row-{{part_price.pk}}"
+                hx-trigger="click"
+                hx-swap="innerHTML"
+                class="btn btn-sm btn-outline-primary">
+                Update
+                <i class="bi bi-pencil-square"></i>    
+                </button>  
+
+
+                <button id="delete_price_button"
+                hx-get="{% url 'parts:part_prices_delete' pk=part_price.pk %}"
+                hx-target="#price_action_buttons-{{part_price.pk}}"
+                hx-trigger="click"
+                hx-swap="innerHTML"
+                class="btn btn-sm btn-outline-danger">
+                Delete
+                <i class="bi bi-file-earmark-minus"></i>    
+                </button>  
+            </div>
+
+             </td>
+                
+                
+            </tr>
+
+{% endpartialdef %}

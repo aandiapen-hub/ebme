@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}
+
+<div id='add_model' class=' container bg-white p-2'>
+        <h4>Create a new Model</h4>
+
+        <div class="row">
+                {% comment "form" %}New model form{% endcomment %}
+                <div class="col">
+                        <form
+                                class="form" method="post"
+                                hx-post="{{request.path}}"
+                                hx-trigger="submit"
+                                hx-target="#add_model"
+                                {% if 'true' in returnscript %}
+                                        hx-select='#set-select-script'
+                                        {% else %}
+                                        hx-select='#model-detail'
+                                        hx-push-url='true'
+                                {% endif %}
+                                hx-swap='outerHTML'>
+                                {% csrf_token %}
+                                {{form.media}}
+                                {{ form|crispy }}
+                                
+                                <button class="btn btn-primary" type="submit">Save</button>
+
+                        </form>
+                </div>
+                {% comment "buttons" %}Buttons to create new brand and categories if required.{% endcomment %}
+                <div class="col">
+                        {% if perms.assets.add_tblbrands %}
+                                <button
+                                hx-get="{% url 'model_information:create_brand'%}"
+                                hx-target="#modals-here"
+                                hx-trigger="click"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modals-here"
+                                class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-plus-lg"></i> Brand
+                                </button>
+                        {% endif %}
+
+                        {% if perms.assets.add_tblcategories %}
+                                <button
+                                hx-get="{% url 'model_information:create_category'%}"
+                                hx-target="#modals-here"
+                                hx-trigger="click"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modals-here"
+                                class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-plus-lg"></i> Category
+                                </button>   
+                        {% endif %}
+
+                </div>
+        </div>
+        {% comment "error" %}section for displaying error messages{% endcomment %}
+        <div class="row">
+                <div class="'col">
+                        {% if error_message %}
+                        <div class="alert alert-danger" role="alert">
+                        {{error_message}}  
+                        </div>
+                        {% endif %}
+                </div>
+
+        </div>
+</div>
+
+
+
+{% endblock content %}

@@ -1,0 +1,38 @@
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+<div id="model-detail" class='container bg-white p-2'>
+
+        <h1>{{object}}</h1>
+        <form class="form"
+        hx-post="{{request.path}}"
+        hx-trigger="submit"
+        hx-target="#model-detail"
+        hx-select="#model-detail"
+        hx-swap='outerHTML'>
+        {% csrf_token %}
+        {{ form|crispy }}
+
+        {% if view_type == "delete" %}
+        <h3>Are you sure you want to delete the part {{object}}</h3>
+        <button class="btn btn-danger" type="submit">Confirm Delete</button>
+        {% else %}
+        <button class="btn btn-primary" type="submit">Save</button>
+
+        <button
+                class="btn btn-outline-secondary"
+                hx-get="{% url 'parts:part_detail' pk=object.pk %}"
+                hx-target="#model-detail"
+                hx-swap="outerHTML"
+                hx-select="#model-detail">
+                Cancel
+        </button>
+        {% endif %}
+        </form>
+
+        {% if error_message %}
+        <div class="alert alert-danger" role="alert">
+        {{error_message}}  
+        </div>
+        {% endif %}
+
+</div>
+

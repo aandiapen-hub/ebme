@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div id='reader_output' class='container m-3'>
+
+
+<div class='container' id='temp_files'
+    hx-get="{% url 'documents:user_temp_files' %}?group={{temp_document_group}}"
+    hx-trigger='load'
+    hx-select='#images_div'
+    hx-swap='outerHTML'> 
+</div>
+
+
+
+
+
+{% if existing_delivery %}
+<h4>Delivery already exisits</h4>
+<div id='existing_delivery'
+hx-get='{% url "procurement:deliveries" %}?delivery_id={{existing_delivery.pk}}'
+hx-trigger='load'
+hx-target='this'
+hx-swap='outerHTML'>
+</div>
+
+
+{% else %}
+<h4>Create New Delivery</h4>
+{{po_id}}
+<div id='new_delivery'
+hx-get='{% url "procurement:deliveries_create" %}?po_id={{po_id}}&delivery_note_number={{output.DelNote}}&items={{output.Items}}&temp_file_group={{ temp_file_group }}'
+hx-trigger='load'
+hx-target='this'
+hx-select='#create_delivery'
+hx-swap='outerHTML'>
+</div>
+
+{% endif %}
+
+</div>
+
+{% endblock content %}

@@ -1,0 +1,58 @@
+
+{% load partials %}
+
+<button
+    class='btn btn-outline-secondary'
+    hx-get="{% url 'parts:linked_models_create' %}?partid={{partid}}"
+    hx-target='this'
+    hx-swap='outerHTML'> Link models
+</button>
+
+
+<table id='link_table' class="table table-hover">
+    <thead class="table-head">
+        <tr>
+
+            <td>
+                Models
+            </td>
+        </tr>
+
+    </thead>
+    <tbody id='price_table_body'>    
+        {% for link in linked_models %}
+        {% partial linked_model %}
+        {% endfor %}
+
+    </tbody>
+</table>
+
+{% partialdef linked_model %}
+            <tr id="row-{{link.pk}}">
+             <td>
+                {{link.model}}
+             </td>
+
+             <div class='collapse' id='buttons-{{link.pk}}'>
+             <td>
+                <button id="delete_link_button"
+                hx-get="{% url 'parts:linked_models_delete' pk=link.part_model_id %}"
+                hx-target="this"
+                hx-trigger="click"
+                hx-swap="outerHTML"
+                class="btn btn-sm btn-danger"
+                data-bs-toggle="collapse"
+                data-bs-target="#formdiv-{{link.pk}}, #buttons-{{link.pk}}">
+                Delete
+                <i class="bi bi-file-earmark-minus"></i>    
+                </button>  
+            </div>
+
+             </td>
+                
+            <td class="collapse" id="formdiv-{{link.pk}}">
+                </td>
+                
+            </tr>
+
+{% endpartialdef %}

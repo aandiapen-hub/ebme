@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+
+
+{% block content %}
+<!--List Asset Details -->
+
+<div id="asset_details" class='container'>
+      
+      {#Return to Assets Button#}
+      {% include "assets/partials/back_to_assets_button.html" %}
+
+      <div class="row  bg-white p-4 rounded"> 
+        <div class="col">
+          <p><small class="text-muted">ID: </small>{{asset.assetid}}</p>
+          <p><small class="text-muted">Customer Asset No: </small>{{asset.customerassetnumber}}</p>
+          <p><small class="text-muted">Serial No: </small>{{asset.serialnumber}}</p>
+          <p><small class="text-muted">Model Spec: </small>{{asset.modelid}}</p>
+          <p><small class="text-muted">Customer: </small>{{asset.customerid}}</p>
+          <p><small class="text-muted">Location: </small>{{asset.locationid}}</p>
+        </div>
+        <div class="col">
+          <p><small class="text-muted">Next PPM Date: </small>{{asset.nextppmdate}}</p>
+          <p><small class="text-muted">Schedule: </small>{{asset.ppmscheduleid}}</p>
+          <p><small class="text-muted">Last PPM Date: </small>{{asset.lastppmdate}}</p>
+          <p><small class="text-muted">Last Repair Date: </small>{{asset.lastrepairdate}}</p>
+        </div>
+        <div class="col text-end">
+          <div id="edit_div" class="dropdown">
+            <button class="btn btn-outline-white border-white dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu border-light dropdown-menu-end ">
+              <li class='dropdown-item'>
+                {% if perms.assets.change_tblassets %}
+                  <button
+                    class="btn text-primary"
+                    hx-get="{% url 'assets:update_asset' pk=asset.assetid %}"
+                    hx-target="#asset_details"
+                    hx-swap="innerHTML"
+                    hx-trigger="click",
+                    hx-select='#asset_details'
+                    hx-push-url='true'>
+                    EDIT
+                  </button>
+                {% endif %}
+              </li>
+              <li class='dropdown-item'>
+                {% if perms.assets.delete_tblassets %}
+                <button
+                  class="btn text-danger"
+                  hx-get="{% url 'assets:delete_asset' pk=asset.assetid %}"
+                  hx-target="#modals-here"
+                  hx-trigger="click"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modals-here">
+                  DELETE
+                </button>
+                {% endif %}
+              </li>
+            </ul>
+          </div>
+
+        </div>
+        <div class="col-12" id="document_div">
+            {% include "documents/partials/generic_document_partial.html" with link_row=asset.assetid app_model="assets.tblAssets" link_table="tblAssets"%}   
+        </div>
+      </div>
+
+
+
+    <!--List Jobs -->
+    <div id='asset-jobs' class='row g-3 mt-3'>
+      <div id='job-buttons' class='col-12'>
+        {% if perms.assets.add_tbljob %}
+
+          <!-- Split dropup button -->
+          <div class="btn-group dropdown">
+            <a type="button" class="btn btn-outline-secondary"
+              href="{% url 'jobs:job_create' %}?assetid={{ asset.assetid }}" >Create Job
+            </a>
+            <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="visually-hidden">Toggle Dropdown</span>
+            </button>
+            <ul class="dropdown-menu">
+              <li>
+              <a href="{% url 'jobs:job_create' %}?assetid={{ asset.assetid }}&quickjob='successful_ppm'"
+              class='btn text-secondary'>
+              Quick PPM Job</a>
+              </li>
+            </ul>
+          </div>
+
+
+        {% endif %}
+      </div>    
+
+      <div id="job-history" class='col-12'
+        hx-get="{% url 'assets:asset_jobs' assetid=asset.assetid %}"
+        hx-trigger="load"
+        hx-target="#job-history"
+        hx-swap='innerHTML'>
+      </div>
+
+  
+
+
+        
+
+</div>
+
+
+{%endblock content%}
+

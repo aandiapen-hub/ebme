@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load django_tables2 %}
+{% load i18n %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}
+
+
+<div id='asset_filter_table' class="container-flex p-3 row-gap-3">
+      <div class='d-flex flex-row  gap-2 align-items-center'>
+          <div id='title_name'>
+            <h1>Assets</h1>
+          </div>
+          <div id='action_create' class='ms-auto'>
+                <!--create asset button-->
+                {% if perms.assets.add_tblassets %}
+
+                        <a class="btn btn-sm btn-outline-secondary" href="{% url 'assets:create_asset' %}">New <i class="bi bi-plus"></i></a>
+                    
+                {% endif %}
+          </div>  
+        
+          <div id='bulk_update'>
+            <!--Multiple asset edits buttons-->
+                {% if perms.assets.bulk_change_assets %}
+                    <button type='button'
+                        class="btn btn-outline-warning"
+                        hx-get="{% url 'assets:bulk_update_assets' %}"
+                        hx-include='#filter-form, #row_select_form'
+                        hx-push-url='true'>
+                        Edit <i class="bi bi-pencil-fill"></i>
+                    </button>
+                    
+                {% endif %}
+          </div>
+      </div>
+</div>
+{% include "filter_table.html" with app_link='assets:assets_list' %}
+{% endblock content %}
+
+

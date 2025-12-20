@@ -1,0 +1,20 @@
+
+    {% if perms.documents.view_tbldocuments %}
+
+        <a
+        class="btn btn-sm btn-outline-primary "
+        href="{% url 'documents:download_document' record.document_id %}">
+        Download <i class="bi bi-cloud-download"></i>
+        </a>
+        {% endif %}
+
+    {% if perms.documents.change_tbldocuments %}
+        <a
+        class="btn btn-sm btn-outline-secondary ms-3"
+        href="{% url 'documents:update_document' record.document_id %}">
+        Update <i class="bi bi-pen"></i>
+        </a>
+    {% endif %}
+
+
+

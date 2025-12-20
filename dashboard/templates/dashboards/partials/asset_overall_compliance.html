@@ -1,0 +1,16 @@
+<div class="card">
+  <div class="card-header">
+    Asset PPM Compliance
+  </div>
+  <div class="card-body">
+    <h5 class="card-title">
+      <div class="progress" role="progressbar" aria-label="Example with label" aria-valuenow="{{percentage_compliance}}" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar" style="width:{{percentage_compliance}}%">
+            {{percentage_compliance|floatformat:1}}%
+        </div>
+      </div>    
+    </h5>
+    <p class="card-text">Out of {{total_assets}} assets, {{non_compliant_assets|floatformat:0}} are due for Preventive Maintenance</p>
+    <a href='{% url "assets:assets_list" %}?ppm_compliance=non-compliant' class="btn btn-outline-warning">View Oustanding Assets</a>
+  </div>
+</div>

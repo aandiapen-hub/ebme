@@ -1,0 +1,63 @@
+{% load partials %}
+
+{% block content %}
+
+<h2>Test Equipment</h2>
+<div>
+    <button class='btn btn-secondary'
+        hx-get="{% url 'jobs:testequipmentused_create' jobid=jobid %}" 
+        hx-target="#modals-here"
+        hx-trigger="click"
+        data-bs-toggle="modal"
+        data-bs-target="#modals-here"
+        class="btn btn-primary">
+        Add Test equipment
+    </button>
+</div>
+
+<table class='table table-hover table-bordered'>
+    <thead>
+        <tr>
+            <th>Equipment ID</th>
+            <th>Model</th>
+            <th>Serial No.</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="equipmentlist-table">
+        {% for equipmentused in TestEquipmentList %}
+            {%partial equipment %}
+        {% endfor %}
+
+    </tbody>
+</table>
+
+
+{% endblock %}
+
+
+{% partialdef equipment %}
+<tr id="equipmentused-{{ equipmentused.id }}">
+    <td>{{ equipmentused.test_eq }}</td>
+    <td>{{ equipmentused.test_eq.modelid }}</td>
+    <td>{{ equipmentused.test_eq.serialnumber }}</td>
+
+
+    <td>
+        <button class='btn btn-secondary'
+        hx-get = "{% url 'jobs:testequipmentused_delete' pk=equipmentused.id %}"
+        hx-target="#modals-here"
+        hx-trigger="click"
+        data-bs-toggle="modal"
+        data-bs-target="#modals-here"
+        class="btn btn-primary">
+        Delete
+    </button>
+
+    </td>
+</tr>
+{%endpartialdef equipment%}
+
+
+
+

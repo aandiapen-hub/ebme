@@ -1,0 +1,58 @@
+
+
+
+
+
+<div id='jobs' class="container border">
+<div id='open_jobs' class="row g-3 m-1">
+    {% if open_jobs %}
+    <h4 class="text-secondary">Open Jobs </h4>
+    {% for job in open_jobs  %}
+        <div class="col-sm-6 mb-3 mb-sm-0">
+            <div class="card border-warning">
+            <div class="card-body">
+                    <div class="card-header bg-warning">
+                        {{job.jobstatus}}
+                    </div>
+                <h5 class="card-title">
+                    <a href="{% url 'jobs:job_summary' pk=job.jobid %}">Job: {{job.jobid}} ({{job.jobstatus}}) {{job.startdate}}-{{job.enddate}}</a></h5>
+                <p class="card-text">{{job.workdone}}</p>
+                <p class="cart-text">    Parts: {{job.partsperjob}}</p>
+            </div>
+            </div>
+        </div>
+    {% endfor %}
+    {% endif %}
+</div>
+
+
+<div id='all_jobs' class="row g-3 m-1">
+    <h4 class="text-secondary">Job History </h4>
+
+    {% for job in jobs  %}
+        {% if job not in open_jobs %}
+            <div class="col-sm-6 mb-3 mb-sm-0">
+                <div class="card border-success ">
+                    <div class="card-header">
+                         <a class="text-decoration-none " href="{% url 'jobs:job_summary' pk=job.jobid %}">Job: {{job.jobid}}</a> 
+                    </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{job.jobstatus}}</h5>
+                    <p class="card-text">   <strong>Start:</strong>  {{ job.startdate }}<br>
+                                            <strong>End:</strong>    {{ job.enddate }} </p>
+                    <p class="card-text">{{job.workdone}}</p>
+                    <p class="cart-text">    Parts: {{job.partsperjob}}</p>
+                </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+</div>
+
+
+
+
+
+

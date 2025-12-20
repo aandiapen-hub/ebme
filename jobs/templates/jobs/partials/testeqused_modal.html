@@ -1,0 +1,60 @@
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+<div  class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{title}}</h5>
+      </div>
+      <div class="modal-body">
+
+
+        <form action= method="post"
+            hx-post="{{request.path}}"
+            hx-target="#equipmentlist-table"
+            hx-trigger='click from:#use_button' 
+            hx-select='#equipmentlist-table'
+            hx-swap="outerHTML">
+            {% csrf_token %}  
+
+
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Test Eq</th>
+                  <th scope="col">Select</th>
+
+                </tr>
+              </thead>
+              <tbody>
+                {% for eq in test_eq_options %}
+                <tr>
+                  <td>
+                  {{eq.modelid}}-{{eq.serialnumber}}
+                  </td>
+                  <td>
+                    <label>
+                    <input type="checkbox" name="selected" value="{{ eq.assetid }}">
+                    </label>
+                  </td>
+                </tr>
+            {% endfor %}
+              </tbody>
+            </table>
+        </form>                
+        
+        <button id='use_button'
+            type='submit'
+            class="btn btn-primary" 
+            data-bs-toggle="modal"
+            data-bs-target="#modals-here"
+            onclick="this.style.display='none'">
+            Use
+        </button>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>

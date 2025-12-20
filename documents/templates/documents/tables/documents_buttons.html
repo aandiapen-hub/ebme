@@ -1,0 +1,21 @@
+
+    {% if perms.documents.delete_tbldocuments %}
+
+        <a
+        class="btn btn-sm btn-outline-primary "
+        href="{% url 'documents:download_document' record.pk %}">
+        Download <i class="bi bi-cloud-download"></i>
+        </a>
+        {% endif %}
+
+    {% if perms.documents.delete_tbldocuments %}
+        <a
+        class="btn btn-sm btn-outline-secondary ms-3"
+        href="{% url 'documents:update_document' record.document_id %}">
+        Delete <i class="bi bi-pen"></i>
+        </a>
+    {% endif %}
+
+
+
+        

@@ -1,0 +1,65 @@
+
+<h4>Deliveries</h4>
+{{existing_delivery}}
+        {% for delivery in deliveries  %}
+            <div class="accordion" id="accordionExample">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{delivery.delivery_id}}" aria-expanded="true" aria-controls="collapse-{{delivery.delivery_id}}">
+                    {{delivery}}
+                </button>
+                </h2>
+                <div id="collapse-{{delivery.delivery_id}}" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                    <!--Edit Delivery Button -->
+                    <button class="btn btn-outline-secondary" type="button"
+                            hx-get="{% url 'procurement:deliveries_update' pk=delivery.delivery_id %}"
+                            hx-target="#order_details"
+                            hx-trigger="click"
+                            hx-push-url='true'
+                            hx-select='#order_details'
+                            hx-swap='innerHTML'>
+                    <i class="bi bi-pencil-fill"></i>
+                    </button>
+
+                    <!--Delete Delivery Button -->
+                    <button type="button"
+                            hx-get="{% url 'procurement:deliveries_delete' pk=delivery.delivery_id %}"
+                            hx-target="this"
+                            hx-trigger="click"
+                            hx-swap="outerHTML"
+                            class="btn btn-outline-danger">
+                    <i data-bs-toggle="tooltip" title="Delete Delivery" class="bi bi-file-earmark-minus"></i>   
+                    </button>
+
+                    <div class='container'>
+                        <div class='row'>
+                            <!--List Lines in the delivery -->
+                            <div class='col'>
+                                <div id="delivery_lines-{{delivery.delivery_id}}"
+                                        hx-get="{% url 'procurement:del_lines' %}?delivery_id={{delivery.delivery_id}}"
+                                        hx-trigger="intersect"
+                                        hx-target="this"
+                                        hx-swap='innerHTML'>'
+                                </div>
+                            </div>
+                            <!--Documents -->
+                            <div class='col text-end'>  
+                                <!--Documents -->
+                                {% include "documents/partials/generic_document_partial.html" with link_row=delivery.delivery_id app_model="procurement.TblDeliveries" link_table="tbl_deliveries"%}
+
+
+                            </div>
+                        </div>
+                        </div>
+
+                </div>
+                </div>
+            </div>
+            </div>
+
+
+        {% endfor %}
+
+
+

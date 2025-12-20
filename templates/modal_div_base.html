@@ -1,0 +1,34 @@
+<div id="modals-here"
+    class="modal modal-blur fade"
+    style="display: none"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+    tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content"></div>
+    </div>
+</div>
+
+<script>
+  document.body.addEventListener("openModal", function () {
+    // This will run when the HX-Trigger event is fired
+    const modal = new bootstrap.Modal(document.getElementById("modals-here"));
+    modal.show();
+  });
+</script>
+
+
+
+<script>
+  document.body.addEventListener("closeModal", function () {
+    const modalElement = document.getElementById("modals-here");
+    const modal = bootstrap.Modal.getInstance(modalElement);
+
+    if (modal) {
+      modal.hide();  // properly hide the existing modal
+    } else {
+      console.warn("Modal instance not found.");
+    }
+  });
+</script>

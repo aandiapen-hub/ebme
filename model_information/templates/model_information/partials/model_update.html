@@ -1,0 +1,25 @@
+
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+<div id='update_model'class='container bg-white p-2'>
+<form class="form" method="post"
+        hx-post="{{request.path}}"
+        hx-trigger="submit"
+        hx-target="#update_model"
+        hx-swap="outerHTML"
+        hx-select='#model-detail'>
+        {% csrf_token %}
+        {{form.media}}
+        {{ form|crispy }}
+        <input  type="hidden" name="temp_document_group" value="{{ temp_document_group }}">
+
+        <button class="btn btn-primary" type="submit">Save</button>
+
+
+        </form>
+        {% if error_message %}
+        <div class="alert alert-danger" role="alert">
+        {{error_message}}  
+        </div>
+        {% endif %}
+<div>

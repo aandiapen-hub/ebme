@@ -1,0 +1,2 @@
+export DJANGO_SETTINGS_MODULE=ebme.settings.development
+python manage.py runserver

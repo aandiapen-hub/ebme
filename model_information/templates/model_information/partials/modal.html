@@ -1,0 +1,33 @@
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+<div  class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{title}}</h5>
+      </div>
+      <div class="modal-body">
+        
+        <form class="form"
+        hx-post="{{request.path}}"
+        hx-trigger="submit">
+        
+        {% csrf_token %}
+        {{form.media}}
+        {{ form|crispy }}
+        
+        <button class="btn btn-primary" type="submit">Save</button>
+
+        </form>
+        {% if error_message %}
+        <div class="alert alert-danger" role="alert">
+        {{error_message}}  
+        </div>
+        {% endif %}
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>

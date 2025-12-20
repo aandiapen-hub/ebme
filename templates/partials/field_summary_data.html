@@ -1,0 +1,68 @@
+{% if 'list' in  summary_field_data.status %}
+    <input _=" on keydown[keyCode == 13]
+            halt the event
+            end
+      on input 
+      show <div>div/> in next <div/>
+        when its id.toLowerCase() contains my value.toLowerCase()
+      "/>
+    <div class='overflow-auto' style="max-height: 300px;" id='checkbox_filter_div'>
+    {% for item in summary_field_data.data %}
+
+
+      <div  class="form-check ">
+        <input class="form-check-input"
+              id='{{item.fieldname}}_{{item.pk}}_checkbox'
+              type='checkbox' name='{{item.fieldname}}__iexact'
+          {% if 'Unknown' in item.name %} hidden {% endif %}
+              value='{{item.pk}}'
+              {% if item.checked %}checked{%endif%}
+          >
+
+        <label class="form-check-label" for='{{item.fieldname}}_{{item.pk}}_checkbox'>{{ item.name }} ({{item.count}})</label>
+      </div>
+    {% empty %}
+      <p>Lookup not available for this column. Use advanced filter to narrow down results</i></p>
+      <button
+                  class="btn" type="button"
+                  data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
+                  _="on click
+                  set the value of #filter_list_search_box to '{{item.fieldname}}'
+                  trigger input on #filter_list_search_box 
+                  add .show to #flush-collapse_{{item.fieldname}}
+                      "> 
+                  <i class="bi bi-funnel-fill"></i>
+              </button>
+
+    {% endfor %}
+  </div>
+
+{% elif 'datefield' in summary_field_data.status %}
+      <p>This a datefield, lookup not available for this data. Use advanced filter to narrow down results </i></p>
+      <button
+                  class="btn" type="button"
+                  data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
+                  _="on click
+                  set the value of #filter_list_search_box to '{{summary_field_data.data.field.verbose_name}}'
+                  trigger input on #filter_list_search_box 
+                  add .show to #flush-collapse_{{summary_field_data.data.field.name}}
+                      "> 
+                  <i class="bi bi-funnel-fill"></i>
+              </button>
+
+{% elif "high_row_count" in summary_field_data.status %}
+      <p>This field has too many values. Use advanced filter to narrow down results </i></p>
+      <button
+                  class="btn" type="button"
+                  data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
+                  _="on click
+                  set the value of #filter_list_search_box to '{{summary_field_data.data.field.verbose_name}}'
+                  trigger input on #filter_list_search_box 
+                  add .show to #flush-collapse_{{summary_field_data.data.field.name}}
+                      "> 
+                  <i class="bi bi-funnel-fill"></i>
+              </button>
+
+
+{% endif %}
+

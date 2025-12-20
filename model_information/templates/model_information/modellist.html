@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load partials %}
+{% load render_table from django_tables2 %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}
+<div class="container-flex p-3 justify-content-start row-gap-3">
+    <div id="title" class="row">
+        <div class="col-12">
+            <h1>Models</h1>
+        </div>
+        
+        <!--Create new model button-->
+        <div class='col-auto'>
+            <a
+                class='btn btn-outline-secondary'
+                href="{% url 'model_information:create_model'%}">
+                <i class="bi bi-plus-lg"></i>
+            </a>
+        </div>
+        
+        <!--Multiple asset edits buttons-->
+        <div class='col-auto ms-auto'>
+            {% if perms.assets.bulk_update_tblmodel %}
+                <button type='button'
+                    class="btn btn-outline-warning"
+                    hx-get="{% url 'model_information:bulk_update_models' %}"
+                    hx-include='#filter-form, #row_select_form'
+                    hx-push-url='true'>
+                    Edit <i class="bi bi-pencil-fill"></i>
+                </button>
+            {% endif %}
+        </div>
+
+    </div>
+
+
+</div>
+{% include "filter_table.html" with app_link='model_information:modellist' %}
+
+
+{% endblock content %}

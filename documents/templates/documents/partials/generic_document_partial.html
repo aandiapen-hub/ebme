@@ -1,0 +1,53 @@
+
+
+<p><small class="text-muted">Documents</small></p>
+<div class='container'>
+    <button id="create_doc_button"
+        hx-get="{% url 'documents:create_document_link'%}?link_row={{link_row}}&link_table={{link_table}}"
+        hx-target="#modals-here"
+        hx-trigger="click"
+        data-bs-toggle="modal"
+        data-bs-target="#modals-here"
+        class="btn btn-outline-secondary">
+        <i class="bi bi-file-earmark-plus"></i>
+    </button>   
+
+
+
+
+    <!-- Button trigger modal -->
+    <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#documentListModal">
+    <i class="bi bi-files-alt"></i>
+    </button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="documentListModal" tabindex="-1" aria-labelledby="documentListModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h1 class="modal-title fs-5" id="documentListModalLabel">Documents List</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+                        
+            <div    
+                hx-get="{% url 'documents:list_documents' %}?link_row={{link_row}}&app_model={{app_model}}&link_table={{link_table}}"
+                hx-trigger="intersect"
+                hx-target="this"
+                hx-swap='innerHTML'>
+
+                <div class="spinner-border " role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+        </div>
+    </div>
+    </div>
+</div>
+{% include 'partials/messages.html' %}
+
+    

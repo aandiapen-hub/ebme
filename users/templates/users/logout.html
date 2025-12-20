@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+
+
+{% block content %}
+
+
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+<h3>Are you sure you would like to logout?</h3>
+
+<div class="container">
+
+    <form action="{% url 'users:logout_confirmation' %}" method="post">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <button class="btn btn-warning" type="submit">Log Out</button>
+    </form>
+</div>
+
+{% endblock content %}

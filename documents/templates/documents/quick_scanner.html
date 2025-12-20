@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+{% block content %}
+
+<div class="container">
+        <div class='row mt-3'>
+            <div class="col-sm-12 col-md-4">
+                <form id='quick_scan_form' method="post" action=" {% url "documents:quick_scanner" %}", enctype="multipart/form-data">
+                    <h4>{{form_title}}</h4>
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <input id=temp_file_group_input type="hidden" name="group" value="{{ temp_document_group }}">
+                    {%include "partials/messages.html"%}
+
+                    <button class="btn btn-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+</div>
+
+{% endblock content %}

@@ -1,0 +1,129 @@
+{% load partials %}
+
+{% block content %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+<h2>Checklist</h2>
+<div>
+    <button class='btn btn-secondary'
+        hx-get="{% url "jobs:testscarriedout_create" jobid=jobid %}" 
+        hx-target="#modals-here"
+        hx-trigger="click"
+        data-bs-toggle="modal"
+        data-bs-target="#modals-here"
+        class="btn btn-primary">
+        Add Check
+    </button>
+</div>
+
+<table class='table table-hover table-bordered'>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Job</th>
+            <th>Check</th>
+            <th>Result</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="checklist-table">
+        {% for check in checklist %}
+        
+            {%partial check %}
+        {% endfor %}
+
+    </tbody>
+</table>
+
+
+{% endblock %}
+
+
+{% partialdef check %}
+<tr id="check-{{ check.testid }}"
+    class="{% if not check.resultid %} table-warning 
+    {% elif check.resultid.resultname == 'Pass' %} table-success
+    {% elif check.resultid.resultname == 'Fail' %} table-danger
+    {% elif check.resultid.resultname == 'N/A' %} table-secondary
+
+    
+    {% endif %}">
+    
+    <td>{{ check.testid }}</td>
+    <td>{{ check.jobid }}</td>
+    <td >{{ check.checkid }}</td>
+    <td>{{ check.resultid }}</td>
+
+
+    <td>
+        <div class="container" role="group" aria-label="Basic example">
+
+
+
+    <form method='post'>
+        {% csrf_token %}
+        {% if not check.resultid.resultname %}
+            <button
+            hx-post="{% url 'jobs:testscarriedout_update' pk=check.testid %}"
+            hx-target="#check-{{ check.testid }}"
+            hx-swap="outerHTML"
+            type="button"
+            class='btn btn-success' 
+            hx-vals='{"result":"Pass"}'>
+            Pass
+            </button>
+    
+            <button
+            hx-post="{% url 'jobs:testscarriedout_update' pk=check.testid %}"
+            hx-target="#check-{{ check.testid }}"
+            hx-swap="outerHTML"
+            type="button"
+            class='btn btn-danger' 
+            hx-vals='{"result":"Fail"}'>
+            Fail
+            </button>
+
+
+            <button
+            hx-post="{% url 'jobs:testscarriedout_update' pk=check.testid %}"
+            hx-target="#check-{{ check.testid }}"
+            hx-swap="outerHTML"
+            type="button"
+            class='btn btn-secondary' 
+            hx-vals='{"result":"n/a"}'>
+            Not Applicable
+            </button>
+            <button class='btn btn-warning' 
+            hx-get="{% url 'jobs:testscarriedout_delete' pk=check.testid %}" 
+            
+            hx-target="#modals-here"
+            hx-trigger="click"
+            data-bs-toggle="modal"
+            data-bs-target="#modals-here"
+            class="btn btn-primary">
+
+            Delete
+            </button>
+
+        {% else %}
+            <button
+            hx-post="{% url 'jobs:testscarriedout_update' pk=check.testid %}"
+            hx-target="#check-{{ check.testid }}"
+            hx-swap="outerHTML"
+            type="button"
+            class='btn btn-secondary' 
+            hx-vals='{"result":"clear"}'>
+            Clear Results
+            </button>
+
+            {% endif %}
+    </form>
+    </div>
+</td>
+</tr>
+{%endpartialdef check%}
+
+
+
+

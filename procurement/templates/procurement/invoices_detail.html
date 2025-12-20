@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}
+
+
+
+
+<!--List Job Details -->
+
+<div id="invoice_details" class='container'>
+    
+        <div class="row bg-white p-4 rounded">
+          <div class="col">
+            <small class="text-muted">ID:</small>
+            <p>{{ invoice.invoice_id}}</p>
+            <small class="text-muted">Invoice No:</small>
+            <p>{{ invoice.invoice_no}}</p>
+
+
+            <small class="text-muted">Invoice Date:</small>
+            <p>{{ invoice.invoice_date}}</p>
+
+
+            <small class="text-muted">Purchase Order:</small>
+                <p>{{ invoice.po }}</p>
+            
+            <small class="text-muted">Due Date:</small>
+            <p>{{ invoice.invoice_due_date }}</p>
+    
+    
+          </div>
+          <div class="col">
+            <small class="text-muted">Fully Paid Date:</small>
+            <p>{{ invoice.fully_paid_date }}</p>
+    
+            <small class="text-muted">Invoice Amount:</small>
+            <p>{{ invoice.invoice_amount }}</p>
+    
+
+          </div>
+          <div class="col text-end">
+              <!--Documents -->
+            {% include "documents/partials/generic_document_partial.html" with link_row=invoice.pk app_model="procurement.tblinvoices" link_table="tbl_invoices"%}
+
+            <div class="dropdown">
+              <button class="btn btn-outline-white border-white dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+              <ul class="dropdown-menu border-light dropdown-menu-end ">
+                <li class='dropdown-item'>
+                  {% if perms.assets.change_tbljob %}
+                    <a
+                      href="{% url 'procurement:invoices_update' pk=invoice.invoice_id %}"                    
+                      class="btn text-primary">EDIT
+                    </a>
+                  {% endif %}
+                </li>
+                <li class='dropdown-item'>
+                  {% if perms.assets.delete_tbljob %}
+                    <a
+                      href="{% url 'procurement:invoices_delete' pk=invoice.invoice_id %}"                    
+                      class="btn text-danger">Delete
+                    </a>
+                  {% endif %}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+     
+
+        <!--Documents -->
+        <div class='row'>
+          <div class='col'>
+            <h3>Documents</h3>
+              {% with link_row=invoice.invoice_id|stringformat:"s" %}
+              {% include "documents/partials/generic_document_partial.html" with hx_vals='{"link_row": "'|add:link_row|add:'", "link_table": "Invoice"}' %}
+              {% endwith %}
+          </div>
+        </div>
+</div>
+
+
+
+{% endblock content %}

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}
+
+
+
+
+<!--List Job Details -->
+
+<div id="job_details" class='container'>
+    
+        <div class="row bg-white p-4 rounded">
+          <div class="col">
+            <small class="text-muted">Job ID:</small>
+            <p>{{ job.jobid}}</p>
+            <small class="text-muted">Serial No:</small>
+            <p>{{ job.serialnumber}}</p>
+           
+            <small class="text-muted">Asset ID:</small>
+            <p><a
+            class="text-decoration-none"
+            href="{% url 'assets:view_asset' job.assetid %}">
+                <strong>{{ job.assetid }}</strong> <i class="bi bi-folder2-open"></i> 
+            </a></p>
+
+            <small class="text-muted">Model Spec:</small>
+            <p>{{ job.modelid}}</p>
+
+
+            <small class="text-muted">Customer:</small>
+                <p>{{ job.customerid}}</p>
+            
+            <small class="text-muted">Location:</small>
+            <p>{{ job.locationid}}</p>
+    
+    
+          </div>
+          <div class="col">
+            <small class="text-muted">Job Type:</small>
+            <p>{{ job.jobtypename}}</p>
+            
+            <small class="text-muted text-muted ">Job Status:</small>
+            <p class='{% if job.jobstatusid.jobstatusid != 1 %} bg-warning {% else %} text-muted {% endif %}'>{{ job.jobstatusid}}</p>
+
+            <small class="text-muted">Technician:</small>
+            <p>{{ job.technicianid}}</p>
+
+            <small class="text-muted">Start Date:</small>
+            <p>{{ job.startdate|date:"Y-m-d" }} </p>
+
+            <small class="{% if not job.enddate %} bg-warning {% else %} text-muted {% endif %}">End Date:</small>
+            <p>{{ job.enddate|date:"Y-m-d" }} </p>
+          </div>
+          <div class="col text-end">
+            <div id="edit_div" class="dropdown">
+              <button class="btn btn-outline-white border-white dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+              <ul class="dropdown-menu border-light dropdown-menu-end ">
+                <li class='dropdown-item'>
+                  {% if perms.assets.change_tbljob %}
+                    <button
+                      hx-get="{% url 'jobs:job_update' pk=job.jobid %}"
+                      hx-target="#job_details"
+                      hx-swap='innerHTML'
+                      hx-push-url='true'
+                      hx-trigger="click"
+                      hx-select='#job_details'
+                      class="btn text-primary">EDIT
+                    </button>
+                  {% endif %}
+                </li>
+                <li class='dropdown-item'>
+                  {% if perms.assets.delete_tbljob %}
+                    <button
+                      hx-get="{% url 'jobs:job_delete' pk=job.jobid %}"
+                      hx-target="#modals-here"
+                      hx-trigger="click"
+                      data-bs-toggle="modal"
+                      data-bs-target="#modals-here"
+                      class="btn text-danger">DELETE
+                    </button>
+                  {% endif %}
+                </li>
+              </ul>
+            </div>
+
+          </div>
+          <div class='col-12' id="document_div">
+              <!--Documents -->
+              {% include "documents/partials/generic_document_partial.html" with link_row=job.jobid app_model="assets.tbljob" link_table="tblJob"%}
+          </div>
+        </div>
+
+        <div class="row bg-white p-4 rounded ">
+          <div class="col-sm">
+                <small class="text-muted">Checklist:</small>
+                <p>{{ job.testsperjob|linebreaksbr }} </p>
+            </div>    
+            <div class="col-sm">
+                <small class="text-muted">Work Done:</small>
+                <p>{{ job.workdone|linebreaksbr }} </p>
+            </div>    
+            <div class="col-sm">
+                <small class="text-muted">Parts Cost:</small> £{{ job.total_cost }}<br>
+                <small class="text-muted">Spare Parts:</small>
+                <p>{{ job.partsperjob|linebreaksbr }} </p>
+            </div>       
+        </div>
+
+{% endblock content %}

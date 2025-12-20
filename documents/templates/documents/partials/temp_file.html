@@ -1,0 +1,23 @@
+
+<div id="file_div_{{file.pk}}"  class="position-relative d-inline-block m-2">
+    <img src='{% url "documents:load_image" %}?pk={{ file.pk }}' style="width: 150px; height: auto;"
+        class="img-thumbnail"
+        _="on click
+            set cloned to me.cloneNode(true)
+            add .img-fluid to cloned
+            set cloned.style.maxWidth to '100%'
+            set cloned.style.height to 'auto'
+            set cloned.style.width to '600px'   
+            put cloned into #modal-image-container
+            then call bootstrap.Modal.getOrCreateInstance('#imageModal').show()">   
+        
+        <button class="btn btn-warning btn-sm position-absolute top-0 end-0 m-1"
+        hx-post="{% url "documents:delete_temp_file" pk=file.pk %}"
+        hx-target="#file_div_{{file.pk}}"
+        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+        hx-swap="outerHTML">
+        X
+    </button>
+</div>
+
+
