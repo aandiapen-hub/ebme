@@ -106,7 +106,7 @@ def  gen_purchase_order(data):
 
      
     #draw logo
-    logo_file = finders.find('HD-LOGO.jpeg')
+    logo_file = finders.find('company_info/HD-LOGO.jpeg')
     im = Image.open(logo_file)
     im_width,im_height = im.size
     c.drawImage(logo_file,100, page_height-im_height, )
