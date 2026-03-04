@@ -277,7 +277,6 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
         # summariese all other type of data
         table_data = self.get_table_data()
 
-
         values_qs = Counter(table_data.values_list(field.name, flat=True))
         print(values_qs)
         items = {}
@@ -428,7 +427,6 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
         # column chooser to get column list
         context["model_name"] = self.model._meta.label
         context["filter_fields"] = get_filter_fields(self.model, self.visible_columns)
-
 
         cleaned_data = getattr(context["filter"].form, "cleaned_data", {})
         context["has_active_filters"] = any(

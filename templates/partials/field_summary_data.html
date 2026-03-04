@@ -43,8 +43,8 @@
                               on click
                                   set x to the closest <div/> to me 
                                   if me.checked then put x at the start of #selected_values
-                                  else repeat for el in <div/> in #unselected_values if el.dataset.order > x.dataset.order then
-                                                          put x before el exit
+                                  else repeat for el in <div/> in #unselected_values if (el.dataset.order as an Int) == (x.dataset.order as an Int) - 1 then
+                                                          put x after el exit
                                         end 
                               end
                               end
