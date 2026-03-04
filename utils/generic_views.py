@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.http import HttpResponse, HttpResponseRedirect
 from django_tables2 import SingleTableMixin, CheckBoxColumn, TemplateColumn, Table
 from django.db.models.query import QuerySet
-from django.db.models import ForeignKey, DateField
+from django.db.models import ForeignKey, DateField, JSONField
 from users.models import UserProfiles
 from .qs_summary import data_summary2
 from utils.generic_filters import (
@@ -16,6 +16,7 @@ from utils.generic_filters import (
     get_filter_from_field_lookup,
 )
 
+from collections import Counter
 from django_tables2.export.views import ExportMixin
 
 
@@ -28,12 +29,9 @@ def get_visible_columns(request, model):
         user_columns = user_profile.get_preference(
             model.__name__, key="visible_columns"
         )
-        if user_columns is None:
-            # fallback to all model fields
-            user_columns = [f.name for f in model._meta.fields]
     except Exception:
         # fallback to all model fields
-        user_columns = [f.name for f in model._meta.fields]
+        return None
     return user_columns
 
 
@@ -162,7 +160,7 @@ class CustomCheckBoxColumn(CheckBoxColumn):
 
 # Function to dynamically create table class
 def get_dynamic_table_class(
-    table_model, excluded_columns, visible_columns=None, template_columns=None
+    table_model, visible_columns=None, template_columns=None
 ):
     """
     Create a dynamic Table class based on user's column preferences.
@@ -175,9 +173,6 @@ def get_dynamic_table_class(
     # Build columns dict
     table_columns = {}
 
-    # remove hidden fields from visible columns
-    if visible_columns and excluded_columns:
-        visible_columns = [f for f in visible_columns if f not in excluded_columns]
 
     # Add template columns first (if any)
     if template_columns:
@@ -212,7 +207,6 @@ def get_dynamic_table_class(
             )
         else:
             fields = visible_columns
-            excluded = excluded_columns
 
     # Dynamically create the table class
     DynamicTable = type(
@@ -230,25 +224,25 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
     template_name = None  # override in subclass - Mandatory
     universal_search_fields = None  # override in subclass - Mandatory
     exclude = []  # override in subclass - optional
+    default_columns = []
 
     def dispatch(self, request, *args, **kwargs):
-        self.visible_columns = get_visible_columns(self.request, self.model)
-        # check if only summary of a field is required
-        self.summary_field = request.GET.get("summary_field")
-        response = super().dispatch(request, *args, **kwargs)
-        if self.summary_field:
-            query = request.GET.copy()
-            for k in list(query.keys()):
-                if "summary_field" in k:
-                    del query[k]
-            context_data = {}
-            context_data["querystring"] = query.urlencode()
-            field_data = self.get_summary_field_data()
-            context_data["summary_field_data"] = field_data
-            return render(request, "partials/field_summary_data.html", context_data)
+        self.visible_columns = get_visible_columns(self.request, self.model) or self.default_columns
 
+        # --- check what type of request---#
+        # request options are  summary data, new filter or  actual filter result data
+        # if summary data requested, process and return list of summary field data values
+        self.summary_field = request.GET.get("summary_field")
+        if self.summary_field:
+            return self.get_summary_field_data()
+
+        # if new filter is requested to, return the requested filter widget
+        # call parent's dispatch so that the check for new filter is completed
+        response = super().dispatch(request, *args, **kwargs)
         if getattr(self, "new_filter_context", False):
             return render(request, "partials/new_filter.html", self.new_filter_context)
+
+        # fallback is to return of filtered table data
         return response
 
     def get_table_class(self):
@@ -256,31 +250,58 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
         table = get_dynamic_table_class(
             table_model=self.model,
             visible_columns=get_visible_columns(self.request, self.model),
-            excluded_columns=self.exclude,
             template_columns=self.template_columns,
         )
         return table
 
+    def clean_name(self, value):
+        REMOVE_CHARS = str.maketrans("", "", '\n\r"')
+        if not value:
+            return "Unknown"
+
+        return str(value).translate(REMOVE_CHARS).strip()
+
+
     def get_summary_field_data(self):
-        # get summary get_context_data
-        # summary not available for date fields
+        # get requested summary field from model
         field = self.model._meta.get_field(self.summary_field)
-        # check for datefield
-        if isinstance(field, DateField):
-            return {
+
+        # summary data not available for date fields
+        if isinstance(field, JSONField) or isinstance(field, DateField):
+            summary_field_data = {
                 "status": "datefield",
                 "data": {"field": field},
             }
 
+            return self._render_field_summary(summary_field_data)
+        # summariese all other type of data
         table_data = self.get_table_data()
 
-        from collections import Counter
 
         values_qs = Counter(table_data.values_list(field.name, flat=True))
-        if len(values_qs) > 5000:
-            return {"status": "high_row_count", "data": {"field": field}}
+        print(values_qs)
+        items = {}
+        if len(values_qs) > 1000:
+            summary_field_data = {"status": "high_row_count", "data": {"field": field}}
 
-        if isinstance(field, ForeignKey):
+            return self._render_field_summary(summary_field_data)
+
+        if field.choices:
+            # map value -> label
+            value_to_label = dict(field.choices)
+
+            items = [
+                {
+                    "pk": value,
+                    "name": self.clean_name(value_to_label.get(value)),
+                    "count": count,
+                    "fieldname": field.name,
+                    "checked": str(value)
+                    in self.request.GET.getlist(f"{field.name}__iexact", []),
+                }
+                for value, count in values_qs.items()
+            ]
+        elif isinstance(field, ForeignKey):
             related_model = field.remote_field.model
             related_objs = related_model.objects.filter(pk__in=values_qs.keys())
             id_to_name = {a.pk: str(a) for a in related_objs}
@@ -288,7 +309,7 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
             items = [
                 {
                     "pk": pk,
-                    "name": id_to_name.get(pk, "Unknown"),
+                    "name": self.clean_name(id_to_name.get(pk)),
                     "count": count,
                     "fieldname": field.name,
                     "checked": str(pk)
@@ -301,7 +322,7 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
             items = [
                 {
                     "pk": pk,
-                    "name": str(pk),
+                    "name": self.clean_name(pk),
                     "count": count,
                     "fieldname": field.name,
                     "checked": str(pk)
@@ -310,10 +331,24 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
                 for pk, count in values_qs.items()
             ]
 
-        return {
+        # summariese all other type of data
+
+        # sort results aphabetically if they exist
+        summary_field_data = {
             "status": "list",
             "data": sorted(items, key=lambda x: (x["name"] or "")),
         }
+        return self._render_field_summary(summary_field_data)
+
+    def _render_field_summary(self, summary_field_data):
+        query = self.request.GET.copy()
+        for k in list(query.keys()):
+            if "summary_field" in k:
+                del query[k]
+        context_data = {}
+        context_data["querystring"] = query.urlencode()
+        context_data["summary_field_data"] = summary_field_data
+        return render(self.request, "partials/field_summary_data.html", context_data)
 
     def get_filterset_kwargs(self, filterset_class):
         # Copy the GET params to make them mutable
@@ -383,21 +418,10 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        table_data = self.get_table_data()
-        # give a model name that can be used by
         # column chooser to get column list
         context["model_name"] = self.model._meta.label
         context["filter_fields"] = get_filter_fields(self.model, self.visible_columns)
 
-        # get columns
-
-        if self.visible_columns:
-            self.visible_columns = [
-                f for f in self.visible_columns if f not in self.exclude
-            ]
-            # Example of adding data summary
-            if table_data is not None and hasattr(self, "model"):
-                context["data_summary"] = data_summary2(model=self.model, qs=table_data)
 
         cleaned_data = getattr(context["filter"].form, "cleaned_data", {})
         context["has_active_filters"] = any(

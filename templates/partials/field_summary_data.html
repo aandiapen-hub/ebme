@@ -3,65 +3,108 @@
             halt the event
             end
       on input 
-      show <div>div/> in next <div/>
+      show <div>div/> in [#selected_values, #unselected_values]
         when its id.toLowerCase() contains my value.toLowerCase()
       "/>
-    <div class='overflow-auto' style="max-height: 300px;" id='checkbox_filter_div'>
-    {% for item in summary_field_data.data %}
+    <div class='container' id='checkbox_filter_div'>
+      <div class='row'>
+          <div class='col'>
+            <h5>Selected</h5>
+            <div class='overflow-auto' id='selected_values' style="max-height:250px;">
+            </div>
+          </div>
+        <div class='col'>
+          <h5>Available Values</h5>
+          <div class='overflow-auto' id='unselected_values' style="max-height:250px;">
+              {% for item in summary_field_data.data %}
+            <div  class="form-check" data-order="{{forloop.counter}}" id='{{ item.name }}'>
+                      <input class="btn-check"
+                            id='{{forloop.counter}}_checkbox'
+                            type='checkbox' name='{{item.fieldname}}__iexact'
+                            {% if 'Unknown' in item.name %} hidden {% endif %}
+                            value='{{item.pk}}'
+                            {% if item.checked %}checked{%endif%}
+                            _="
+                              on click
+                                set myselect to #{{item.fieldname}}__iexact
+                                if me.checked
+                                  set option to ''
+                                  js return new Option('{{item.name}}', '{{item.pk}}', true, true) end then put it into option
+                                  js(option) $('#{{item.fieldname}}__iexact').append(option) end
+                                    trigger change on myselect
+                                else
+                                  set options to <option/> in myselect
+                                    for option in options
+                                      if value of option == my value
+                                      remove option from myselect 
+                                      end
+                                    end
+                                  trigger change on myselect end
+                              on click
+                                  set x to the closest <div/> to me 
+                                  if me.checked then put x at the start of #selected_values
+                                  else repeat for el in <div/> in #unselected_values if el.dataset.order > x.dataset.order then
+                                                          put x before el exit
+                                        end 
+                              end
+                              end
+                              on load
+                                  set x to the closest <div/> to me 
+                                  if me.checked then put x at the end of #selected_values
+                              end
+                            " >
+                      <label class="btn btn-primary btn-sm" for='{{forloop.counter}}_checkbox'
+                      >{{ item.name }} ({{item.count}})</label>
+                    </div>
+                    <div>
 
 
-      <div  class="form-check ">
-        <input class="form-check-input"
-              id='{{item.fieldname}}_{{item.pk}}_checkbox'
-              type='checkbox' name='{{item.fieldname}}__iexact'
-          {% if 'Unknown' in item.name %} hidden {% endif %}
-              value='{{item.pk}}'
-              {% if item.checked %}checked{%endif%}
-          >
+                    </div>
+              {% empty %}
+                <p>Lookup not available for this column. Use advanced filter to narrow down results</i></p>
+                <button
+                            class="btn" type="button"
+                            data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
+                            _="on click
+                            set the value of #filter_list_search_box to '{{item.fieldname}}'
+                            trigger input on #filter_list_search_box 
+                            to #flush-collapse_{{item.fieldname}}
+                                "> 
+                            <i class="bi bi-funnel-fill"></i>
+                        </button>
 
-        <label class="form-check-label" for='{{item.fieldname}}_{{item.pk}}_checkbox'>{{ item.name }} ({{item.count}})</label>
-      </div>
-    {% empty %}
-      <p>Lookup not available for this column. Use advanced filter to narrow down results</i></p>
-      <button
-                  class="btn" type="button"
-                  data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
-                  _="on click
-                  set the value of #filter_list_search_box to '{{item.fieldname}}'
-                  trigger input on #filter_list_search_box 
-                  add .show to #flush-collapse_{{item.fieldname}}
-                      "> 
-                  <i class="bi bi-funnel-fill"></i>
-              </button>
+              {% endfor %}
+          </div>
 
-    {% endfor %}
+
+        {% elif 'datefield' in summary_field_data.status %}
+              <p>Lookup not available for this field. Use advanced filter to narrow down results </i></p>
+              <button
+                          class="btn" type="button"
+                          data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
+                          _="on click
+                          set the value of #filter_list_search_box to '{{summary_field_data.data.field.verbose_name}}'
+                          trigger input on #filter_list_search_box 
+                          add .show to #flush-collapse_{{summary_field_data.data.field.name}}
+                              "> 
+                          <i class="bi bi-funnel-fill"></i>
+                      </button>
+
+        {% elif "high_row_count" in summary_field_data.status %}
+              <p>This field has too many values. Use advanced filter to narrow down results </i></p>
+              <button
+                          class="btn" type="button"
+                          data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
+                          _="on click
+                          set the value of #filter_list_search_box to '{{summary_field_data.data.field.verbose_name}}'
+                          trigger input on #filter_list_search_box 
+                          add .show to #flush-collapse_{{summary_field_data.data.field.name}}
+                              "> 
+                          <i class="bi bi-funnel-fill"></i>
+                      </button>
+        </div>
+    </div>
   </div>
-
-{% elif 'datefield' in summary_field_data.status %}
-      <p>This a datefield, lookup not available for this data. Use advanced filter to narrow down results </i></p>
-      <button
-                  class="btn" type="button"
-                  data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
-                  _="on click
-                  set the value of #filter_list_search_box to '{{summary_field_data.data.field.verbose_name}}'
-                  trigger input on #filter_list_search_box 
-                  add .show to #flush-collapse_{{summary_field_data.data.field.name}}
-                      "> 
-                  <i class="bi bi-funnel-fill"></i>
-              </button>
-
-{% elif "high_row_count" in summary_field_data.status %}
-      <p>This field has too many values. Use advanced filter to narrow down results </i></p>
-      <button
-                  class="btn" type="button"
-                  data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
-                  _="on click
-                  set the value of #filter_list_search_box to '{{summary_field_data.data.field.verbose_name}}'
-                  trigger input on #filter_list_search_box 
-                  add .show to #flush-collapse_{{summary_field_data.data.field.name}}
-                      "> 
-                  <i class="bi bi-funnel-fill"></i>
-              </button>
 
 
 {% endif %}

@@ -1,14 +1,12 @@
 from django_filters import FilterSet
 from functools import reduce
-from django.db.models import Q, ForeignKey, DateField
+
+from django.db import models
+
 from django.forms import (
-    CharField,
     CheckboxSelectMultiple,
-    DateTimeField,
-    FloatField,
-    IntegerField,
-    TimeField,
 )
+
 from django_filters import (
     DateFilter,
     ModelMultipleChoiceFilter,
@@ -31,15 +29,6 @@ from django.forms.widgets import (
 )
 from django.core.exceptions import FieldDoesNotExist
 
-# For non-model multiple choice fields
-CHOICE_FILTER_FIELDS = {
-    "ppm_compliance": {
-        "label": "PPM Compliance",
-        "choices": [("compliant", "Compliant"), ("non-compliant", "Non-Compliant")],
-        "widget": CheckboxSelectMultiple,
-    }
-}
-
 LOOKUP_SYMBOL = {
     "exact": "is",
     "iexact": "is",
@@ -55,6 +44,7 @@ LOOKUP_SYMBOL = {
     "year": "year =",
     "month": "month =",
     "day": "day =",
+    "ne": "is not",
 }
 
 NULL_CHOICES = (
@@ -67,12 +57,19 @@ class DateRangeWidget(RangeWidget):
     suffixes = ["_gte", "_lte"]
 
 
+def filter_name_not(self, queryset, name, value):
+    if not value:
+        return queryset
+    return queryset.exclude(**{name: value})
+
+
 def generate_filter_for_field(model, field_name, lookup):
     try:
         field = model._meta.get_field(field_name)
     except FieldDoesNotExist:
         return None
     # Null filter
+
     if "isnull" in lookup:
         return TypedChoiceFilter(
             field_name=field_name,
@@ -80,30 +77,58 @@ def generate_filter_for_field(model, field_name, lookup):
             choices=NULL_CHOICES,
             coerce=lambda v: None if v in ("", None) else v == "True",
             label=f"{field.verbose_name} is Empty",
-            widget=Select(attrs={"class": "form-select", 'id': f"{field_name}__{lookup}"}),
+            widget=Select(
+                attrs={"class": "form-select", "id": f"{field_name}__{lookup}"}
+            ),
+        )
+
+    if "ne" in lookup:
+        return CharFilter(
+            method="filter_name_not",
+            label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
+            field_name=field_name,
+            widget=TextInput(attrs={"type": "text", "class": "form-control"}),
+        )
+
+    if field.choices:
+        return MultipleChoiceFilter(
+            field_name=field_name,
+            label=field.verbose_name,
+            choices=field.choices,
+            widget=Select2MultipleWidget(
+                attrs={
+                    "class": "form-control",
+                    "id": f"{field_name}__{lookup}",
+                }
+            ),
         )
 
     # ForeignKey filters
-    if isinstance(field, ForeignKey):
+    if isinstance(field, models.ForeignKey):
         related_model = field.remote_field.model
         model_fields = related_model._meta.fields  # concrete fields only
         # string search on ForeignKey
-        if "contains" in lookup:
+        if "icontains" in lookup:
             # find a field on the related model with 'name' in its name
-            foreign_field = [f.name for f in model_fields if "name" in f.name.lower()]
+            foreign_fields = [f.name for f in model_fields if "name" in f.name.lower()]
 
-            if foreign_field:
-                return CharFilter(
-                    label=f"{field.verbose_name} Contains",
-                    field_name=f"{field_name}__{foreign_field[0]}",
-                    lookup_expr="icontains",
-                    widget=TextInput(attrs={"type": "text", "class": "form-control"}),
-                )
+            if foreign_fields:
+                field_path = f"{field_name}__{foreign_fields[0]}"
+            else:
+                # fallback to raw FK field
+                field_path = field_name
+
+            return CharFilter(
+                label=f"{field.verbose_name} Contains",
+                field_name=field_path,
+                lookup_expr="icontains",
+                widget=TextInput(attrs={"type": "text", "class": "form-control"}),
+            )
         # lookup search on foreighkey
         else:
             # get fields in model that contains name or description
             search_fields = [
-                f"{field.name}__contains"
+                f"{field.name}__icontains"
                 for field in model_fields
                 if "name" in field.name.lower()
                 or "description" in field.name.lower()
@@ -119,15 +144,15 @@ def generate_filter_for_field(model, field_name, lookup):
                     search_fields=search_fields,
                     attrs={
                         "data-placeholder": "Select",
-                        "data-allow-clear": 'false',
+                        "data-allow-clear": "false",
                         "data-minimum-input-length": 0,
-                        'id': f"{field_name}__{lookup}",
+                        "id": f"{field_name}__{lookup}",
                     },
                 ),
             )
 
-    elif "exact" in lookup and not isinstance(field, DateField):
-        unique_values = model.objects.values_list(field.name, flat=True).distinct()
+    elif "exact" in lookup and not isinstance(field, models.DateField):
+        unique_values = model.objects.order_by().values_list(field.name, flat=True).distinct()
         print(unique_values)
         return MultipleChoiceFilter(
             label=f"{field.verbose_name} Lookup",
@@ -136,14 +161,14 @@ def generate_filter_for_field(model, field_name, lookup):
             widget=Select2MultipleWidget(
                 attrs={
                     "data-placeholder": "Select",
-                    "data-minimum-input-length": 2,
-                    "data-allow-clear": 'false',
-                    'id': f"{field_name}__{lookup}"
+                    "data-minimum-input-length": 0,
+                    "data-allow-clear": "false",
+                    "id": f"{field_name}__{lookup}",
                 },
             ),
         )
     # Date field filters
-    elif isinstance(field, DateField):
+    elif isinstance(field, models.DateField):
         if "range" in lookup:
             return DateFromToRangeFilter(
                 label=f"{field.verbose_name} Between",
@@ -159,13 +184,7 @@ def generate_filter_for_field(model, field_name, lookup):
                 lookup_expr=lookup,
                 widget=DateInput(attrs={"type": "date", "class": "form-control"}),
             )
-    elif field_name in CHOICE_FILTER_FIELDS.keys():
-        config = CHOICE_FILTER_FIELDS[field_name]
-        return MultipleChoiceFilter(
-            label=field.verbose_name,
-            choices=config["choices"],
-            widget=CheckboxSelectMultiple,
-        )
+
     else:
         return CharFilter(
             label=f"{field.verbose_name} {lookup}",
@@ -176,7 +195,6 @@ def generate_filter_for_field(model, field_name, lookup):
 
 
 class CustomFilterSet(FilterSet):
-    choice_filter_config = CHOICE_FILTER_FIELDS
     visible_columns = None
     universal_search_fields = None
 
@@ -191,12 +209,12 @@ class CustomFilterSet(FilterSet):
     def my_custom_filter(self, queryset, name, value):
         values_list = value.split(",") if "," in value else value.split()
 
-        q_object = Q()
+        q_object = models.Q()
         for term in values_list:
             term_q = reduce(
-                lambda acc, field: acc | Q(**{field: term}),
+                lambda acc, field: acc | models.Q(**{field: term}),
                 self.universal_search_fields,
-                Q(),
+                models.Q(),
             )
             q_object &= term_q
 
@@ -206,9 +224,9 @@ class CustomFilterSet(FilterSet):
         super().__init__(*args, **kwargs)
         universal_search = self.filters["universal_search"].field
         # Add help text (correct way)
-        universal_search.widget.attrs.update({'placeholder':
-            f"{self.universal_search_fields_list}"
-        })
+        universal_search.widget.attrs.update(
+            {"placeholder": f"{self.universal_search_fields_list}"}
+        )
 
 
 def get_universal_search_fields(filter_model, field_list):
@@ -224,13 +242,13 @@ def dynamic_filterset_generator(
 ):
     attritutes = {}
     # remove hidden fields from visible columns
-    if active_filters is None:
-        active_filters = []
 
     attritutes["universal_search_fields"] = universal_search_fields
     attritutes["universal_search_fields_list"] = get_universal_search_fields(
         filter_model, universal_search_fields
     )
+    attritutes["filter_name_not"] = filter_name_not
+
     for f in active_filters:
         attritutes[f] = get_filter_from_field_lookup(filter_model, f)
 
@@ -252,18 +270,29 @@ def get_filter_fields(model, visible_columns):
     # Define relevant lookups per type
     text_lookups = ["iexact", "icontains", "startswith", "istartswith", "isnull"]
     foreign_lookups = ["iexact", "icontains", "isnull"]
-    numeric_lookups = ["exact", "lt", "lte", "gt", "gte", "isnull"]
+    numeric_lookups = ["iexact", "lt", "lte", "gt", "gte", "isnull", "ne"]
     date_lookups = ["exact", "lt", "lte", "gt", "gte", "range", "isnull"]
+    choice_lookups = ["iexact"]
 
     for field in model._meta.get_fields():
         if hasattr(field, "get_lookups") and field.name in visible_columns:
-            if isinstance(field, (CharField, TimeField)):
+            if field.choices:
+                lookups = choice_lookups
+            elif isinstance(field, (models.CharField, models.TimeField)):
                 lookups = text_lookups
-            elif isinstance(field, (IntegerField, FloatField)):
+            elif isinstance(field, models.DecimalField):
                 lookups = numeric_lookups
-            elif isinstance(field, (DateField, DateTimeField)):
+            elif isinstance(
+                field,
+                (
+                    models.IntegerField,
+                    models.FloatField,
+                ),
+            ):
+                lookups = numeric_lookups
+            elif isinstance(field, (models.DateField, models.DateTimeField)):
                 lookups = date_lookups
-            elif isinstance(field, ForeignKey):
+            elif isinstance(field, models.ForeignKey):
                 lookups = foreign_lookups
             else:
                 lookups = text_lookups
