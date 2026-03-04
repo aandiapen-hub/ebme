@@ -416,6 +416,13 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
             return ["filter_table.html#table-partial"]
         return [self.template_name]
 
+    def get_table_data(self):
+        # check if there is a session filter active for this view
+        self.filterset = self.get_filterset(self.get_filterset_class())
+        queryset = self.filterset.qs
+        # apply session filter if active
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # column chooser to get column list
