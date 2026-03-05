@@ -11,15 +11,19 @@
           <div class="d-flex align-items-center gap-2">
             {{ field }}
           </div>
-        </div>
+      </div>
       {% else %}
         <div id="div_id_{{ field.name }}" class='col-auto' >
          <p class="text text-secondary">
             <i class="bi  bi-x-circle text-danger"
                type='button'
               _="on click
-                remove #div_id_{{ field.name }}
-                show #button_{{ field.name }}
+                set select to first <select/> in #div_id_{{ field.name }}
+                  js(select) $(select).val(null).trigger('change') end
+                  set selects to <select/> in #div_filter_fields
+                    for select in selects log select end
+              
+                   show #button_{{ field.name }}
                 trigger submit on #filter-form">
               </i>
           {{ field.label_tag }}</p>

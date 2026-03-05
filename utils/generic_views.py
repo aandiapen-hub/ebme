@@ -223,7 +223,6 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
     template_columns = None  # override in subclass - optional
     template_name = None  # override in subclass - Mandatory
     universal_search_fields = None  # override in subclass - Mandatory
-    exclude = []  # override in subclass - optional
     default_columns = []
 
     def dispatch(self, request, *args, **kwargs):

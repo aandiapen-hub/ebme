@@ -153,7 +153,6 @@ def generate_filter_for_field(model, field_name, lookup):
 
     elif "exact" in lookup and not isinstance(field, models.DateField):
         unique_values = model.objects.order_by().values_list(field.name, flat=True).distinct()
-        print(unique_values)
         return MultipleChoiceFilter(
             label=f"{field.verbose_name} Lookup",
             field_name=field_name,

@@ -6,9 +6,13 @@
           <button type="button"
                   class="btn btn-outline-danger btn-sm"
                   _="on click
+                    set select to first <select/> in #div_id_{{ field.name }}
+                      log select
+                      js(select) $(select).select2('destroy') end
+                      js(select) $(select).off('select2:select') end
+                    show #button_{{ field.name }}
                     remove #div_id_{{ field.name }}
-                    show #button_{{field.name}}
-                    trigger change on #filter-form">
+                    trigger submit on #filter-form">
           <i class="bi bi-x-circle"></i>
           </button>         
 
