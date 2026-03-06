@@ -83,7 +83,6 @@ class BaseComplianceView(
         # Sort and filter
         percentage = percentage.sort_values(by='Percentage', ascending=False)
         output = percentage[percentage[self.compliance_field] == self.filter_compliant_value]
-        print(output) 
         return output.to_dict(orient='records')
 
     def get_template_names(self):

@@ -4,7 +4,7 @@
             end
       on input 
       show <div>div/> in [#selected_values, #unselected_values]
-        when its value.toLowerCase() contains my value.toLowerCase()
+        when its dataset.value.toLowerCase() contains my value.toLowerCase()
       "/>
     <div class='container' id='checkbox_filter_div'>
       <div class='row'>
@@ -12,7 +12,7 @@
           <h5>Available Values</h5>
           <div class='overflow-auto' id='unselected_values' style="max-height:250px;">
               {% for item in summary_field_data.data %}
-            <div  class="form-check" data-order="{{forloop.counter}}" id="{{forloop.counter}}" value="{{item.name}}">
+            <div  class="form-check" data-order="{{forloop.counter}}" id="{{forloop.counter}}" data-value="{{ item.name }}">
                       <input class="btn-check"
                             id='{{forloop.counter}}_checkbox'
                             type='checkbox' name='{{item.fieldname}}__iexact'
@@ -41,10 +41,14 @@
                               on change 
                                   set x to the closest <div/> to me 
                                   if me.checked then put x at the start of #selected_values
-                                  else repeat for el in <div/> in #unselected_values
-                                                          if (el.dataset.order as an Int) >= (x.dataset.order as an Int) then put x before el exit 
-                                                          else put x after el 
-                                      end
+                                  
+                                  else set sd to <div/> in #unselected_values
+                                        if sd.length is 0 then put x at the start of #unselected_values
+                                        else repeat for el in sd
+                                            if (el.dataset.order as an Int) >= (x.dataset.order as an Int) then put x before el exit 
+                                            else put x after el
+                                            end
+                                        end
                                   end 
                               end
                               end

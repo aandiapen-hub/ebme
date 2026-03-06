@@ -1,5 +1,7 @@
 
 {% load static %}
+{% load cache %}
+{% cache 0 "filter_form_block" %} <!-- disabling cache as select2 widgets do not work properly when cache is enabled -->
 <div id="filter-column"  hx-swap-oob='innerHTML' >
   <div id='div_filter_fields' class='row gy-3'>
     {{ filter.form.media }}
@@ -17,14 +19,12 @@
          <p class="text text-secondary">
             <i class="bi  bi-x-circle text-danger"
                type='button'
-              _="on click
-                set select to first <select/> in #div_id_{{ field.name }}
-                  js(select) $(select).val(null).trigger('change') end
-                  set selects to <select/> in #div_filter_fields
-                    for select in selects log select end
-              
-                   show #button_{{ field.name }}
-                trigger submit on #filter-form">
+                _="
+                on click
+                    remove #div_id_{{field.name}}
+                    wait 20ms
+                    trigger submit on #filter-form
+                ">
               </i>
           {{ field.label_tag }}</p>
           <div class="d-flex align-items-center gap-2">
@@ -44,4 +44,6 @@
      width="24" height="24"
      src="{% static 'spinners/3-dots-fade.svg' %}">
 </div>
+{% endcache %}
+
 

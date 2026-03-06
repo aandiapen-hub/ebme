@@ -1,23 +1,19 @@
 
-{{ form.media }} 
 {% for field in form  %}
-
-      <div id="div_id_{{ field.name }}" class="col-auto">
-          <button type="button"
-                  class="btn btn-outline-danger btn-sm"
-                  _="on click
-                    set select to first <select/> in #div_id_{{ field.name }}
-                      log select
-                      js(select) $(select).select2('destroy') end
-                      js(select) $(select).off('select2:select') end
-                    show #button_{{ field.name }}
-                    remove #div_id_{{ field.name }}
-                    trigger submit on #filter-form">
-          <i class="bi bi-x-circle"></i>
-          </button>         
-
-
-         {{ field.label_tag }} 
-         {{ field }}
-      </div>
+        <div id="div_id_{{ field.name }}" class='col-auto' >
+         <p class="text text-secondary">
+            <i class="bi  bi-x-circle text-danger"
+               type='button'
+                _="
+                on click
+                    remove #div_id_{{field.name}}
+                    wait 20ms
+                    trigger submit on #filter-form
+                ">
+              </i>
+          {{ field.label_tag }}</p>
+          <div class="d-flex align-items-center gap-2">
+            {{ field }}
+          </div>
+        </div>
 {% endfor %}
