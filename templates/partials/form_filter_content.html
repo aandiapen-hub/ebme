@@ -1,7 +1,5 @@
 
 {% load static %}
-{% load cache %}
-{% cache 0 "filter_form_block" %} <!-- disabling cache as select2 widgets do not work properly when cache is enabled -->
 <div id="filter-column"  hx-swap-oob='innerHTML' >
   <div id='div_filter_fields' class='row gy-3'>
     {{ filter.form.media }}
@@ -44,6 +42,5 @@
      width="24" height="24"
      src="{% static 'spinners/3-dots-fade.svg' %}">
 </div>
-{% endcache %}
 
 

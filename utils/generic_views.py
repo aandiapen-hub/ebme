@@ -216,6 +216,10 @@ def get_dynamic_table_class(
 
 
 # 3. Generic filtered table view
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
+
+@method_decorator(never_cache, name='dispatch')
 class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
     paginate_by = 20
     permission_required = None  # Override in subclass - Mandatory
@@ -277,7 +281,6 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
         table_data = self.get_table_data()
 
         values_qs = Counter(table_data.values_list(field.name, flat=True))
-        print(values_qs)
         items = {}
         if len(values_qs) > 1000:
             summary_field_data = {"status": "high_row_count", "data": {"field": field}}
