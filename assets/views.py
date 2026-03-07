@@ -73,6 +73,14 @@ class FilteredAssetTableView(
         "categoryname__icontains",
     ]
 
+    default_columns =  [
+        'assetid',
+        'brandid',
+        'modelid',
+        'categoryid',
+        'customerid',
+        'ppm_compliance',
+    ]
 
 class Asset(
     LoginRequiredMixin,

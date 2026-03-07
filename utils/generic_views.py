@@ -252,7 +252,7 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
         # Dynamically create table class if not provided
         table = get_dynamic_table_class(
             table_model=self.model,
-            visible_columns=get_visible_columns(self.request, self.model),
+            visible_columns=self.visible_columns,
             template_columns=self.template_columns,
         )
         return table

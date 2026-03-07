@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import CustomUser
+from .models import Roles
 from django.contrib.auth.admin import UserAdmin
 # Register your models here.
 
@@ -25,3 +26,12 @@ class UserAdminConfig(UserAdmin):
 
 
 admin.site.register(CustomUser,UserAdminConfig)
+
+
+class RoleAdminConfig(admin.ModelAdmin):
+    model = Roles
+    search_fields = ('role_name',)
+    fields = ('role_name',)
+admin.site.register(Roles,RoleAdminConfig)
+    
+                      

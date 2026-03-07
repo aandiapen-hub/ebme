@@ -915,3 +915,14 @@ class FilteredJobTableView(
     template_name = "jobs/jobs_list.html"
 
     universal_search_fields = SEARCHFILEDS
+
+    default_columns = [
+        'jobid',
+        'assetid',
+        'jobtypeid',
+        'jobstatusid',
+        'brandid',
+        'modelid',
+        'startdate',
+        'enddate'
+    ]

@@ -11,7 +11,7 @@ from django.urls import reverse, reverse_lazy
 from django.db import transaction
 from django.views import View
 from PIL import Image
-
+from django.core.exceptions import ValidationError
 from assets.models import Tblassets, Tblmodel
 from parts.models import Tblpartslist
 # import models
@@ -637,78 +637,28 @@ class QuickScanner(
     def form_valid(self, form):
         file = self.request.FILES.get('file')
         scanned_code = form.cleaned_data['scanned_code']
+        result=None
 
-        if not file and not scanned_code:
-            return self.form_invalid(form)
+        from .services.gs1_parser import parse_gs1code, gs1_resolver, non_gs1_result
+        try:
+            code = parse_gs1code(file=file, scanned_code=scanned_code)
+            self.result = gs1_resolver(code)
 
-        if file:
-            if file.content_type not in ['image/jpeg', 'image/png', 'image/jpg']:
-                messages.warning(self.request, 'Incorrect file type.')
-                return render(self.request, self.template_name, context={'form': form})
-            output = quick_scan_barcode(file)
-
-        if scanned_code:
-            from .utils import parse_gs1code
-            output = parse_gs1code(scanned_code)
-
-        if output:
-            if 'GTIN' in output.keys():
-                model = Tblmodel.objects.filter(gtin=output['GTIN']).first()
-                partid = Tblpartslist.objects.filter(gtin=output['GTIN']).first()
-
-                if not model and not partid:
-                    return render(
-                        self.request,
-                        "documents/partials/quick_scan/unknown_gtin.html",
-                        context={'gtin': output['GTIN']}
-                    )
-
-                # check if serial number in output. if serial number then the gtin
-                # belongs to an equipment
-                serialnumber = output.get('SERIAL')
-                if serialnumber and model:
-                    asset = Tblassets.objects.filter(
-                        serialnumber=serialnumber,
-                        modelid=model
-                    ).first()
-                    # if asset exists then go to asset
-                    if asset:
-                        url = reverse('assets:view_asset', kwargs={'pk': asset.assetid})
-                        return HttpResponseRedirect(url)
-                    # if model exists in dabase but not the serial number, then go to create asset
-                    elif not asset and model:
-                        query_params = urlencode({
-                            'modelid': model.modelid,
-                            'serialnumber': str(serialnumber),
-                            'prod_date': output.get('PROD_DATE')
-                        })
-                        url = reverse('assets:create_asset')
-                        return HttpResponseRedirect(f"{url}?{query_params}")
-
-            elif 'GIAI' in output:
-                customerassetnumber = output['GIAI'][-7:]
-                asset = Tblassets.objects.filter(assetid=customerassetnumber).first()
-                if asset:
-                    url = reverse('assets: view_asset', kwargs={'pk': asset.assetid})
-                    return HttpResponseRedirect(url)
-                else:
-                    query_params = urlencode({'customerassetnumber': customerassetnumber})
-                    url = reverse('assets:create_asset')
-                    return HttpResponseRedirect(f"{url}?{query_params}")
+        except ValidationError as e:
+            if hasattr(e, "message_dict"):
+                for field, errors in e.message_dict.items():
+                    for error in errors:
+                        form.add_error(field, error)
             else:
+                form.add_error(None, e.message)
                 return self.form_invalid(form)
 
-        elif scanned_code:
-            query_params = urlencode({
-                'universal_search': scanned_code,
-            })
-            url = reverse('assets:assets_list')
-            return HttpResponseRedirect(f"{url}?{query_params}")
-        else:
-            return self.form_invalid(form)
+        if result is None:
+            result = non_gs1_result
+
+        return self.render_to_response(self.get_context_data(form=form, result=result))
 
     def form_invalid(self, form):
-        messages.warning(self.request, 'No information found.')
         return render(self.request, self.template_name, context={'form': form})
 
 
