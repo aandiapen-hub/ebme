@@ -103,7 +103,7 @@ class JobView(models.Model):
     workdone = models.TextField(db_column='WorkDone', blank=True, null=True, verbose_name="Work Done")  # Field name made lowercase.
     jobstatusid = models.ForeignKey('Tbljobstatus',models.PROTECT,db_column='JobStatusID', blank=True, null=True, verbose_name="Job Status")  # Field name made lowercase.
     technicianid = models.ForeignKey('Tbltechnicianlist',models.PROTECT,db_column='TechnicianID', blank=True, null=True)  # Field name made lowercase.
-    assetid = models.ForeignKey(Tblassets, models.PROTECT, db_column='AssetID')  # Field name made lowercase.
+    assetid = models.ForeignKey(AssetView, models.PROTECT, db_column='AssetID', related_name='jobs')  # Field name made lowercase.
     technician_name = models.CharField(db_column='Technician Name', max_length=100, blank=True, null=True, verbose_name="Technician")  # Field name made lowercase. Field renamed to remove unsuitable characters.
     partsperjob = models.TextField(db_column='PartsPerJob', blank=True, null=True, verbose_name="Parts Used")  # Field name made lowercase.
     testsperjob = models.TextField(db_column='TestsPerJob', blank=True, null=True, verbose_name="Checklist")  # Field name made lowercase.

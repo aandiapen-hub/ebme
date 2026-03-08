@@ -227,6 +227,7 @@ class ModelCreateView(LoginRequiredMixin,
         # Add query parameters to initial
         for key in self.request.GET:
             initial[key] = self.request.GET.get(key)
+            print(initial[key])
         return initial
     
     def get_success_url(self):

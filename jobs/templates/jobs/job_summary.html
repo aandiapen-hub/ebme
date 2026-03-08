@@ -21,7 +21,7 @@
             <small class="text-muted">Asset ID:</small>
             <p><a
             class="text-decoration-none"
-            href="{% url 'assets:view_asset' job.assetid %}">
+            href="{% url 'assets:view_asset' pk=job.assetid.pk %}">
                 <strong>{{ job.assetid }}</strong> <i class="bi bi-folder2-open"></i> 
             </a></p>
 

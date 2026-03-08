@@ -642,7 +642,7 @@ class QuickScanner(
         from .services.gs1_parser import parse_gs1code, gs1_resolver, non_gs1_result
         try:
             code = parse_gs1code(file=file, scanned_code=scanned_code)
-            self.result = gs1_resolver(code)
+            result = gs1_resolver(code)
 
         except ValidationError as e:
             if hasattr(e, "message_dict"):
@@ -650,16 +650,23 @@ class QuickScanner(
                     for error in errors:
                         form.add_error(field, error)
             else:
+                messages.warning(
+                    self.request, str(e)
+                )
                 form.add_error(None, e.message)
-                return self.form_invalid(form)
 
         if result is None:
-            result = non_gs1_result
+            result = non_gs1_result(scanned_code)
 
         return self.render_to_response(self.get_context_data(form=form, result=result))
 
     def form_invalid(self, form):
         return render(self.request, self.template_name, context={'form': form})
+
+    def get_context_data(self, result=None, *args, **kwargs):
+        ctx = super().get_context_data(*args, **kwargs)
+        ctx['result'] = result
+        return ctx
 
 
 URL_MAP = {

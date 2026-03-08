@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
-
+import ast
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
     ListView,
@@ -12,7 +12,7 @@ from django.views.generic import (
     DetailView,
     FormView,
 )
-
+from datetime import datetime
 from documents.models import TblDocumentLinks, TemporaryUpload
 from model_information.views import (
     BrandCreateView,
@@ -165,7 +165,25 @@ class AssetCreateView(
 
     def get_initial(self):
         initial = super().get_initial()
-        initial.update(self.request.GET.items())
+        modelid = self.request.GET.get('modelid', None)
+
+        if modelid:
+            initial['modelid'] = modelid
+
+        gs1_data = ast.literal_eval(self.request.GET.get('gs1_data', None))
+        if gs1_data:
+            print(gs1_data, type(gs1_data))
+
+            gs1_to_asset_map = {
+                'PROD DATE': 'prod_date',
+                'SERIAL': 'serialnumber',
+            }
+            for ai, asset_field in gs1_to_asset_map.items():
+                value = gs1_data.get(ai, None)
+                if ai == "PROD DATE":
+                    value = datetime.strptime(value, "%y%m%d").date()
+                print(ai, value)   # debug
+                initial[asset_field] = value
         return initial
 
 

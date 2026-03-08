@@ -143,7 +143,14 @@ class PartCreateView(LoginRequiredMixin, PermissionRequiredMixin,
 
     def get_success_url(self):
         return reverse("parts:part_detail", kwargs={'pk':self.object.partid})
-        
+
+    def get_initial(self):
+        initial = super().get_initial()
+        for key in self.request.GET:
+            initial[key] = self.request.GET[key]
+        return initial
+
+
     def form_valid(self, form):
         try:           
             self.object = form.save()

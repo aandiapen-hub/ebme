@@ -26,6 +26,7 @@
                   <button
                     hx-get="{% url 'model_information:update_model' pk=object.modelid %}"
                     hx-target="#model-detail"
+                    hx-select="#update_model"
                     hx-swap='outerHTML'
                     hx-trigger="click"
                     class="btn text-primary">Edit
