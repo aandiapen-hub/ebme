@@ -641,8 +641,8 @@ class QuickScanner(
 
         from .services.gs1_parser import parse_gs1code, gs1_resolver, non_gs1_result
         try:
-            code = parse_gs1code(file=file, scanned_code=scanned_code)
-            result = gs1_resolver(code)
+            decoded_info = parse_gs1code(file=file, scanned_code=scanned_code)
+            result = gs1_resolver(decoded_info)
 
         except ValidationError as e:
             if hasattr(e, "message_dict"):
@@ -657,8 +657,16 @@ class QuickScanner(
 
         if result is None:
             result = non_gs1_result(scanned_code)
+            non_staff_search_term = scanned_code
+        else:
+            non_staff_search_term = f"{result.get('SERIAL', '')} {result.get('ASSET_NO', '')}"
 
-        return self.render_to_response(self.get_context_data(form=form, result=result))
+        if self.request.user.is_staff:
+            return self.render_to_response(self.get_context_data(form=form, result=result))
+        else:
+            base_url = reverse('assets:assets_list')
+            qp = urlencode({'universal_search': non_staff_search_term})
+            return HttpResponseRedirect(f"{base_url}?{qp}")
 
     def form_invalid(self, form):
         return render(self.request, self.template_name, context={'form': form})

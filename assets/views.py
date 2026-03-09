@@ -71,6 +71,7 @@ class FilteredAssetTableView(
         "modelname__icontains",
         "brandname__icontains",
         "categoryname__icontains",
+        "customerassetnumber__icontains",
     ]
 
     default_columns =  [
