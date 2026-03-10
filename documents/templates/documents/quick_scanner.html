@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% load django_bootstrap5 %}
 
-
 {% block content %}
 
 <div class="container">
@@ -19,7 +18,7 @@
         </div>
 </div>
 
-<div class='container'>
+<div class='container border'>
   {% if result.create_gtin %}
     <div class='row'>
         <h3>New GTIN identified</h3>
@@ -27,7 +26,7 @@
           <div class='col'>
             <h5>Duplicate Model</h5>
             {% for  model in result.models_with_gtin %}
-      <a class='btn btn-warning' href='{% url "model_information:create_model" %}?modelid={{model.pk}}&gtin={{result.gtin}}'>Duplicate Model: {{model}}</a>
+              <a class='btn btn-sm btn-warning' href='{% url "model_information:create_model" %}?modelid={{model.pk}}&gtin={{result.gtin}}'>Duplicate Model: {{model}}</a>
             {% endfor %} 
           </div>
           {% endif%}
@@ -35,48 +34,27 @@
           <div class='col'>
             <h5>Update existing model with GTIN</h5>
               {% for  model in result.models_without_gtin %}
-              <a class='btn btn-warning' href='{% url "model_information:update_model" pk=model.pk %}?gtin={{result.gtin}}'>{{model}}</a>
+              <a class='btn btn-sm btn-warning' href='{% url "model_information:update_model" pk=model.pk %}?gtin={{result.gtin}}'>{{model}}</a>
               {% endfor %}
           </div>
           {% endif %}
           <div class='col'>
-            <a class='btn btn-warning' href='{% url "model_information:create_model" %}?gtin={{result.gtin}}'>Add New Model</a>
-            <a class='btn btn-warning' href='{% url "parts:create_part" %}?gtin={{result.gtin}}'>Add New Spare Part</a>
+            <a class='btn btn-sm btn-warning' href='{% url "model_information:create_model" %}?gtin={{result.gtin}}'>Add New Model</a>
+            <a class='btn btn-sm btn-warning' href='{% url "parts:create_part" %}?gtin={{result.gtin}}'>Add New Spare Part</a>
           </div>
     </div>
   {% endif %}
-  {% if result.create_asset_from_gs1 %}
-  <a class='btn btn-warning' href='{% url "assets:create_asset" %}?gs1_data={{result.gs1}}&modelid={{result.model.pk}}'>Add New Asset</a>
+
+  {% if result.model %}
+    <p>Existing model idendtified<a class='btn btn-sm btn-success' href='{% url "model_information:model_view" pk=result.model.pk %}'>{{result.model}}</a>
+    </p>
   {% endif %}
 
-  <div class='row'>
-    <div class='col'>
-      <h3>Assets</h3>
-      {% if result.too_many_assets %}
-      <p>Too many results match</p>
-      {% endif %}
-      {% for asset in result.assets %}
-        {% include 'documents/partials/quick_scan/assets_list.html' %}
-      {% empty %}
-      <div class='d-inline-flex gap-3'>
-      <a class='btn btn-outline-primary' href='{% url "assets:assets_list" %}?universal_search={{result.search_term}}'>Search Assets</a>
-      </div>
-      {% endfor %}
-      
-    </div>
-    <div class='col'>
-      <h3>Jobs</h3>
-      {% if result.too_many_jobs %}
-      <p>Too many results match</p>
-      {% endif %}
-      {% for job in result.jobs %}
-        {% include 'documents/partials/quick_scan/jobs_list.html' %}
-      {% empty %}
-      <div class='d-inline-flex gap-3'>
-      <a class='btn btn-outline-primary' href='{% url "jobs:jobs_list" %}?universal_search={{result.search_term}}'>Search Jobs</a>
-      </div>
-      {% endfor %}
-    </div>
-</div>
+  {% if result.create_asset_from_gs1 %}
+  <a class='btn btn-sm btn-warning' href='{% url "assets:create_asset" %}?gs1_data={{result.gs1}}&modelid={{result.model.pk}}'>Add New Asset</a>
+  {% endif %}
 
+  {% include 'documents/partials/quick_scan/partial_matches.html' %}
+
+</div>
 {% endblock content %}

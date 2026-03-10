@@ -642,7 +642,6 @@ class QuickScanner(
         from .services.gs1_parser import parse_gs1code, gs1_resolver, non_gs1_result
         try:
             decoded_info = parse_gs1code(file=file, scanned_code=scanned_code)
-
         except ValidationError as e:
             if hasattr(e, "message_dict"):
                 for field, errors in e.message_dict.items():
@@ -654,7 +653,6 @@ class QuickScanner(
                 )
                 form.add_error(None, e.message)
             decoded_info = None
-
 
         if not self.request.user.is_staff:
             if decoded_info:
@@ -670,6 +668,7 @@ class QuickScanner(
         else:
             result = non_gs1_result(scanned_code)
 
+        print('result!!!!!!!!!!!', result)
         return self.render_to_response(self.get_context_data(form=form, result=result))
 
     def redirect_non_staff(self, non_staff_search_term):
@@ -699,7 +698,7 @@ class GetExtractedData(LoginRequiredMixin,TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         group = self.kwargs.get('group')
-        if group:
+        if group: 
             extracted_data = get_extraction_results(self.request.user,group)
             context["extracted_data"] = extracted_data 
             context["group"] = group

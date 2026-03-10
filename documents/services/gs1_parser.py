@@ -65,10 +65,14 @@ def gs1_resolver(gs1_data):
     output["gtin"] = gtin
     output["gs1"] = gs1_data
 
-
-    # check for assets
+    # check for asset number on database
     if asset_no:
-        assets = AssetView.objects.filter(assetid=asset_no).first()
+        assets = AssetView.objects.filter(assetid=asset_no)
+        if assets.exists():
+            output['asset'] = assets.first()
+            output["jobs"] = assets.first().jobs.all
+            return output
+
 
     # check for gtin
     if gtin:
@@ -76,16 +80,19 @@ def gs1_resolver(gs1_data):
         output["model"] = known_model
         known_part = Tblpartslist.objects.filter(gtin=gtin).first()
         output["part"] = known_part
+        if known_part:
+            print('spare part recognised', known_part)
+            return output
         # create model or spare part from gs1_data
         output["create_gtin"] = not known_model and not known_part
 
     # check for full gs1 match otherwise create asset
     if serialnumber and known_model:
-
         assets = AssetView.objects.filter(serialnumber=serialnumber, modelid=known_model)
         if assets.exists():
-            output["assets"] = assets
+            output["asset"] = assets.first()
             output["jobs"] = assets.first().jobs.all
+            return output
         else:
             output['create_asset_from_gs1'] = True
 
@@ -106,20 +113,22 @@ def gs1_resolver(gs1_data):
             output["models_without_gtin"] = Tblmodel.objects.filter(
                 modelid__in=models, gtin__isnull=True
             )
+        output['create_asset_from_gs1'] = True
 
     return output
 
 
 def non_gs1_result(data):
+    max_result_count = 10
     output = {}
     output["search_term"] = data
     asset_filter = Q(serialnumber__icontains=data) | Q(assetid__icontains=data)
     assets = AssetView.objects.filter(asset_filter).order_by(
         "brandid", "modelid", "serialnumber"
     )
-    if assets.count() <= 25:
+    if assets.count() <= max_result_count:
         output["assets"] = assets
-    if assets.count() > 25:
+    if assets.count() > max_result_count:
         output["too_many_assets"] = True
 
     job_filter = Q(jobid__icontains=data)
@@ -127,9 +136,9 @@ def non_gs1_result(data):
 
     if assets.count() == 1:
         jobs = assets.first().jobs.all()
-    if jobs.count() <= 25:
+    if jobs.count() <= max_result_count:
         output["jobs"] = jobs
-    if jobs.count() > 25:
+    if jobs.count() > max_result_count:
         output["too_many_jobs"] = True
 
     return output
