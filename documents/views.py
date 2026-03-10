@@ -637,12 +637,11 @@ class QuickScanner(
     def form_valid(self, form):
         file = self.request.FILES.get('file')
         scanned_code = form.cleaned_data['scanned_code']
-        result=None
+        result = None
 
         from .services.gs1_parser import parse_gs1code, gs1_resolver, non_gs1_result
         try:
             decoded_info = parse_gs1code(file=file, scanned_code=scanned_code)
-            result = gs1_resolver(decoded_info)
 
         except ValidationError as e:
             if hasattr(e, "message_dict"):
@@ -654,19 +653,29 @@ class QuickScanner(
                     self.request, str(e)
                 )
                 form.add_error(None, e.message)
+            decoded_info = None
 
-        if result is None:
+
+        if not self.request.user.is_staff:
+            if decoded_info:
+                non_staff_search_term = f"{result.get('SERIAL', '')} {result.get('ASSET_NO', '')}"
+            else:
+                non_staff_search_term = scanned_code
+            return self.redirect_non_staff(non_staff_search_term)
+
+        # process input futher for staff
+        if decoded_info:
+            result = gs1_resolver(decoded_info)
+            print('decoded infor resoleved result', result)
+        else:
             result = non_gs1_result(scanned_code)
-            non_staff_search_term = scanned_code
-        else:
-            non_staff_search_term = f"{result.get('SERIAL', '')} {result.get('ASSET_NO', '')}"
 
-        if self.request.user.is_staff:
-            return self.render_to_response(self.get_context_data(form=form, result=result))
-        else:
-            base_url = reverse('assets:assets_list')
-            qp = urlencode({'universal_search': non_staff_search_term})
-            return HttpResponseRedirect(f"{base_url}?{qp}")
+        return self.render_to_response(self.get_context_data(form=form, result=result))
+
+    def redirect_non_staff(self, non_staff_search_term):
+        base_url = reverse('assets:assets_list')
+        qp = urlencode({'universal_search': non_staff_search_term})
+        return HttpResponseRedirect(f"{base_url}?{qp}")
 
     def form_invalid(self, form):
         return render(self.request, self.template_name, context={'form': form})
@@ -678,10 +687,10 @@ class QuickScanner(
 
 
 URL_MAP = {
-    'device_id':'assets:barcode_output',
-    'service_report':'jobs:report_reader_output',
-    'invoice':'procurement:invoices_reader_output',
-    'delivery_note':'procurement:delivery_note_reader_output',
+    'device_id': 'assets:barcode_output',
+    'service_report': 'jobs:report_reader_output',
+    'invoice': 'procurement:invoices_reader_output',
+    'delivery_note': 'procurement:delivery_note_reader_output',
 }
 
 class GetExtractedData(LoginRequiredMixin,TemplateView):

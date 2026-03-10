@@ -6,9 +6,9 @@
       show <div>div/> in [#selected_values, #unselected_values]
         when its dataset.value.toLowerCase() contains my value.toLowerCase()
       "/>
-    <div class='container' id='checkbox_filter_div'>
+    <div class='container mt-3' id='checkbox_filter_div'>
       <div class='row'>
-        <div class='col'>
+        <div class='col border'>
           <h5>Available Values</h5>
           <div class='overflow-auto' id='unselected_values' style="max-height:250px;">
               {% for item in summary_field_data.data %}
@@ -57,7 +57,7 @@
                                   if me.checked then put x at the end of #selected_values
                               end
                             " >
-                      <label class="btn btn-primary btn-sm" for='{{forloop.counter}}_checkbox'
+                      <label class="btn btn-primary btn-sm text-start" for='{{forloop.counter}}_checkbox'
                       >{{ item.name }} ({{item.count}})</label>
                     </div>
               {% empty %}
@@ -104,7 +104,7 @@
                       </button>
         {% endif %}
         </div>
-        <div class='col'>
+        <div class='col border'>
           <h5>Selected</h5>
           <div class='overflow-auto' id='selected_values' style="max-height:250px;">
           </div>

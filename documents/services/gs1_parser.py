@@ -15,7 +15,9 @@ def quick_scan_barcode(image):
         raise ValidationError({"file": "Could not find any barcode"})
 
     gs1_codes = [code for code in barcodes if code.content_type == zxingcpp.GS1]
+    print(gs1_codes)
     return gs1_codes
+
 
 
 def parse_gs1code(file=None, scanned_code=None):
@@ -26,8 +28,11 @@ def parse_gs1code(file=None, scanned_code=None):
         gs1_codes = [scanned_code]
 
     output = {}
-    
+
     for code in gs1_codes:
+        # ignore internal codes
+        if code.startswith('9'):
+           return None 
         parsed_gs1 = biip.parse(code)
 
         if parsed_gs1.gs1_message is None:
