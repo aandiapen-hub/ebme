@@ -37,6 +37,8 @@ from .forms import (
     AssetCreateFromFileForm
 )
 
+from documents.services.gs1_parser import process_barcode
+
 from django.db.models import Q
 
 # Universal search filter imports
@@ -164,6 +166,45 @@ class AssetCreateView(
     def get_success_url(self):
         return reverse("assets:view_asset", kwargs={"pk": self.object.assetid})
 
+    def get(self, request, *args, **kwargs):
+        if request.htmx:
+            barcode = request.GET.get('barcode')
+            if barcode:
+                return self.resolve_barcode()
+        return super().get(request, *args, **kwargs)
+
+    def resolve_barcode(self):
+        form_data = self.request.GET.dict()
+        decoded_info = process_barcode(scanned_code=self.request.GET.get('barcode'))
+        gs1_data = decoded_info.get('gs1', None)
+        decoded_model = decoded_info.get('model')
+
+        if gs1_data:
+            gs1_to_asset_map = {
+                'PROD DATE': 'prod_date',
+                'SERIAL': 'serialnumber',
+                'ASSET_NO': 'customerassetnumber',
+            }
+
+            for ai, field in gs1_to_asset_map.items():
+                value = gs1_data.get(ai)
+                if value and ai == 'PROD DATE':
+                    value = datetime.strptime(value, "%y%m%d").date()
+
+                if value:
+                    form_data[field] = value
+
+        if decoded_model and form_data.get('modelid') is None:
+            form_data['modelid'] = decoded_model
+
+        form = self.form_class(form_data)
+        form.is_valid()
+        self.object = None
+
+        context = self.get_context_data(form=form)
+        return self.render_to_response(context)
+
+
     def get_initial(self):
         initial = super().get_initial()
         modelid = self.request.GET.get('modelid', None)
@@ -171,20 +212,20 @@ class AssetCreateView(
         if modelid:
             initial['modelid'] = modelid
 
-        gs1_data = ast.literal_eval(self.request.GET.get('gs1_data', None))
-        if gs1_data:
-            print(gs1_data, type(gs1_data))
-
-            gs1_to_asset_map = {
-                'PROD DATE': 'prod_date',
-                'SERIAL': 'serialnumber',
-            }
-            for ai, asset_field in gs1_to_asset_map.items():
-                value = gs1_data.get(ai, None)
-                if ai == "PROD DATE":
-                    value = datetime.strptime(value, "%y%m%d").date()
-                print(ai, value)   # debug
-                initial[asset_field] = value
+        gs1_data_string = self.request.GET.get('gs1_data')
+        if gs1_data_string:
+            gs1_data = ast.literal_eval(gs1_data_string)
+            if gs1_data:
+                gs1_to_asset_map = {
+                    'PROD DATE': 'prod_date',
+                    'SERIAL': 'serialnumber',
+                    'ASSET_NO':''
+                }
+                for ai, asset_field in gs1_to_asset_map.items():
+                    value = gs1_data.get(ai, None)
+                    if value and ai == "PROD DATE":
+                        value = datetime.strptime(value, "%y%m%d").date()
+                    initial[asset_field] = value
         return initial
 
 

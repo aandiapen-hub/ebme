@@ -3,10 +3,23 @@
 
 {% block content %}
 
-<div class="container">
+<div id='search_form' class="container">
         <div class='row mt-3'>
             <div class="col-sm-12 col-md-4">
-                <form id='quick_scan_form' method="post" action=" {% url "documents:quick_scanner" %}", enctype="multipart/form-data">
+                <form id='quick_scan_form' method="post"
+                action=" {% url "documents:quick_scanner" %}"
+                hx-post=" {% url "documents:quick_scanner" %}"
+                hx-target='#search_form'
+                hx-swap='afterend'
+                hx-select='#results'
+                enctype="multipart/form-data"
+                _='
+                  on htmx:afterRequest
+                  wait 50ms
+                  set my value to "" then
+                  call me.focus()
+                '
+                >
                     <h4>{{form_title}}</h4>
                     {% csrf_token %}
                     {% bootstrap_form form layout='horizontal' %}
@@ -18,43 +31,13 @@
         </div>
 </div>
 
-<div class='container border'>
-  {% if result.create_gtin %}
+  <div id='results' class='container m-3 p-3 border'>
     <div class='row'>
-        <h3>New GTIN identified</h3>
-          {% if result.models_with_gtin %}
-          <div class='col'>
-            <h5>Duplicate Model</h5>
-            {% for  model in result.models_with_gtin %}
-              <a class='btn btn-sm btn-warning' href='{% url "model_information:create_model" %}?modelid={{model.pk}}&gtin={{result.gtin}}'>Duplicate Model: {{model}}</a>
-            {% endfor %} 
-          </div>
-          {% endif%}
-          {% if result.models_without_gtin %}
-          <div class='col'>
-            <h5>Update existing model with GTIN</h5>
-              {% for  model in result.models_without_gtin %}
-              <a class='btn btn-sm btn-warning' href='{% url "model_information:update_model" pk=model.pk %}?gtin={{result.gtin}}'>{{model}}</a>
-              {% endfor %}
-          </div>
-          {% endif %}
-          <div class='col'>
-            <a class='btn btn-sm btn-warning' href='{% url "model_information:create_model" %}?gtin={{result.gtin}}'>Add New Model</a>
-            <a class='btn btn-sm btn-warning' href='{% url "parts:create_part" %}?gtin={{result.gtin}}'>Add New Spare Part</a>
-          </div>
+      {% include 'documents/partials/quick_scan/gtin_no_match.html' %}
+      {% include 'documents/partials/quick_scan/asset_exact_match.html' %}
+      {% include 'documents/partials/quick_scan/model_exact_match.html' %}
+      {% include 'documents/partials/quick_scan/asset_create.html' %}
+      {% include 'documents/partials/quick_scan/partial_matches.html' %}
     </div>
-  {% endif %}
-
-  {% if result.model %}
-    <p>Existing model idendtified<a class='btn btn-sm btn-success' href='{% url "model_information:model_view" pk=result.model.pk %}'>{{result.model}}</a>
-    </p>
-  {% endif %}
-
-  {% if result.create_asset_from_gs1 %}
-  <a class='btn btn-sm btn-warning' href='{% url "assets:create_asset" %}?gs1_data={{result.gs1}}&modelid={{result.model.pk}}'>Add New Asset</a>
-  {% endif %}
-
-  {% include 'documents/partials/quick_scan/partial_matches.html' %}
-
 </div>
 {% endblock content %}

@@ -15,7 +15,6 @@ def quick_scan_barcode(image):
         raise ValidationError({"file": "Could not find any barcode"})
 
     gs1_codes = [code for code in barcodes if code.content_type == zxingcpp.GS1]
-    print(gs1_codes)
     return gs1_codes
 
 
@@ -72,16 +71,19 @@ def gs1_resolver(gs1_data):
             output['asset'] = assets.first()
             output["jobs"] = assets.first().jobs.all
             return output
+        else:
+            output['create_asset_from_gs1'] = True
+
 
 
     # check for gtin
     if gtin:
         known_model = Tblmodel.objects.filter(gtin=gtin).first()
+        print('known model', known_model)
         output["model"] = known_model
         known_part = Tblpartslist.objects.filter(gtin=gtin).first()
         output["part"] = known_part
         if known_part:
-            print('spare part recognised', known_part)
             return output
         # create model or spare part from gs1_data
         output["create_gtin"] = not known_model and not known_part
@@ -104,12 +106,11 @@ def gs1_resolver(gs1_data):
         if assets.exists():
             output["partial_asset_match"] = True
             output["assets"] = assets
-            #update or create models based on exisiting assets
+            # update or create models based on exisiting assets
             models = assets.values_list("modelid", flat=True)
             output["models_with_gtin"] = Tblmodel.objects.filter(
                 modelid__in=models, gtin__isnull=False
             )
-            print(output["models_with_gtin"])
             output["models_without_gtin"] = Tblmodel.objects.filter(
                 modelid__in=models, gtin__isnull=True
             )
@@ -142,3 +143,20 @@ def non_gs1_result(data):
         output["too_many_jobs"] = True
 
     return output
+
+
+def process_barcode(file=None, scanned_code=None):
+    decoded_info = {}
+    try:
+        decoded_info = parse_gs1code(file=file, scanned_code=scanned_code)
+
+    except ValidationError:
+        output = non_gs1_result(scanned_code)
+        output['search_term'] = scanned_code
+        print('non gs1 uotput', output)
+        return output
+    else:
+        output = gs1_resolver(decoded_info)
+        output['search_term'] = f"{output.get('gs1').get('SERIAL', '')} {output.get('gs1').get('ASSET_NO', '')}"
+        print('gs1_putpu', output)
+        return output

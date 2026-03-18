@@ -13,6 +13,7 @@ services:
     extra_hosts:
       -  "host.docker.internal:host-gateway"
     tty: "true"
+    restart: unless-stopped
       
   redis:
     image: redis:latest

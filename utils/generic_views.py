@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.http import HttpResponse, HttpResponseRedirect
 from django_tables2 import SingleTableMixin, CheckBoxColumn, TemplateColumn, Table
 from django.db.models.query import QuerySet
-from django.db.models import ForeignKey, DateField, JSONField
+from django.db.models import Count, ForeignKey, DateField, JSONField
 from users.models import UserProfiles
 from utils.generic_filters import (
     dynamic_filterset_generator,
@@ -273,8 +273,22 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
             return self._render_field_summary(summary_field_data)
         # summariese all other type of data
         table_data = self.get_table_data()
-        print('table data', self.table_data)
+        count = (
+            table_data
+            .values(field.name)
+            .distinct()
+            .count()
+        )
+        if count > 1000:
+            summary_field_data = {"status": "high_row_count", "data": {"field": field}}
+            return self._render_field_summary(summary_field_data)
 
+        values_qs = dict(
+            table_data
+            .values_list(field.name)
+            .annotate(count=Count(field.name))
+        )
+        items = {}
         values_qs = Counter(table_data.values_list(field.name, flat=True))
         items = {}
         if len(values_qs) > 1000:

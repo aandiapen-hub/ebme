@@ -1,34 +1,41 @@
 
-  <div class='row'>
-    {% if result.assets %}
-    <div class='col'>
-      <h3>Assets</h3>
-      {% for asset in result.assets %}
-        {% include 'documents/partials/quick_scan/assets_list.html' %}
-      {% endfor %}
-    </div>
-    {% endif %}
+{% if result.assets %}
+    <div class="col-auto" style="max-width: 18rem;">
+        <div class="card border-secondary">
+          <div class="card-body">
+            <h5 class="card-title">Partial Asset matches</h5>
+            <p class="card-text">
+                {% for asset in result.assets %}
+                  {% include 'documents/partials/quick_scan/assets_list.html' %}
+                {% endfor %}
+            </p>
 
-    {% if result.too_many_assets %}
-    <div class='col'>
-      <h3>Assets</h3>
-      <a class='btn btn-sm btn-outline-primary' href='{% url "assets:assets_list" %}?universal_search={{result.search_term}}'>Search in Assets</a>
+          </div>
+        <div class="card-footer bg-transparent">
+          {{result.gs1}}
+          <a class='btn btn-sm btn-outline-primary' href='{% url "assets:assets_list" %}?universal_search={{result.search_term}}'>Search in Assets</a>
+        </div>
+      </div>
     </div>
-    {% endif %}
+ {% endif %}
 
-    {% if result.jobs %} 
-    <div class='col'>
-      <h3>Jobs</h3>
-      {% for job in result.jobs %}
-        {% include 'documents/partials/quick_scan/jobs_list.html' %}
-      {% endfor %}
-    </div>
 
-    {% endif %}
-    {% if result.too_many_jobs %}
-    <div class='col'>
-      <h3>Jobs</h3>
-      <a class='btn btn-sm btn-outline-primary' href='{% url "jobs:jobs_list" %}?universal_search={{result.search_term}}'>search in jobs</a>
+  {% if result.jobs %} 
+    <div class="col-auto" style="max-width: 18rem;">
+        <div class="card border-secondary">
+          <div class="card-body">
+            <h5 class="card-title">Job matches</h5>
+            <p class="card-text">
+                {% for asset in result.assets %}
+                  {% include 'documents/partials/quick_scan/jobs_list.html' %}
+                {% endfor %}
+            </p>
+          </div>
+        <div class="card-footer bg-transparent">
+          {{result.gs1}}
+          <a class='btn btn-sm btn-outline-primary' href='{% url "jobs:jobs_list" %}?universal_search={{result.search_term}}'>search in jobs</a>
+        </div>
+      </div>
     </div>
-    {% endif %}
-</div>
+ {% endif %}
+

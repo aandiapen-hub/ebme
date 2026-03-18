@@ -1,0 +1,36 @@
+
+  {% if result.create_gtin %}
+    <div class="col-auto" style="max-width: 18rem;">
+    <div class="card border-warning">
+      <div class="card-body">
+        <h5 class="card-title">GTIN not Found</h5>
+        <p class="card-text">{{result.gtin}}
+        </p>
+          {% if result.models_with_gtin %}
+            <div class='p-3 border'>
+              <h5>Duplicate Model</h5>
+              {% for  model in result.models_with_gtin %}
+                <a class='btn btn-sm btn-warning' href='{% url "model_information:create_model" %}?modelid={{model.pk}}&gtin={{result.gtin}}'>Duplicate Model: {{model}}</a>
+              {% endfor %} 
+            </div>
+          {% endif%}
+
+          {% if result.models_without_gtin %}
+            <div class='p-3 border'>
+              <h5>Update existing model with GTIN</h5>
+                {% for  model in result.models_without_gtin %}
+                <a class='btn btn-sm btn-warning' href='{% url "model_information:update_model" pk=model.pk %}?gtin={{result.gtin}}'>{{model}}</a>
+                {% endfor %}
+            </div>
+          {% endif %}
+
+            <div class='p-3 border'>
+              <h5>Create New</h5>
+              <a class='btn btn-sm btn-warning' href='{% url "model_information:create_model" %}?gtin={{result.gtin}}'>Add New Model</a>
+              <a class='btn btn-sm btn-warning' href='{% url "parts:create_part" %}?gtin={{result.gtin}}'>Add New Spare Part</a>
+            </div>
+      </div>
+      <div class="card-footer bg-transparent">{{result.gs1}}</div>
+    </div>
+    </div>
+  {% endif %}
