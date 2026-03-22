@@ -29,16 +29,16 @@ _="on click set value of #filter_list_search_box to '' then trigger input on #fi
                 "
           />
 
-        <ul class="list-group">
+        <ul id='filter_list' class="list-group">
           {% for field,params in filter_fields.items  %}
 
-                <li id="li_{{params.verbose_name}}" class="list-group-item">
+                <li id="li_{{params.verbose_name}}" class="list-group-item" >
 
                       <div class="accordion accordion-flush" id="accordion_{{field}}">
                         <div class="accordion-item">
                           <h2 class="accordion-header">
 
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapse_{{field}}" aria-expanded="false" aria-controls="flush-collapse_{{field}}">
+                  <button id='accordion_button_{{field}}' class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapse_{{field}}" aria-expanded="false" aria-controls="flush-collapse_{{field}}">
                               {{params.verbose_name}}
                             </button>
                           </h2>
@@ -46,14 +46,25 @@ _="on click set value of #filter_list_search_box to '' then trigger input on #fi
                             <div class="accordion-body">
                                           
                                             {% for lookup,label in params.lookup_labels.items  %}
-                                            <button id='button_{{field}}__{{lookup}}' class="btn btn-outline-primary"
+                    <button id='button_{{field}}__{{lookup}}' class="btn btn-outline-primary" 
                                                 
                                                   hx-get="{% url app_link %}?{{ request.GET.urlencode }}&new_active_filter={{field}}__{{lookup}}"
                                                   hx-target="#div_filter_fields"
                                                   hx-swap="beforeend"
+                                                  hx-trigger='click'
                                                   data-bs-dismiss="modal"
                                                   hx-include="#filter-form input, #filter-form select"
-                                                  _='on click hide me'
+                                                  _="
+                                                   on htmx:beforeRequest
+                                                    set divid to 'div_id_{{field}}__{{lookup}}'
+                                                    set divs to id of <div/> in #div_filter_fields
+                                                    if divid is in divs
+                                                    halt the event's default
+                                                    set div to #div_id_{{field}}__{{lookup}}
+                                                    go to the top of #div_id_{{field}}__{{lookup}} -35px
+                                                    transition #div_id_{{field}}__{{lookup}} opacity to 0.1
+                                                    transition #div_id_{{field}}__{{lookup}} opacity to 1
+                                                  "
                                                   >
                                                   {{label}}
                                                 

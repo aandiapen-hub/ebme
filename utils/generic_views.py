@@ -180,7 +180,7 @@ def get_dynamic_table_class(
 
     # Always include checkbox column
     table_columns["selected"] = CustomCheckBoxColumn(
-        accessor="pk"
+        accessor="pk", exclude_from_export=True
     )  # Define Meta dynamically
 
     class Meta:

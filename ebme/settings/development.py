@@ -13,7 +13,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'FALSE') == 'True'
 
-ALLOWED_HOSTS = ['192.168.1.129', '127.0.0.1']
+ALLOWED_HOSTS = ['127.0.0.0']
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
