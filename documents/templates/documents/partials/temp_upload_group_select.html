@@ -8,10 +8,9 @@
       {% for group,temp_files in temp_files_groups.items %}
         <div class="col-auto border">
           <form
-            hx-post='{% url "documents:link_temporary_document" %}'
+            hx-post="{{request.get_full_path}}"
             hx-trigger="click from:#submit_button_{{group}}" 
             hx-target="this"
-            hx-include="#link_row, #link_table"
             hx-swap="outerHTML"
             hx-on::after-Request= "bootstrap.Modal.getInstance(document.getElementById('modals-here')).hide();"
             hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>

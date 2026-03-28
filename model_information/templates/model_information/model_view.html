@@ -13,7 +13,8 @@
         </div>
         <div class='col text-end'>
         <!--Documents --> 
-        {% include "documents/partials/generic_document_partial.html" with link_row=object.modelid app_model="assets.tblModel" link_table="tblModel"%}
+        {% include "documents/partials/generic_document_partial.html" with object=object.pk content_type='assets.tblmodel' %}
+
           <div id="edit_div" class="dropdown">
             <button class="btn btn-outline-white border-white dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-three-dots-vertical"></i>

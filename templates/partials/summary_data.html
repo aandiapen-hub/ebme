@@ -4,4 +4,21 @@
         Records : {{table.rows|length}}
         <!-- data export-->
         <a class="btn btn-sm btn-outline-primary" href="{% querystring '_export'='csv' %}">Export(csv)</a>
+
+          <!--Multiple asset edits buttons-->
+        
+                  <a
+                    hx-get="{% url 'assets:bulk_update_assets' %}?{{ request.GET.urlencode }}"
+                    hx-include='#row_select_form'
+                    hx-target='#bulk_update_content'
+                    hx-indicator='#bulk_update_spinner'
+                    hx-swap='innerHTML'
+                    class="btn btn-primary"
+                    type="button"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#bulk_update_offcanvas"
+                    aria-controls="bulk_update_offcanvas">
+                    Bulk Update
+                  </a>
+
 </div> 

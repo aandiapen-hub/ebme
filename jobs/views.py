@@ -797,8 +797,7 @@ class JobCreateFromReportView(JobCreateView):
                 if files:
                     save_temp_files = SaveTempFiles(
                         temp_files=files,
-                        link_row=self.object.pk,
-                        link_table=self.model._meta.db_table,
+                        content_object=self.object
                     )
                     save_temp_files.save_all()
 
@@ -868,8 +867,7 @@ class JobUpdateFromReportView(JobUpdateView):
                 if files:
                     save_temp_files = SaveTempFiles(
                         temp_files=files,
-                        link_row=self.object.pk,
-                        link_table=self.model._meta.db_table,
+                        content_object=self.object,
                         document_type=TblDocumentTypes.objects.filter(
                             document_type_name="Service Report"
                         ).first(),

@@ -3,6 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMix
 from django.shortcuts import render
 from django.views.generic.edit import FormMixin
 from django_filters.views import FilterView
+from django.views.generic.list import ListView
 from django.contrib import messages
 from django.http import HttpResponse, HttpResponseRedirect
 from django_tables2 import SingleTableMixin, CheckBoxColumn, TemplateColumn, Table
@@ -20,8 +21,8 @@ from django_tables2.export.views import ExportMixin
 
 
 # get visible columns for a model for a user
-def get_visible_columns(request, model):
     # Get user's preferred columns from user_profiles.table_settings
+def get_visible_columns(request, model):
     user = request.user
     try:
         user_profile = UserProfiles.objects.get(user_id=user)
@@ -33,124 +34,9 @@ def get_visible_columns(request, model):
         return None
     return user_columns
 
-
-class BulkUpdateView(
-    LoginRequiredMixin, PermissionRequiredMixin, FormMixin, FilterView
-):
-    """
-    A reusable view for bulk updating filtered and selected queryset items.
-    Requires:
-      - model
-      - form_class
-      - filterset_class
-      - context_object_name
-      - success_url
-      - table_class
-    Optional:
-      - view
-      - summary_field_names
-      - record_type
-    """
-
-    model = None  # must overide in child class
-    template_name = "bulk_update.html"
-    permission_required = None  # Optional: for external permission mixins
-    summary_field_names = None  # Optional: list of field names for summary
-    view = None
-    selected_ids = None
-
-    def get(self, request, *args, **kwargs):
-        if request.htmx:
-            return HttpResponse(headers={"HX-Redirect": request.get_full_path()})
-        return super().get(request, *args, **kwargs)
-
-    def get_table_class(self):
-        # Dynamically create table class if not provided
-        table = get_dynamic_table_class(
-            table_model=self.model,
-            visible_columns=get_visible_columns(self.request, self.model),
-        )
-        return table
-
-    def get_filterset_class(self):
-        active_filters = [
-            key
-            for key, value in self.request.GET.items()
-            if key
-            not in [
-                "new_active_filter",
-                "page",
-                "csrfmiddlewaretoken",
-                "universal_search",
-                "sort",
-            ]
-        ]
-        return dynamic_filterset_generator(
-            self.model,
-            universal_search_fields=self.universal_search_fields,
-            active_filters=active_filters,
-        )
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        self.filterset = self.filterset_class(self.request.GET, queryset=qs)
-        qs = self.filterset.qs
-        selected_ids = self.request.GET.getlist("selected")
-        if selected_ids:
-            qs = qs.filter(pk__in=selected_ids)
-        self.request.session["selected_ids"] = list(qs.values_list("pk", flat=True))
-        return qs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        data = self.get_queryset()
-
-        context["record_type"] = self.context_object_name
-
-        if self.table_class:
-            context["table"] = self.table_class(data)
-
-
-        return context
-
-    def post(self, request, *args, **kwargs):
-        form = self.get_form()
-        selected_ids = self.request.session.pop("selected_ids", [])
-
-        if form.is_valid():
-            updates = {
-                field: value
-                for field, value in form.cleaned_data.items()
-                if value not in [None, ""]
-            }
-
-            if updates:
-                if self.db_table:
-                    self.db_table.objects.filter(pk__in=selected_ids).update(**updates)
-                else:
-                    self.model.objects.filter(pk__in=selected_ids).update(**updates)
-                messages.success(
-                    request, f"{self.context_object_name} updated successfully."
-                )
-
-            else:
-                messages.warning(
-                    request, f"No {self.context_object_name} were provided to update."
-                )
-
-            base_url = super().get_success_url()
-            query_params = urlencode(
-                {"universal_search": ",".join(map(str, selected_ids))}
-            )
-            return HttpResponseRedirect(f"{base_url}?{query_params}")
-
-        return self.form_invalid(form)
-
-
 class CustomCheckBoxColumn(CheckBoxColumn):
     def header(self):
         return "Select"
-
 
 # Function to dynamically create table class
 def get_dynamic_table_class(
@@ -258,7 +144,6 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
 
         return str(value).translate(REMOVE_CHARS).strip()
 
-
     def get_summary_field_data(self):
         # get requested summary field from model
         field = self.model._meta.get_field(self.summary_field)
@@ -362,8 +247,7 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
 
     def get_filterset_kwargs(self, filterset_class):
         # Copy the GET params to make them mutable
-        data = self.request.GET.copy()
-        # Remove unwanted parameter(s)
+        data = self.request.GET.copy()  # Remove unwanted parameter(s)
         param_to_remove = "summary_field"
         field = data.get("summary_field")
         if param_to_remove in data:
@@ -427,10 +311,8 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
         return [self.template_name]
 
     def get_table_data(self):
-        # check if there is a session filter active for this view
         self.filterset = self.get_filterset(self.get_filterset_class())
         queryset = self.filterset.qs
-        # apply session filter if active
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -439,11 +321,59 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
         context["model_name"] = self.model._meta.label
         context["filter_fields"] = get_filter_fields(self.model, self.visible_columns)
 
-        cleaned_data = getattr(context["filter"].form, "cleaned_data", {})
-        context["has_active_filters"] = any(
-            v not in ("", [], {}, None)
-            and not (isinstance(v, QuerySet) and not v.exists())
-            for v in cleaned_data.values()
-        )
+        filter_form = context.get('filter', None)
+        if filter_form:
+            cleaned_data = getattr(filter_form.form, "cleaned_data", {})
+            context["has_active_filters"] = any(
+                v not in ("", [], {}, None)
+                and not (isinstance(v, QuerySet) and not v.exists())
+                for v in cleaned_data.values()
+            )
 
         return context
+
+
+class BulkUpdateView(
+    FilteredTableView, FormMixin
+):
+    paginate_by = 20
+    permission_required = None  # Override in subclass - Mandatory
+    model = None  # override in subclass - Mandatory
+    template_columns = None  # override in subclass - optional
+    template_name = None  # override in subclass - Mandatory
+    universal_search_fields = None  # override in subclass - Mandatory
+    default_columns = []
+
+    def get_filterset_kwargs(self, filterset_class):
+        kwargs = super().get_filterset_kwargs(filterset_class)
+
+        qs = kwargs["queryset"]
+
+        if self.request.method == 'GET':
+            selected_ids = self.request.GET.getlist("selected")
+        else:
+            selected_ids = self.request.POST.getlist("selected")
+
+        if selected_ids:
+            qs = qs.filter(pk__in=selected_ids)
+
+        kwargs["queryset"] = qs
+        return kwargs
+
+    def get_filtered_objects(self):
+        if not hasattr(self, "filterset"):
+            self.filterset = self.get_filterset(self.get_filterset_class())
+        if not hasattr(self, "object_list"):
+            self.object_list = self.filterset.qs
+        print('object list', self.object_list.count())
+        return self.object_list
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # column chooser to get column list
+        context['count'] = self.object_list.count()
+        return context
+
+    def get_success_url(self):
+        return f"{self.request.path}?{self.request.GET.urlencode}"
+

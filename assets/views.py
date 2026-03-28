@@ -1,6 +1,9 @@
 from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
+
+from django_htmx.http import HttpResponseClientRedirect
+
 from django.shortcuts import render
 import ast
 from django.urls import reverse, reverse_lazy
@@ -56,6 +59,14 @@ from .mixins import CustomerAssetPermissionMixin
 
 from utils.generic_views import FilteredTableView
 
+UNIVERSAL_SEARCH_FIELDS = [
+    "serialnumber__icontains",
+    "assetid__icontains",
+    "modelname__icontains",
+    "brandname__icontains",
+    "categoryname__icontains",
+    "customerassetnumber__icontains",
+]
 
 class FilteredAssetTableView(
     LoginRequiredMixin, CustomerAssetPermissionMixin, FilteredTableView
@@ -67,16 +78,8 @@ class FilteredAssetTableView(
     template_columns = {"open": "assets/tables/open.html"}
 
     template_name = "assets/assetview_filter.html"
-    universal_search_fields = [
-        "serialnumber__icontains",
-        "assetid__icontains",
-        "modelname__icontains",
-        "brandname__icontains",
-        "categoryname__icontains",
-        "customerassetnumber__icontains",
-    ]
-
-    default_columns =  [
+    universal_search_fields = UNIVERSAL_SEARCH_FIELDS
+    default_columns = [
         'assetid',
         'brandid',
         'modelid',
@@ -269,19 +272,47 @@ class AssetJobsListView(
 
 
 class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):
-    context_object_name = "assets"
     model = AssetView
-    db_table = Tblassets
     permission_required = "assets.change_tblassets"
+    template_name = 'assets/bulk_update.html'
     form_class = AssetBulkUpdateForm
-    summary_field_names = [
-        "modelname",
-        "ppm_compliance",
-        "categoryname",
-        "customername",
-    ]
-    success_url = reverse_lazy("assets:assets_list")
+    universal_search_fields = UNIVERSAL_SEARCH_FIELDS
 
+    def get_template_names(self):
+        return ['assets/bulk_update.html']
+
+    def get_success_url(self):
+        base_url = reverse('assets:assets_list')
+        query_params = self.request.GET.urlencode()
+        return f"{base_url}?{query_params}"
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        qs = self.get_filtered_objects()
+
+        if form.is_valid():
+            print('for is valid')
+            updates = {
+                field: value
+                for field, value in form.cleaned_data.items()
+                if value not in [None, ""]
+            }
+
+            if updates:
+                Tblassets.objects.filter(pk__in=qs.values("pk")).update(**updates)
+                messages.success(
+                    request, f"{self.context_object_name} updated successfully."
+                )
+
+            else:
+                messages.warning(
+                    request, f"No {self.context_object_name} were provided to update."
+                )
+
+            return HttpResponseClientRedirect(self.get_success_url())
+
+        print('form is invalid')
+        return self.form_invalid(form)
 
 class BarCodeReader(
     LoginRequiredMixin,

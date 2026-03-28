@@ -15,10 +15,10 @@
                     {% for document in documents %}
 
                         <li  class="list-group-item">
-                        {{document.document_name}} - {{document.creation_date}}
-                        {{document.document_description}}
+                        {{document.documentid.document_name}} - {{document.documentid.creation_date}}
+                        {{document.documentid.document_description}}
                         
-                        <a href="{% url 'documents:download_document' pk=document.pk %}"
+                        <a href="{% url 'documents:download_document' pk=document.document_link_id %}"
                             type="button"
                             class="btn btn-outline-info btn-sm">
                             <i data-bs-toggle="tooltip" title="View Document" class="bi bi-cloud-arrow-down"></i>

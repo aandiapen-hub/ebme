@@ -1,5 +1,4 @@
-{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
-
+{% load django_bootstrap5 %}
 
 <div  class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -10,15 +9,16 @@
 
         <form id='document_link_create_form' class="form" method="post"
         enctype="multipart/form-data"
-        hx-post="{{request.path}}"
+        hx-post="{{request.get_full_path}}"
         hx-trigger="submit"
         hx-target="#modals-here"
         hx-on::after-Request= "bootstrap.Modal.getInstance(document.getElementById('modals-here')).hide();">
-        <h4>Link to {{form.link_table.value}} {{form.link_row.value}} </h4>
+        <h4>Link to {{object}} </h4>
   
-        {% csrf_token %}
-        {{ form|crispy }}
+        {% bootstrap_messages %}
 
+        {% csrf_token %}
+        {% bootstrap_form form %}
 
         {% if view_type == "delete" %}
         <h3> Are you sure you want to delete document {{object.document_name}} </h3>
@@ -31,18 +31,13 @@
 
       <!--show temporary uploaded files if they exist-->
       <div id="temp_upload_group_select_div"
-      hx-get="{% url 'documents:link_temporary_document' %}"
+      hx-get="{% url 'documents:link_temporary_document' %}?object_id={{object.pk}}&content_type={{content_type}}"
       hx-swap='innerHTML'
       hx-trigger='load'
       hx-target='this'
       >
       </div>
 
-      {% if error_message %}
-      <div class="alert alert-danger" role="alert">
-      {{error_message}}  
-      </div>
-      {% endif %}
       
       {% include 'partials/messages.html' %}
 

@@ -8,8 +8,8 @@
 from django.db import models
 from django.utils.timezone import now
 from django.urls import reverse
+from django.contrib.contenttypes.fields import GenericRelation
 
-from django.core.validators import MinValueValidator
 
 
 class Tblassets(models.Model):
@@ -73,6 +73,10 @@ class Tblassets(models.Model):
     prod_date = models.DateField(blank=True, null=True)
     is_test_eq = models.BooleanField(blank=True, null=True, default=False)
     next_calibration_date = models.DateField(blank=True, null=True)
+    document_links = GenericRelation(
+        'documents.TblDocumentLinks',
+        related_query_name='assets'
+    )
 
     class Meta:
         managed = False
@@ -524,6 +528,10 @@ class Tblmodel(models.Model):
         db_column="categoryid",
     )
     gtin = models.CharField(blank=True, null=True)
+    document_links = GenericRelation(
+        'documents.TblDocumentLinks',
+        related_query_name='models'
+    )
 
     class Meta:
         managed = False

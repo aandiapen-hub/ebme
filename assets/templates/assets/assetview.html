@@ -65,7 +65,7 @@
 
         </div>
         <div class="col-12" id="document_div">
-            {% include "documents/partials/generic_document_partial.html" with link_row=asset.assetid app_model="assets.tblAssets" link_table="tblAssets"%}   
+            {% include "documents/partials/generic_document_partial.html" with object=asset.assetid content_type="assets.tblAssets" %}   
         </div>
       </div>
 
