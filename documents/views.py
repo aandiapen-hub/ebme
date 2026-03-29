@@ -1,7 +1,5 @@
 from io import BytesIO
-import io
 from urllib.parse import urlencode
-import uuid
 from django.apps import apps
 from django.views.generic.edit import FormMixin
 from django.shortcuts import redirect, render
@@ -10,15 +8,13 @@ from django.contrib import messages
 from django.urls import reverse, reverse_lazy
 from django.db import transaction
 from django.views import View
-from PIL import Image
 from django.core.exceptions import ValidationError
+from .service import create_document_from_file, SaveTempFiles
 
 # import models
 from .models import (
     TblDocuments,
-    TblDocTableRef,
     TblDocumentLinks,
-    DocumentsView,
     TemporaryUpload,
 )
 
@@ -44,12 +40,12 @@ from .forms import (
 
 # import generic filter table view
 from utils.generic_views import FilteredTableView
-from django.db.models import ForeignKey, Q
+from django.db.models import ForeignKey
 
 
 # import mixins
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from .mixins import DocumentPermissionMixin
+from .mixins import DocumentLinkPermissionMixin
 from pdf2image import convert_from_path
 from .utils import clear_extraction_results, save_extraction_results
 from .utils import get_extraction_results
@@ -59,7 +55,7 @@ from .utils import get_extraction_results
 
 
 class DocumentAndLinkCreateView(
-    LoginRequiredMixin, DocumentPermissionMixin, CreateView
+    LoginRequiredMixin, PermissionRequiredMixin, CreateView
 ):
     model = TblDocuments
     form_class = DocumentLinkCreateForm
@@ -93,14 +89,14 @@ class DocumentAndLinkCreateView(
             document_name = form.cleaned_data.get("document_name")
             document_description = form.cleaned_data.get("document_description")
 
-            TblDocuments.from_file(
-                document_name=document_name,
-                document_description=document_description,
+            create_document_from_file(
                 content=uploaded_file.read(),
+                document_type_id=document_type_id,
+                document_name=document_name,
                 mime_type=uploaded_file.content_type,
                 file_size=uploaded_file.size,
-                document_type_id=document_type_id,
                 content_object=object,
+                document_description=document_description,
             )
 
             if self.request.htmx:
@@ -126,10 +122,12 @@ class DocumentAndLinkCreateView(
             return self.form_invalid(form)
 
 
-class DocumentLinkDeleteView(LoginRequiredMixin, DocumentPermissionMixin, DeleteView):
-    model = DocumentsView
+class DocumentLinkDeleteView(
+    LoginRequiredMixin, DocumentLinkPermissionMixin, DeleteView
+):
+    model = TblDocumentLinks
     template_name = "documents/partials/document_crud_modal.html"
-    permission_required = "documents.delete_tbldocuments"
+    permission_required = "documents.delete_TblDocumentLinks"
 
     success_url = reverse_lazy("documents:list_documents")  # or wherever you want
 
@@ -162,23 +160,18 @@ class DocumentLinkDeleteView(LoginRequiredMixin, DocumentPermissionMixin, Delete
         return HttpResponseRedirect(success_url)
 
 
-class DocumentLinkUpdateView(LoginRequiredMixin, DocumentPermissionMixin, UpdateView):
-    model = DocumentsView
+class DocumentLinkUpdateView(
+    LoginRequiredMixin, DocumentLinkPermissionMixin, UpdateView
+):
+    model = TblDocumentLinks
     template_name = "documents/partials/document_crud_modal.html"
     fields = "__all__"
-    permission_required = "documents.change_tbldocuments"
+    permission_required = "documents.change_tbldocumentlinks"
     success_url = reverse_lazy("documents:table_document_links")
 
     def form_valid(self, form):
         try:
             with transaction.atomic():
-                # update document link
-                link = TblDocumentLinks.objects.get(
-                    document_link_id=self.object.document_link_id
-                )
-                link.link_table = form.cleaned_data["link_table"]
-                link.link_row = form.cleaned_data["link_row"]
-                link.save()
                 # update document
                 document = TblDocuments.objects.get(document_id=self.object.document_id)
                 document.document_name = form.cleaned_data["document_name"]
@@ -209,7 +202,7 @@ class DocumentLinkUpdateView(LoginRequiredMixin, DocumentPermissionMixin, Update
         return self.render_to_response(context)
 
 
-class DocumentUpdateView(LoginRequiredMixin, DocumentPermissionMixin, UpdateView):
+class DocumentUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = TblDocuments
     template_name = "documents/document_update.html"
     permission_required = "documents.change_tbldocuments"
@@ -226,11 +219,11 @@ class DocumentUpdateView(LoginRequiredMixin, DocumentPermissionMixin, UpdateView
 
 
 class DocumentLinksTableView(
-    LoginRequiredMixin, DocumentPermissionMixin, FilteredTableView
+    LoginRequiredMixin, DocumentLinkPermissionMixin, FilteredTableView
 ):
     model = TblDocumentLinks
     paginate_by = 20
-    permission_required = "documents.view_documentsview"
+    permission_required = "documents.view_tbldocumentlinks"
     template_name = "documents/documents_links.html"
     template_columns = {"actions": "documents/tables/document_links_buttons.html"}
     universal_search_fields = [
@@ -241,11 +234,11 @@ class DocumentLinksTableView(
 
 
 class DocumentsTableView(
-    LoginRequiredMixin, DocumentPermissionMixin, FilteredTableView
+    LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
 ):
     model = TblDocuments
     paginate_by = 20
-    permission_required = "documents.view_documentsview"
+    permission_required = "documents.view_tbldocuments"
     template_name = "documents/documents.html"
     template_columns = {"actions": "documents/tables/documents_buttons.html"}
     universal_search_fields = [
@@ -256,9 +249,9 @@ class DocumentsTableView(
     exclude = ("document_bytea",)
 
 
-class DocumentDownloadView(LoginRequiredMixin, DocumentPermissionMixin, DetailView):
+class DocumentDownloadView(LoginRequiredMixin, DocumentLinkPermissionMixin, DetailView):
     model = TblDocumentLinks
-    permission_required = "documents.view_tbldocuments"
+    permission_required = "documents.view_tbldocumentlinks"
 
     def render_to_response(self, context, **response_kwargs):
         document_link = self.get_object()
@@ -288,14 +281,15 @@ def get_document_links_for_object(object):
     return related_links
 
 
-class DocumentListView(LoginRequiredMixin, DocumentPermissionMixin, ListView):
-    model = DocumentsView
+class DocumentListView(LoginRequiredMixin, DocumentLinkPermissionMixin, ListView):
+    model = TblDocumentLinks
     template_name = "documents/partials/document_list.html"
     context_object_name = "documents"
-    permission_required = "documents.view_documentsview"
+    permission_required = "documents.view_tbldocumentlinks"
 
     def get_queryset(self):
         # Filter jobs by assetid passed in the URL
+        qs = super().get_queryset()
 
         object_id = self.request.GET.get("object_id")
         content_type = self.request.GET.get("content_type")
@@ -303,17 +297,11 @@ class DocumentListView(LoginRequiredMixin, DocumentPermissionMixin, ListView):
 
         object = model.objects.get(pk=object_id)
 
-        document_links = get_document_links_for_object(object).order_by(
+        document_links = get_document_links_for_object(object)
+
+        return qs.filter(pk__in=document_links.values_list("pk", flat=True)).order_by(
             "documentid__document_type_id"
         )
-
-        document_link_filters = Q()
-        if not self.request.user.is_staff:
-            document_link_filters &= Q(customerid=self.request.user.customerid) | Q(
-                customerid__isnull=True
-            )
-
-        return document_links
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -329,81 +317,6 @@ class DocumentListView(LoginRequiredMixin, DocumentPermissionMixin, ListView):
                 grouped_documents[key] = list(group)
             context["grouped_documents"] = grouped_documents
         return context
-
-
-def resizeimg(img):
-    # Calculate new size (50%)
-    new_width = img.width // 2
-    new_height = img.height // 2
-
-    # Resize
-    resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-
-    return resized_img
-
-
-class SaveTempFiles:
-    def __init__(self, temp_files, content_object, document_type=None, file_name=None):
-        self.temp_files_list = temp_files
-        self.file_name = file_name
-        self.document_type = document_type
-        self.content_object = content_object
-
-    def save_single_file(self):
-        file = self.temp_files_list[0]
-        with open(file.file.path, "rb") as f:
-            content = f.read()
-        TblDocuments.from_file(
-            temp_file=file,
-            content=content,
-            document_type_id=self.document_type,
-            content_object=self.content_object,
-        )
-
-    def save_all(self):
-        """
-        Save all files permanently and link them to the row/table.
-        """
-        with transaction.atomic():
-            if len(self.temp_files_list) == 1:
-                self.save_single_file()
-
-            else:
-                image_files = [
-                    file for file in self.temp_files_list if "image/" in file.mime_type
-                ]
-                # Open all images
-                if image_files:
-                    images = [
-                        Image.open(img.file.path).convert("RGB") for img in image_files
-                    ]
-                    downscaled_images = list(map(resizeimg, images))
-
-                    # Create a bytes buffer instead of saving to disk
-                    pdf_bytes_io = io.BytesIO()
-                    # Save as PDF
-                    # The first image is used as the starting point, the rest are appended
-                    downscaled_images[0].save(
-                        pdf_bytes_io,
-                        format="PDF",
-                        save_all=True,
-                        append_images=downscaled_images[1:],
-                    )
-                    # Get bytes for storage
-                    pdf_bytes = pdf_bytes_io.getvalue()
-                    pdf_bytes_io.close()
-
-                    TblDocuments.from_file(
-                        document_name=f"{uuid.uuid4()}" + ".pdf",
-                        mime_type="application/pdf",
-                        content=pdf_bytes,
-                        file_size=len(pdf_bytes),
-                        document_type_id=self.document_type,
-                        content_object=self.content_object,
-                    )
-
-                    for image in image_files:
-                        image.delete()
 
 
 class DocumentPreView(LoginRequiredMixin, View):

@@ -5,14 +5,6 @@ from .models import TblDocuments, TblDocumentTypes, TemporaryUpload
 
 
 class DocumentLinkCreateForm(forms.ModelForm):
-    content_type = forms.CharField(
-        widget=forms.HiddenInput(attrs={'id': 'content_type'}),
-        required=False
-    )
-    object_id = forms.CharField(
-        widget=forms.HiddenInput(attrs={'id': 'object_id'}),
-        required=False
-    )
     document_bytea = forms.FileField(
         widget=forms.FileInput(attrs={'capture': 'environment'})
     )

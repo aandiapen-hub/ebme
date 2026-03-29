@@ -53,51 +53,6 @@ class TblDocuments(models.Model):
     def __str__(self):
         return self.document_name
 
-    @classmethod
-    def from_file(
-        cls,
-        content,
-        document_type_id,
-        temp_file=None,
-        document_name=None,
-        mime_type=None,
-        file_size=None,
-        content_object=None,
-        document_description=None,
-    ):
-        if temp_file:
-            document_name = temp_file.original_name
-            mime_type = temp_file.mime_type
-            file_size = temp_file.file_size
-
-        file_hash = hashlib.sha256(content).hexdigest()
-        with transaction.atomic():
-            # Check if a document with this hash already exists
-            existing_object = cls.objects.filter(document_hash=file_hash).first()
-
-            if existing_object:
-                created_object = existing_object
-
-            else:
-                created_object = cls.objects.create(
-                    document_name=document_name,
-                    mime_type=mime_type,
-                    document_bytea=content,
-                    document_description=document_description,
-                    file_size=file_size,
-                    document_type_id=document_type_id,
-                    document_hash=file_hash,
-                )
-
-            if content_object:
-                TblDocumentLinks.objects.create(
-                    documentid=created_object,
-                    content_object=content_object,
-                )
-
-            if temp_file:
-                temp_file.delete()
-
     class Meta:
         managed = False
         db_table = "tbl_aws_documents"
@@ -196,6 +151,7 @@ class TblDocumentLinks(models.Model):
     )
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey("content_type", "object_id")
+    customer = models.ForeignKey('assets.Tblcustomer', on_delete=models.PROTECT)
 
     class Meta:
         managed = False
@@ -204,10 +160,7 @@ class TblDocumentLinks(models.Model):
 
     @staticmethod
     def delete_link_documents(obj):
-        table_name = obj._meta.db_table
-        links = TblDocumentLinks.objects.filter(
-            link_table__table_name__iexact=table_name.lower(), link_row=obj.pk
-        )
+        links = obj.document_links.all()
         for link in links:
             with transaction.atomic():
                 documentid = link.documentid.document_id
@@ -215,7 +168,6 @@ class TblDocumentLinks(models.Model):
                 other_document_links = TblDocumentLinks.objects.filter(
                     documentid=documentid
                 )
-                print(other_document_links)
                 if not other_document_links.exists():
                     TblDocuments.objects.get(document_id=documentid).delete()
 

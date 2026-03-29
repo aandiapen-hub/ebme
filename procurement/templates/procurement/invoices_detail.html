@@ -42,7 +42,7 @@
           </div>
           <div class="col text-end">
               <!--Documents -->
-            {% include "documents/partials/generic_document_partial.html" with link_row=invoice.pk app_model="procurement.tblinvoices" link_table="tbl_invoices"%}
+            {% include "documents/partials/generic_document_partial.html" with object_id=invoice.pk content_type="procurement.tblinvoices" %}
 
             <div class="dropdown">
               <button class="btn btn-outline-white border-white dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -76,9 +76,7 @@
         <div class='row'>
           <div class='col'>
             <h3>Documents</h3>
-              {% with link_row=invoice.invoice_id|stringformat:"s" %}
-              {% include "documents/partials/generic_document_partial.html" with hx_vals='{"link_row": "'|add:link_row|add:'", "link_table": "Invoice"}' %}
-              {% endwith %}
+              {% include "documents/partials/generic_document_partial.html" with object_id=invoice.pk content_type="procurement.tblinvoices" %}
           </div>
         </div>
 </div>
