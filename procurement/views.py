@@ -1,19 +1,14 @@
-import json
-from pkgutil import extend_path
-from urllib.parse import urlencode
-
 from django.db import transaction
 from django.contrib import messages
 from django.db.models.deletion import ProtectedError
 
-from django.shortcuts import render
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from django.utils.timezone import now
 from django.views import View
 
-from documents.models import TblDocumentLinks, TblDocumentTypes, TemporaryUpload
+from documents.models import TblDocumentLinks, DocumentTypes, TemporaryUpload
 from documents.utils import get_extraction_results, save_extraction_results
 from documents.views import SaveTempFiles
 
@@ -23,14 +18,12 @@ from .models import (
     TblPurchaseOrder,
     TblPoLines,
     PoView,
-    PoView,
     Outstandngdeliveriesview,
     TblDeliveries,
     TblDeliveryLines,
 )
 
 # import class based views
-from django_filters.views import FilterView
 from django.views.generic import (
     UpdateView,
     CreateView,
@@ -38,7 +31,6 @@ from django.views.generic import (
     ListView,
     DetailView,
     TemplateView,
-    FormView,
 )
 
 
@@ -324,9 +316,7 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
                     delivery_note_file = SaveTempFiles(
                         temp_files=files,
                         content_object=self.object,
-                        document_type=TblDocumentTypes.objects.filter(
-                            document_type_name="Delivery Note"
-                        ).first(),
+                        document_type=DocumentTypes.DELIVERY_NOTE,
                         file_name=f"delivery_note_{self.object.pk}",
                     )
                     delivery_note_file.save_all()
@@ -550,9 +540,7 @@ class InvoicesCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
                     invoice_file = SaveTempFiles(
                         temp_files=files,
                         content_object=self.object,
-                        document_type=TblDocumentTypes.objects.filter(
-                            document_type_name="Invoice"
-                        ).first(),
+                        document_type=DocumentTypes.INVOICE,
                         file_name=f"invoice_'+{self.object.pk}",
                     )
                     invoice_file.save_all()

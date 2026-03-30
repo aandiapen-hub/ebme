@@ -16,16 +16,13 @@ from PIL import Image
 from documents.utils import clear_extraction_results
 
 
-class TblDocumentTypes(models.Model):
-    document_type_id = models.BigAutoField(primary_key=True)
-    document_type_name = models.CharField()
-
-    class Meta:
-        managed = False
-        db_table = "tbl_document_types"
-
-    def __str__(self):
-        return f"{self.document_type_name}"
+class DocumentTypes(models.IntegerChoices):
+    UNKNOWN = 0, "UNKNOWN"
+    USER_MANUAL = 10, "User Manual"
+    SERVICE_MANUAL = 20, "Service Manual"
+    INVOICE = 30, "Invoice"
+    DELIVERY_NOTE = 40, "Delivery Note"
+    SERVICE_REPORT = 50, "Service Report"
 
 
 class TblDocuments(models.Model):
@@ -39,10 +36,9 @@ class TblDocuments(models.Model):
     )  # e.g. SHA256 hex digest
     mime_type = models.CharField(max_length=100, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
-    document_type_id = models.ForeignKey(
-        TblDocumentTypes,
-        models.PROTECT,
-        db_column="document_type_id",
+    document_type_id = models.IntegerField(
+        choices=DocumentTypes.choices,
+        default=DocumentTypes.UNKNOWN,
         null=True,
         blank=True,
     )
@@ -151,7 +147,7 @@ class TblDocumentLinks(models.Model):
     )
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey("content_type", "object_id")
-    customer = models.ForeignKey('assets.Tblcustomer', on_delete=models.PROTECT)
+    customer = models.ForeignKey("assets.Tblcustomer", on_delete=models.PROTECT)
 
     class Meta:
         managed = False
@@ -190,7 +186,7 @@ class DocumentsView(models.Model):
         "assets.Tblcustomer", models.DO_NOTHING, db_column="CustomerID"
     )
     document_type_id = models.ForeignKey(
-        TblDocumentTypes,
+        DocumentTypes,
         models.PROTECT,
         db_column="document_type_id",
         null=True,
@@ -209,4 +205,3 @@ def calculate_document_checksum(file_path):
         for chunk in iter(lambda: f.read(4096), b""):
             sha256.update(chunk)
     return sha256.hexdigest()
-

@@ -12,7 +12,6 @@ from documents.models import (
     DocumentsView,
     TblDocTableRef,
     TblDocumentLinks,
-    TblDocumentTypes,
     TblDocuments,
     TemporaryUpload,
 )
@@ -1288,7 +1287,7 @@ def test_link_temporary_document_view_post_successfully(client, user_setup, mock
         "group": "1",
         "link_row": link_row,
         "link_table": link_table.table_name,
-        "document_type": TblDocumentTypes.objects.first().pk,
+        "document_type": 0,
     }
 
     url = reverse("documents:link_temporary_document")
@@ -1333,7 +1332,7 @@ def test_link_temporary_document_view_post_successfully_htmx(
         "group": "1",
         "link_row": link_row,
         "link_table": link_table.table_name,
-        "document_type": TblDocumentTypes.objects.first().pk,
+        "document_type": 0,
     }
 
     url = reverse("documents:link_temporary_document")
@@ -1390,7 +1389,7 @@ def test_link_temporary_document_view_post_successfully_multiple_images(
         "group": "1",
         "link_row": link_row,
         "link_table": link_table.table_name,
-        "document_type": TblDocumentTypes.objects.first().pk,
+        "document_type": 0,
     }
 
     url = reverse("documents:link_temporary_document")
@@ -1596,4 +1595,3 @@ def test_quick_scanner_post_incorrect_filetype(client, user_setup, mocker):
 
     messages_list = [m.message for m in messages]
     assert any("Incorrect" in msg for msg in messages_list)
-

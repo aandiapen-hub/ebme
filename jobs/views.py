@@ -1,6 +1,6 @@
 from utils.generic_views import FilteredTableView
 import datetime
-from django_htmx.http import HttpResponseClientRedirect
+from documents.models import DocumentTypes
 from django.forms import model_to_dict
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
@@ -34,9 +34,9 @@ from assets.models import (
 from django_filters.views import FilterView
 
 
-from documents.models import TblDocumentLinks, TblDocumentTypes, TemporaryUpload
+from documents.models import TblDocumentLinks, TemporaryUpload
 from documents.utils import get_extraction_results, save_extraction_results
-from documents.service import SaveTempFiles
+from documents.service import save_temp_files
 
 from utils.generic_views import BulkUpdateView, get_visible_columns
 
@@ -779,13 +779,13 @@ class JobCreateFromReportView(JobCreateView):
         try:
             with transaction.atomic():
                 self.object = form.save()
-                self.group = self.kwargs.get("temp_file_group")
-                files = TemporaryUpload.objects.filter(
-                    user=self.request.user, group=self.group
-                )
-                if files:
-                    save_temp_files = SaveTempFiles(
-                        temp_files=files, content_object=self.object
+                self.group = self.kwargs.get("temp_file_group", None)
+                if self.group is not None:
+                    save_temp_files(
+                        group=self.group,
+                        user=self.request.user,
+                        content_object=self.object,
+                        document_type=DocumentTypes.SERVICE_REPORT,
                     )
                     save_temp_files.save_all()
 
@@ -846,18 +846,13 @@ class JobUpdateFromReportView(JobUpdateView):
         try:
             with transaction.atomic():
                 self.object = form.save()
-                self.group = self.kwargs.get("temp_file_group")
-                files = TemporaryUpload.objects.filter(
-                    user=self.request.user, group=self.group
-                )
+                self.group = self.kwargs.get("temp_file_group", None)
 
-                if files:
-                    save_temp_files = SaveTempFiles(
-                        temp_files=files,
+                if self.group is not None:
+                    save_temp_files(
+                        group=self.group,
                         content_object=self.object,
-                        document_type=TblDocumentTypes.objects.filter(
-                            document_type_name="Service Report"
-                        ).first(),
+                        document_type=DocumentTypes.SERVICE_REPORT,
                         file_name="job" + str(self.object.pk),
                     )
                     save_temp_files.save_all()
