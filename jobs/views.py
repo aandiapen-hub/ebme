@@ -1,6 +1,6 @@
 from utils.generic_views import FilteredTableView
 import datetime
-from pickle import NONE
+from django_htmx.http import HttpResponseClientRedirect
 from django.forms import model_to_dict
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
@@ -154,6 +154,17 @@ class JobUpdateView(
         return HttpResponseRedirect(self.get_success_url())
 
 
+class JobBulkUpdateView(BulkUpdateView, CustomerJobPermissionMixin):
+    model = JobView
+    permission_required = "assets.change_tbljob"
+    template_name = "jobs/bulk_update_jobs.html"
+    form_class = JobBulkUpdateForm
+    universal_search_fields = SEARCHFILEDS
+    success_view = "jobs:jobs_list"
+    operation = "update"
+    table_to_update = Tbljob
+
+
 class JobDetailView(
     LoginRequiredMixin,
     CustomerJobPermissionMixin,
@@ -193,8 +204,7 @@ class JobCreateView(
             )
             initial["jobstartdate"] = datetime.date.today
             initial["jobenddate"] = datetime.date.today
-            initial["jobstatusid"] = Tbljobstatus.objects.get(
-                jobstatusname="Completed")
+            initial["jobstatusid"] = Tbljobstatus.objects.get(jobstatusname="Completed")
             initial["jobtypeid"] = Tbljobtypes.objects.get(jobtypename="PPM")
 
         return initial
@@ -236,8 +246,7 @@ class JobDeleteView(
             # Return an error message as plain text (not JSON)
             context = self.get_context_data()
             context["error_message"] = (
-                f"An error occurred while deleting the Job. Error Details: {
-                    str(e)}"
+                f"An error occurred while deleting the Job. Error Details: {str(e)}"
             )
             return self.render_to_response(context)
 
@@ -319,8 +328,7 @@ class TestsCarriedOutUpdate(
         result_mapping = {"Pass": 1, "Fail": 2, "n/a": 3}
 
         if result in result_mapping:
-            resultid = Tbltestresult.objects.get(
-                resultid=result_mapping[result])
+            resultid = Tbltestresult.objects.get(resultid=result_mapping[result])
             self.object.resultid = resultid
         else:
             self.object.resultid = None
@@ -358,8 +366,7 @@ class TestsCarriedOutCreate(
         check = form.save()
         if self.request.htmx:
             return render(
-                self.request, "jobs/partials/checklist.html#check", {
-                    "check": check}
+                self.request, "jobs/partials/checklist.html#check", {"check": check}
             )
         return super().form_valid(form)
 
@@ -480,8 +487,7 @@ class SparePartsUsedUpdate(
             part = form.save()
         except Exception as e:
             messages.warning(
-                self.request, f"There was an error saving the update. Details: {
-                    str(e)}"
+                self.request, f"There was an error saving the update. Details: {str(e)}"
             )
             context = self.get_context_data(form=form)
             return self.render_to_response(context)
@@ -489,8 +495,7 @@ class SparePartsUsedUpdate(
         saved_part = Tblpartsused.objects.get(partsusedid=part.partsusedid)
         if self.request.htmx:
             return render(
-                self.request, "jobs/partials/partslist.html#part", {
-                    "part": saved_part}
+                self.request, "jobs/partials/partslist.html#part", {"part": saved_part}
             )
         return HttpResponseRedirect(self.get_success_url())
 
@@ -549,8 +554,7 @@ class SparePartsUsedCreateView(
         saved_part = Tblpartsused.objects.get(partsusedid=part.partsusedid)
         if self.request.htmx:
             return render(
-                self.request, "jobs/partials/partslist.html#part", {
-                    "part": saved_part}
+                self.request, "jobs/partials/partslist.html#part", {"part": saved_part}
             )
         return HttpResponseRedirect(self.get_success_url())
 
@@ -672,18 +676,6 @@ class TestEquipmentUsedDelete(
         return super().post(request, *args, **kwargs)
 
 
-class JobBulkUpdateView(BulkUpdateView, CustomerJobListPermissionMixin):
-    context_object_name = "jobs"
-    model = JobView
-    db_table = Tbljob
-    permission_required = "assets.change_tblassets"
-    form_class = JobBulkUpdateForm
-    context_object_name = "assets"
-    summary_field_names = ["model", "customer"]
-    table_class = NONE
-    success_url = reverse_lazy("jobs:jobs_list")
-
-
 class ServiceReportReader(LoginRequiredMixin, CustomerJobPermissionMixin, View):
     # form_class = ServiceReportReaderForm
     template_name = "jobs/report_reader.html"
@@ -695,8 +687,7 @@ class ServiceReportReader(LoginRequiredMixin, CustomerJobPermissionMixin, View):
     def form_valid(self, form):
         self.group = self.kwargs.get("temp_file_group")
 
-        files = TemporaryUpload.objects.filter(
-            user=self.request.user, group=self.group)
+        files = TemporaryUpload.objects.filter(user=self.request.user, group=self.group)
 
         from .utils.report_reader import report_reader
 
@@ -753,8 +744,7 @@ class ServiceReportOutput(LoginRequiredMixin, CustomerJobPermissionMixin, FormVi
             user_id=self.request.user, group=self.group
         )
         serial_number = new_job_data.get("serialnumber")
-        assets = AssetView.objects.filter(
-            serialnumber__icontains=serial_number)
+        assets = AssetView.objects.filter(serialnumber__icontains=serial_number)
         jobslist = {}
         for asset in assets:
             jobslist[asset.assetid] = JobView.objects.filter(
@@ -774,8 +764,7 @@ class JobCreateFromReportView(JobCreateView):
         initial = super().get_initial()
         group = self.kwargs.get("temp_file_group")
         # job info from session data
-        new_job_data = get_extraction_results(
-            user_id=self.request.user, group=group)
+        new_job_data = get_extraction_results(user_id=self.request.user, group=group)
 
         if new_job_data:
             initial.update(new_job_data)
@@ -796,8 +785,7 @@ class JobCreateFromReportView(JobCreateView):
                 )
                 if files:
                     save_temp_files = SaveTempFiles(
-                        temp_files=files,
-                        content_object=self.object
+                        temp_files=files, content_object=self.object
                     )
                     save_temp_files.save_all()
 
@@ -806,8 +794,7 @@ class JobCreateFromReportView(JobCreateView):
             return response
 
         except Exception as e:
-            messages.warning(
-                self.request, f"job could not be updated. Error:{str(e)}")
+            messages.warning(self.request, f"job could not be updated. Error:{str(e)}")
             return self.form_invalid(form)
 
     def get_success_url(self):
@@ -897,10 +884,12 @@ class JobUpdateFromReportView(JobUpdateView):
         response["HX-Reswap"] = "beforeend"
         return response
 
+
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 
-@method_decorator(never_cache, name='dispatch')
+
+@method_decorator(never_cache, name="dispatch")
 class FilteredJobTableView(
     LoginRequiredMixin, CustomerJobListPermissionMixin, FilteredTableView
 ):
@@ -909,18 +898,19 @@ class FilteredJobTableView(
     table_class = None
     model = JobView
     template_columns = {"open": "jobs/tables/open.html"}
-
     template_name = "jobs/jobs_list.html"
-
     universal_search_fields = SEARCHFILEDS
-
     default_columns = [
-        'jobid',
-        'assetid',
-        'jobtypeid',
-        'jobstatusid',
-        'brandid',
-        'modelid',
-        'startdate',
-        'enddate'
+        "jobid",
+        "assetid",
+        "jobtypeid",
+        "jobstatusid",
+        "brandid",
+        "modelid",
+        "startdate",
+        "enddate",
     ]
+    bulk_update = {
+        "url": reverse_lazy("jobs:bulk_update_jobs"),
+        "permission": "assets.bulk_update_tbljob",
+    }

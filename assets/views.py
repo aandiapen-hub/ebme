@@ -2,7 +2,6 @@ from django.contrib import messages
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 
-from django_htmx.http import HttpResponseClientRedirect
 
 from django.shortcuts import render
 import ast
@@ -17,11 +16,7 @@ from django.views.generic import (
 )
 from datetime import datetime
 from documents.models import TblDocumentLinks, TemporaryUpload
-from model_information.views import (
-    BrandCreateView,
-    CategoryCreateView,
-    ModelUpdateView
-)
+from model_information.views import BrandCreateView, CategoryCreateView, ModelUpdateView
 
 from .models import (
     Tblassets,
@@ -34,11 +29,7 @@ from .models import (
 from documents.utils import save_extraction_results, get_extraction_results
 
 
-from .forms import (
-    AssetUpdateForm,
-    AssetBulkUpdateForm,
-    AssetCreateFromFileForm
-)
+from .forms import AssetUpdateForm, AssetBulkUpdateForm, AssetCreateFromFileForm
 
 from documents.services.gs1_parser import process_barcode
 
@@ -68,6 +59,7 @@ UNIVERSAL_SEARCH_FIELDS = [
     "customerassetnumber__icontains",
 ]
 
+
 class FilteredAssetTableView(
     LoginRequiredMixin, CustomerAssetPermissionMixin, FilteredTableView
 ):
@@ -76,17 +68,21 @@ class FilteredAssetTableView(
     table_class = None
     model = AssetView
     template_columns = {"open": "assets/tables/open.html"}
-
     template_name = "assets/assetview_filter.html"
     universal_search_fields = UNIVERSAL_SEARCH_FIELDS
     default_columns = [
-        'assetid',
-        'brandid',
-        'modelid',
-        'categoryid',
-        'customerid',
-        'ppm_compliance',
+        "assetid",
+        "brandid",
+        "modelid",
+        "categoryid",
+        "customerid",
+        "ppm_compliance",
     ]
+    bulk_update = {
+        "url": reverse_lazy("assets:bulk_update_assets"),
+        "permission": "assets.bulk_change_assets",
+    }
+
 
 class Asset(
     LoginRequiredMixin,
@@ -150,17 +146,12 @@ class AssetDeleteView(
         except Exception as e:
             messages.error(
                 self.request,
-                f"An error occurred while deleting the Asset. Error details: {
-                    str(e)}",
+                f"An error occurred while deleting the Asset. Error details: {str(e)}",
             )
             return self.render_to_response(self.get_context_data())
 
 
-class AssetCreateView(
-    LoginRequiredMixin,
-    CustomerAssetPermissionMixin,
-    CreateView
-):
+class AssetCreateView(LoginRequiredMixin, CustomerAssetPermissionMixin, CreateView):
     model = Tblassets
     form_class = AssetUpdateForm
     template_name = "assets/create_form.html"
@@ -171,34 +162,34 @@ class AssetCreateView(
 
     def get(self, request, *args, **kwargs):
         if request.htmx:
-            barcode = request.GET.get('barcode')
+            barcode = request.GET.get("barcode")
             if barcode:
                 return self.resolve_barcode()
         return super().get(request, *args, **kwargs)
 
     def resolve_barcode(self):
         form_data = self.request.GET.dict()
-        decoded_info = process_barcode(scanned_code=self.request.GET.get('barcode'))
-        gs1_data = decoded_info.get('gs1', None)
-        decoded_model = decoded_info.get('model')
+        decoded_info = process_barcode(scanned_code=self.request.GET.get("barcode"))
+        gs1_data = decoded_info.get("gs1", None)
+        decoded_model = decoded_info.get("model")
 
         if gs1_data:
             gs1_to_asset_map = {
-                'PROD DATE': 'prod_date',
-                'SERIAL': 'serialnumber',
-                'ASSET_NO': 'customerassetnumber',
+                "PROD DATE": "prod_date",
+                "SERIAL": "serialnumber",
+                "ASSET_NO": "customerassetnumber",
             }
 
             for ai, field in gs1_to_asset_map.items():
                 value = gs1_data.get(ai)
-                if value and ai == 'PROD DATE':
+                if value and ai == "PROD DATE":
                     value = datetime.strptime(value, "%y%m%d").date()
 
                 if value:
                     form_data[field] = value
 
-        if decoded_model and form_data.get('modelid') is None:
-            form_data['modelid'] = decoded_model
+        if decoded_model and form_data.get("modelid") is None:
+            form_data["modelid"] = decoded_model
 
         form = self.form_class(form_data)
         form.is_valid()
@@ -207,22 +198,21 @@ class AssetCreateView(
         context = self.get_context_data(form=form)
         return self.render_to_response(context)
 
-
     def get_initial(self):
         initial = super().get_initial()
-        modelid = self.request.GET.get('modelid', None)
+        modelid = self.request.GET.get("modelid", None)
 
         if modelid:
-            initial['modelid'] = modelid
+            initial["modelid"] = modelid
 
-        gs1_data_string = self.request.GET.get('gs1_data')
+        gs1_data_string = self.request.GET.get("gs1_data")
         if gs1_data_string:
             gs1_data = ast.literal_eval(gs1_data_string)
             if gs1_data:
                 gs1_to_asset_map = {
-                    'PROD DATE': 'prod_date',
-                    'SERIAL': 'serialnumber',
-                    'ASSET_NO':''
+                    "PROD DATE": "prod_date",
+                    "SERIAL": "serialnumber",
+                    "ASSET_NO": "",
                 }
                 for ai, asset_field in gs1_to_asset_map.items():
                     value = gs1_data.get(ai, None)
@@ -260,90 +250,43 @@ class AssetJobsListView(
             )  # Return an empty queryset if no asset is found
 
         # Filter jobs by the asset ID
-        return JobView.objects.filter(
-            assetid=asset.assetid
-        ).order_by("-startdate")
+        return JobView.objects.filter(assetid=asset.assetid).order_by("-startdate")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["open_jobs"] = context["jobs"].filter(
-            jobstatusid__in=[0, 2, 3, 5])
+        context["open_jobs"] = context["jobs"].filter(jobstatusid__in=[0, 2, 3, 5])
         return context
 
 
 class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):
     model = AssetView
     permission_required = "assets.change_tblassets"
-    template_name = 'assets/bulk_update.html'
+    template_name = "assets/bulk_update.html"
     form_class = AssetBulkUpdateForm
     universal_search_fields = UNIVERSAL_SEARCH_FIELDS
+    success_view = "assets:assets_list"
+    operation = "update"
+    table_to_update = Tblassets
 
-    def get_template_names(self):
-        return ['assets/bulk_update.html']
 
-    def get_success_url(self):
-        base_url = reverse('assets:assets_list')
-        query_params = self.request.GET.urlencode()
-        return f"{base_url}?{query_params}"
-
-    def post(self, request, *args, **kwargs):
-        form = self.get_form()
-        qs = self.get_filtered_objects()
-
-        if form.is_valid():
-            print('for is valid')
-            updates = {
-                field: value
-                for field, value in form.cleaned_data.items()
-                if value not in [None, ""]
-            }
-
-            if updates:
-                Tblassets.objects.filter(pk__in=qs.values("pk")).update(**updates)
-                messages.success(
-                    request, f"{self.context_object_name} updated successfully."
-                )
-
-            else:
-                messages.warning(
-                    request, f"No {self.context_object_name} were provided to update."
-                )
-
-            return HttpResponseClientRedirect(self.get_success_url())
-
-        print('form is invalid')
-        return self.form_invalid(form)
-
-class BarCodeReader(
-    LoginRequiredMixin,
-    CustomerAssetPermissionMixin,
-    FormView
-):
+class BarCodeReader(LoginRequiredMixin, CustomerAssetPermissionMixin, FormView):
     form_class = AssetCreateFromFileForm
     permission_required = "assets.add_tblassets"
     template_name = "documents/temp_files_list.html"
 
     def get_success_url(self, **kwargs):
-        return reverse(
-            "assets:barcode_output",
-            kwargs={"temp_file_group": self.group}
-        )
+        return reverse("assets:barcode_output", kwargs={"temp_file_group": self.group})
 
     def form_valid(self, form):
         self.group = self.kwargs.get("temp_file_group")
         use_ai = self.request.GET.get("use_ai")
 
-        files = TemporaryUpload.objects.filter(
-            user=self.request.user, group=self.group)
+        files = TemporaryUpload.objects.filter(user=self.request.user, group=self.group)
 
         for file in files:
             if file.mime_type not in ["image/jpeg", "image/png", "image/jpg"]:
                 messages.warning(self.request, "Incorrect file type.")
-                return render(
-                    self.request,
-                    "partials/messages.html",
-                    context=None
-                )
+                return render(self.request, "partials/messages.html", context=None)
 
         if use_ai:
             output = barcode_reader_ai(files)
@@ -360,10 +303,7 @@ class BarCodeReader(
 
         cleaned_output = self.clean_parsed_data(output)
         save_extraction_results(
-            user_id=self.request.user,
-            group=self.group,
-            results=cleaned_output,
-            hours=1
+            user_id=self.request.user, group=self.group, results=cleaned_output, hours=1
         )
 
         response = HttpResponse()
@@ -384,11 +324,7 @@ class BarCodeReader(
         }
 
 
-class BarcodeOutput(
-    LoginRequiredMixin,
-    CustomerAssetPermissionMixin,
-    CreateView
-):
+class BarcodeOutput(LoginRequiredMixin, CustomerAssetPermissionMixin, CreateView):
     model = None  # will be set dynamically
     form_class = None  # will be set dynamically
     template_name = "assets/partials/barcode_scanner_output.html"
@@ -466,14 +402,12 @@ class BarcodeOutput(
             ]
             brand_query = reduce(
                 operator.or_,
-                (Q(brandname__icontains=brandname)
-                 for brandname in suggested_brands),
+                (Q(brandname__icontains=brandname) for brandname in suggested_brands),
             )
             context["existing_brands"] = Tblbrands.objects.filter(brand_query)
 
         # find and return brands that match suggested categories
-        suggested_categories = self.extracted_data.get(
-            "suggested_categories", None)
+        suggested_categories = self.extracted_data.get("suggested_categories", None)
 
         if suggested_categories:
             suggested_categories = [
@@ -522,8 +456,7 @@ class BarcodeOutput(
             )
 
             return HttpResponseRedirect(
-                reverse("assets:barcode_output", kwargs={
-                        "temp_file_group": self.group})
+                reverse("assets:barcode_output", kwargs={"temp_file_group": self.group})
             )
 
         else:
@@ -552,13 +485,9 @@ class QuickBrandCreateView(BrandCreateView):
         }
 
         response = render(
-            self.request,
-            "model_information/partials/brand_set_select.html",
-            context
+            self.request, "model_information/partials/brand_set_select.html", context
         )
-        response["HX-Retarget"] = (
-            "#brands_list"
-        )
+        response["HX-Retarget"] = "#brands_list"
         response["HX-Reswap"] = "beforeend"
         return response
 
@@ -576,9 +505,7 @@ class QuickCategoryCreateView(CategoryCreateView):
         }
 
         response = render(
-            self.request,
-            "model_information/partials/category_set_select.html",
-            context
+            self.request, "model_information/partials/category_set_select.html", context
         )
         response["HX-Retarget"] = "#categories_list"
 
@@ -591,8 +518,7 @@ class QuickModelGtinUpdate(ModelUpdateView):
         temp_document_group = self.request.POST.get("temp_document_group")
 
         return reverse(
-            "assets:barcode_output",
-            kwargs={"temp_file_group": temp_document_group}
+            "assets:barcode_output", kwargs={"temp_file_group": temp_document_group}
         )
 
     def get_context_data(self, **kwargs):

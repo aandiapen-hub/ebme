@@ -1,9 +1,11 @@
 import hashlib
 from django.db import transaction
 from .models import TblDocuments, TblDocumentLinks
+from django.core.exceptions import ValidationError
 from PIL import Image
 import uuid
 import io
+
 
 def resolve_customer(content_object):
     if not content_object:
@@ -18,17 +20,33 @@ def resolve_customer(content_object):
     return None
 
 
+def link_document_to_object(document, content_object, customer):
+    link = TblDocumentLinks.objects.create(
+        documentid=document,
+        content_object=content_object,
+        customer=customer,
+    )
+    return link
+
+
 def create_document_from_file(
     *,
-    content,
+    uploaded_file=None,
     document_type_id,
     temp_file=None,
     document_name=None,
-    mime_type=None,
-    file_size=None,
     content_object=None,
+    content_objects_qs=None,
     document_description=None,
 ):
+    if uploaded_file is None and temp_file is None:
+        raise ValidationError('No file found!')
+
+    if uploaded_file:
+        content = uploaded_file.read(),
+        mime_type = uploaded_file.content_type,
+        file_size = uploaded_file.size,
+
     if temp_file:
         document_name = temp_file.original_name
         mime_type = temp_file.mime_type
@@ -55,11 +73,7 @@ def create_document_from_file(
             )
 
         if content_object:
-            TblDocumentLinks.objects.create(
-                documentid=document,
-                content_object=content_object,
-                customer=customer,
-            )
+            link_document_to_object(document, content_object, customer)
 
         if temp_file:
             temp_file.delete()

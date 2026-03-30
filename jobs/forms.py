@@ -1,5 +1,6 @@
 from django_select2.forms import ModelSelect2Widget
 
+from django.core.exceptions import ValidationError
 from django import forms
 from assets.models import (Tbljob, Tbltesteqused,
                             Tblcheckslists,Tbltestscarriedout,
@@ -116,7 +117,7 @@ class SparePartsUsedCreateForm(forms.ModelForm):
                     'data-placeholder': 'Select Spare Part',
                     'data-minimum-input-length': 0})
         }
-    
+
     def __init__(self, *args, **kwargs):
 
         self.modelid = kwargs.pop('modelid', None) 
@@ -127,34 +128,27 @@ class SparePartsUsedCreateForm(forms.ModelForm):
             parts = Tblpartslist.objects.filter(partid__in=parts_ids)
             active_parts = parts.filter(~Q(inactive=True) | Q(inactive__isnull=True))
             self.fields['partid'].queryset = active_parts
-    
 
 class JobBulkUpdateForm(forms.ModelForm):
-    jobid = forms.IntegerField(widget=forms.TextInput(
-        attrs={'readonly': True }),
-        label="Job ID")
 
     class Meta:
         model = Tbljob
-        fields = ("jobid","jobtypeid","technicianid","jobstatusid",
+        fields = ("jobtypeid","technicianid","jobstatusid",
                   "jobstartdate","jobenddate","workdone")
 
         widgets = {
-            "jobenddate":DateInput(),
-            "jobstartdate":DateInput(),
+            "jobenddate": DateInput(),
+            "jobstartdate": DateInput(),
         }
-        labels = {
-            "jobtypeid": "Job Type",
-            "technicianid": "Technician",
-            "jobstatusid": "Job Status",
-            "jobstartdate": "Start Date",
-            "jobenddate": "End Date",
-            "workdone": "Work Done",
-        }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.required = False
 
-
+    def clean(self):
+        cleaned_data = super().clean()
+        if all(value in [None, "", [], ()] for value in cleaned_data.values()):
+            print("clean form is not valid")
+            raise ValidationError({"__all__": "No values entered"})
+            print("dictionary is empty")

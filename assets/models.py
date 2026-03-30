@@ -11,7 +11,6 @@ from django.urls import reverse
 from django.contrib.contenttypes.fields import GenericRelation
 
 
-
 class Tblassets(models.Model):
     assetid = models.BigAutoField(
         db_column="AssetID", primary_key=True
@@ -74,8 +73,7 @@ class Tblassets(models.Model):
     is_test_eq = models.BooleanField(blank=True, null=True, default=False)
     next_calibration_date = models.DateField(blank=True, null=True)
     document_links = GenericRelation(
-        'documents.TblDocumentLinks',
-        related_query_name='assets'
+        "documents.TblDocumentLinks", related_query_name="assets"
     )
 
     class Meta:
@@ -529,8 +527,7 @@ class Tblmodel(models.Model):
     )
     gtin = models.CharField(blank=True, null=True)
     document_links = GenericRelation(
-        'documents.TblDocumentLinks',
-        related_query_name='models'
+        "documents.TblDocumentLinks", related_query_name="models"
     )
 
     class Meta:

@@ -1,11 +1,8 @@
-from urllib.parse import urlencode
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.urls import reverse
+from django_htmx.http import HttpResponseClientRedirect
 from django.shortcuts import render
 from django.views.generic.edit import FormMixin
 from django_filters.views import FilterView
-from django.views.generic.list import ListView
-from django.contrib import messages
-from django.http import HttpResponse, HttpResponseRedirect
 from django_tables2 import SingleTableMixin, CheckBoxColumn, TemplateColumn, Table
 from django.db.models.query import QuerySet
 from django.db.models import Count, ForeignKey, DateField, JSONField
@@ -15,13 +12,15 @@ from utils.generic_filters import (
     get_filter_fields,
     get_filter_from_field_lookup,
 )
+from django.contrib import messages
 
 from collections import Counter
 from django_tables2.export.views import ExportMixin
+from django.core.exceptions import ValidationError
 
 
 # get visible columns for a model for a user
-    # Get user's preferred columns from user_profiles.table_settings
+# Get user's preferred columns from user_profiles.table_settings
 def get_visible_columns(request, model):
     user = request.user
     try:
@@ -34,14 +33,14 @@ def get_visible_columns(request, model):
         return None
     return user_columns
 
+
 class CustomCheckBoxColumn(CheckBoxColumn):
     def header(self):
         return "Select"
 
+
 # Function to dynamically create table class
-def get_dynamic_table_class(
-    table_model, visible_columns=None, template_columns=None
-):
+def get_dynamic_table_class(table_model, visible_columns=None, template_columns=None):
     """
     Create a dynamic Table class based on user's column preferences.
 
@@ -52,7 +51,6 @@ def get_dynamic_table_class(
 
     # Build columns dict
     table_columns = {}
-
 
     # Add template columns first (if any)
     if template_columns:
@@ -99,7 +97,8 @@ def get_dynamic_table_class(
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 
-@method_decorator(never_cache, name='dispatch')
+
+@method_decorator(never_cache, name="dispatch")
 class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
     paginate_by = 20
     permission_required = None  # Override in subclass - Mandatory
@@ -108,9 +107,12 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
     template_name = None  # override in subclass - Mandatory
     universal_search_fields = None  # override in subclass - Mandatory
     default_columns = []
+    bulk_update = None
 
     def dispatch(self, request, *args, **kwargs):
-        self.visible_columns = get_visible_columns(self.request, self.model) or self.default_columns
+        self.visible_columns = (
+            get_visible_columns(self.request, self.model) or self.default_columns
+        )
 
         # --- check what type of request---#
         # request options are  summary data, new filter or  actual filter result data
@@ -158,20 +160,13 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
             return self._render_field_summary(summary_field_data)
         # summariese all other type of data
         table_data = self.get_table_data()
-        count = (
-            table_data
-            .values(field.name)
-            .distinct()
-            .count()
-        )
+        count = table_data.values(field.name).distinct().count()
         if count > 1000:
             summary_field_data = {"status": "high_row_count", "data": {"field": field}}
             return self._render_field_summary(summary_field_data)
 
         values_qs = dict(
-            table_data
-            .values_list(field.name)
-            .annotate(count=Count(field.name))
+            table_data.values_list(field.name).annotate(count=Count(field.name))
         )
         items = {}
         values_qs = Counter(table_data.values_list(field.name, flat=True))
@@ -321,7 +316,7 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
         context["model_name"] = self.model._meta.label
         context["filter_fields"] = get_filter_fields(self.model, self.visible_columns)
 
-        filter_form = context.get('filter', None)
+        filter_form = context.get("filter", None)
         if filter_form:
             cleaned_data = getattr(filter_form.form, "cleaned_data", {})
             context["has_active_filters"] = any(
@@ -330,26 +325,36 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
                 for v in cleaned_data.values()
             )
 
+        if self.bulk_update is not None and self.request.user.has_perm(
+            self.bulk_update["permission"]
+        ):
+            context["bulk_update"] = self.bulk_update["url"]
+
         return context
 
 
-class BulkUpdateView(
-    FilteredTableView, FormMixin
-):
-    paginate_by = 20
+class BulkUpdateView(FilteredTableView, FormMixin):
     permission_required = None  # Override in subclass - Mandatory
     model = None  # override in subclass - Mandatory
-    template_columns = None  # override in subclass - optional
     template_name = None  # override in subclass - Mandatory
     universal_search_fields = None  # override in subclass - Mandatory
-    default_columns = []
+    success_view = None  # override in sublcass - Mandatory
+    validator = None  # override in subclass for record specifid validator
+    operation = None  # override in subclass or 'update' or 'create_link'
+    table_to_update = None  # table to update
+
+    link_source_field = None
+    link_target_field = None
+
+    def get_template_names(self):
+        return [self.template_name]
 
     def get_filterset_kwargs(self, filterset_class):
         kwargs = super().get_filterset_kwargs(filterset_class)
 
         qs = kwargs["queryset"]
 
-        if self.request.method == 'GET':
+        if self.request.method == "GET":
             selected_ids = self.request.GET.getlist("selected")
         else:
             selected_ids = self.request.POST.getlist("selected")
@@ -365,15 +370,97 @@ class BulkUpdateView(
             self.filterset = self.get_filterset(self.get_filterset_class())
         if not hasattr(self, "object_list"):
             self.object_list = self.filterset.qs
-        print('object list', self.object_list.count())
         return self.object_list
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # column chooser to get column list
-        context['count'] = self.object_list.count()
+        context["count"] = self.object_list.count()
         return context
 
     def get_success_url(self):
-        return f"{self.request.path}?{self.request.GET.urlencode}"
+        base_url = reverse(self.success_view)
+        query_params = self.request.GET.urlencode()
+        return f"{base_url}?{query_params}"
 
+    def validate_records(self, objects, updates):
+        validator = getattr(self, "validator", None)
+        for obj in objects:
+            for field, value in updates.items():
+                setattr(obj, field, value)
+            obj.full_clean()
+            if validator:
+                self.validator(obj)
+
+    def get_update_fields(self, cleaned_data):
+        return {
+            field: value
+            for field, value in cleaned_data.items()
+            if value not in [None, ""]
+        }
+
+    def persist_objects(self, qs, updates):
+        self.table_to_update.objects.filter(pk__in=qs.values("pk")).update(**updates)
+
+    def bulk_link_objects(
+        self,
+        source_object,
+        target_qs,
+        link_model,
+        source_field,
+        target_field,
+        extra_fields=None,
+    ):
+        if not target_qs.exists():
+            return
+        extra_fields = extra_fields
+
+        objects_to_create = [
+            link_model(
+                **{source_field: source_object, target_field: target}, **extra_fields
+            )
+            for target in target_qs
+        ]
+        link_model.objects.bulk_create(objects_to_create, ignore_conflicts=True)
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        qs = self.get_filtered_objects()
+
+        if form.is_valid():
+            if self.operation == "update":
+                updates = self.get_update_fields(form.cleaned_data)
+                if updates:
+                    try:
+                        self.validate_records(qs, updates)
+                    except ValidationError as e:
+                        form.add_error(None, e)
+                        return self.form_invalid(form)
+
+                    try:
+                        self.persist_objects(qs, updates)
+                    except ValidationError as e:
+                        form.add_error(None, e)
+                        return self.form_invalid(form)
+
+                    messages.success(
+                        request, f"{self.context_object_name} updated successfully."
+                    )
+
+                else:
+                    messages.warning(
+                        request,
+                        f"No {self.context_object_name} were provided to update.",
+                    )
+
+            if self.operation == "create_link":
+                self.bulk_link_objects(
+                    source_object=form.cleaned_data("source_object"),
+                    target_qs=qs,
+                    link_model=self.table_to_update,
+                    source_field=self.source_field,
+                    target_field=self.target_field,
+                )
+            return HttpResponseClientRedirect(self.get_success_url())
+
+        return self.form_invalid(form)

@@ -90,11 +90,9 @@ class DocumentAndLinkCreateView(
             document_description = form.cleaned_data.get("document_description")
 
             create_document_from_file(
-                content=uploaded_file.read(),
+                uploaded_file=uploaded_file,
                 document_type_id=document_type_id,
                 document_name=document_name,
-                mime_type=uploaded_file.content_type,
-                file_size=uploaded_file.size,
                 content_object=object,
                 document_description=document_description,
             )
@@ -664,3 +662,4 @@ class ExtractedDateDeleteView(LoginRequiredMixin, View):
         user = request.user
         clear_extraction_results(user, self.group)
         return HttpResponseRedirect(self.get_success_url())
+
