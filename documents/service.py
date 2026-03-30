@@ -11,11 +11,11 @@ def resolve_customer(content_object):
     if not content_object:
         return None
 
-    if hasattr(content_object, "customer"):
-        return content_object.customer
+    if hasattr(content_object, "customerid"):
+        return content_object.customerid
 
-    if hasattr(content_object, "asset") and hasattr(content_object.asset, "customer"):
-        return content_object.asset.customer
+    if hasattr(content_object, "assetid"):
+        return content_object.assetid.customerid
 
     return None
 
@@ -42,9 +42,9 @@ def create_document_from_file(
         raise ValidationError("No file found!")
 
     if uploaded_file:
-        content = (uploaded_file.read(),)
-        mime_type = (uploaded_file.content_type,)
-        file_size = (uploaded_file.size,)
+        content = uploaded_file.read()
+        mime_type = uploaded_file.content_type
+        file_size = uploaded_file.size
 
     if temp_file:
         if "image/" in mime_type:
@@ -72,13 +72,13 @@ def create_document_from_file(
                 "document_type_id": document_type_id,
             },
         )
-
         if content_object:
-            link_document_to_object(document, content_object, customer)
+            link_document_to_object(
+                document=document, content_object=content_object, customer=customer
+            )
 
         if temp_file:
             temp_file.delete()
-
     return document
 
 

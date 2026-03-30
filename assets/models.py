@@ -341,6 +341,9 @@ class JobView(models.Model):
     jobtypeid = models.ForeignKey(
         "Tbljobtypes", models.PROTECT, db_column="jobtypeid", verbose_name="Job Type"
     )
+    document_links = GenericRelation(
+        "documents.TblDocumentLinks", related_query_name="assets"
+    )
 
     class Meta:
         managed = False
@@ -457,6 +460,9 @@ class Tbljob(models.Model):
     )  # Field name made lowercase.
     jobtypeid = models.ForeignKey("Tbljobtypes", models.PROTECT, db_column="jobtypeid")
     creationdate = models.DateField(blank=True, null=True, default=now)
+    document_links = GenericRelation(
+        "documents.TblDocumentLinks", related_query_name="assets"
+    )
 
     class Meta:
         managed = False

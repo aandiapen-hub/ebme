@@ -7,7 +7,7 @@ class DocumentLinkPermissionMixin(PermissionRequiredMixin):
     def check_object_permissions(self, obj):
         user_customerid = getattr(self.request.user, "customerid", None)
         is_user_staff = self.request.user.is_staff
-        object_customerid = obj.customer
+        object_customerid = obj.customer_id
 
         if not is_user_staff:
             if user_customerid is None:

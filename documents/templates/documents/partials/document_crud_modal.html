@@ -15,6 +15,7 @@
         hx-on::after-Request= "bootstrap.Modal.getInstance(document.getElementById('modals-here')).hide();">
         <h4>Link to {{object}} </h4>
   
+        {{form.media}}
         {% bootstrap_messages %}
 
         {% csrf_token %}

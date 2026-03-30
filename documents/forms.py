@@ -1,6 +1,10 @@
 from django import forms
+from django.contrib.contenttypes.models import ContentType
 
-from .models import TblDocuments, TemporaryUpload, DocumentTypes
+from .models import TblDocuments, TblDocumentLinks, TemporaryUpload, DocumentTypes
+from django_select2.forms import (
+    ModelSelect2Widget,
+)
 
 
 class DocumentLinkCreateForm(forms.ModelForm):
@@ -123,3 +127,34 @@ class QuickScannerForm(forms.Form):
                 )
 
         return cleaned_data
+
+
+class DocumentLinkUpdateForm(forms.ModelForm):
+    class Meta:
+        model = TblDocumentLinks
+        fields = (
+            "documentid",
+            "content_type",
+            "object_id",
+            "customer",
+        )
+        widgets = {
+            "documentid": ModelSelect2Widget(
+                model=TblDocuments,
+                search_fields=["document_name__icontains"],
+                attrs={
+                    "data-dropdown-parent": "#modals-here",
+                    "data-placeholder": "Select Document",
+                    "data-minimum-input-length": 0,
+                },
+            ),
+            "content_type": ModelSelect2Widget(
+                model=ContentType,
+                search_fields=["app_label__icontains"],
+                attrs={
+                    "data-dropdown-parent": "#modals-here",
+                    "data-placeholder": "Select Content Type",
+                    "data-minimum-input-length": 0,
+                },
+            ),
+        }

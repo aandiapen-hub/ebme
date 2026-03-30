@@ -9,7 +9,7 @@ from django.urls import reverse, reverse_lazy
 from django.db import transaction
 from django.views import View
 from django.core.exceptions import ValidationError
-from .service import create_document_from_file, SaveTempFiles
+from .service import create_document_from_file, save_temp_files
 
 # import models
 from .models import (
@@ -36,6 +36,7 @@ from .forms import (
     TempFileUploadForm,
     QuickScannerForm,
     LinkTemporaryDocumentForm,
+    DocumentLinkUpdateForm,
 )
 
 # import generic filter table view
@@ -163,41 +164,17 @@ class DocumentLinkUpdateView(
 ):
     model = TblDocumentLinks
     template_name = "documents/partials/document_crud_modal.html"
-    fields = "__all__"
+    form_class = DocumentLinkUpdateForm
     permission_required = "documents.change_tbldocumentlinks"
     success_url = reverse_lazy("documents:table_document_links")
 
     def form_valid(self, form):
-        try:
-            with transaction.atomic():
-                # update document
-                document = TblDocuments.objects.get(document_id=self.object.document_id)
-                document.document_name = form.cleaned_data["document_name"]
-                document.document_description = form.cleaned_data[
-                    "document_description"
-                ]
-                document.document_type_id = form.cleaned_data["document_type_id"]
-                document.save()
-
-                if self.request.htmx:
-                    return HttpResponse(status=204)
-                return redirect(self.get_success_url())
-
-        except Exception as e:
-            # Return an error message as plain text (not JSON)
-            context = self.get_context_data()
-            context["error_message"] = (
-                f"An error occurred while updating the document. Error Details: {str(e)}"
-            )
-            return self.render_to_response(context)
-
-    def form_invalid(self, form):
-        # Handle invalid form submission
-        context = self.get_context_data(form=form)
-        context["error_message"] = (
-            "The form contains invalid data. Please correct the errors and try again."
-        )
-        return self.render_to_response(context)
+        self.object = form.save()
+        if self.request.htmx:
+            response = HttpResponse(status=204)
+            response["HX-Trigger"] = "documentUpdated"
+            return response
+        return redirect(self.get_success_url())
 
 
 class DocumentUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
@@ -288,14 +265,13 @@ class DocumentListView(LoginRequiredMixin, DocumentLinkPermissionMixin, ListView
     def get_queryset(self):
         # Filter jobs by assetid passed in the URL
         qs = super().get_queryset()
-
         object_id = self.request.GET.get("object_id")
         content_type = self.request.GET.get("content_type")
         model = apps.get_model(content_type)
-
         object = model.objects.get(pk=object_id)
 
         document_links = get_document_links_for_object(object)
+        print("document links count", document_links.count())
 
         return qs.filter(pk__in=document_links.values_list("pk", flat=True)).order_by(
             "documentid__document_type_id"
@@ -310,7 +286,7 @@ class DocumentListView(LoginRequiredMixin, DocumentLinkPermissionMixin, ListView
             from itertools import groupby
 
             for key, group in groupby(
-                documents, key=lambda d: d.documentid.document_type_id
+                documents, key=lambda d: d.documentid.get_document_type_id_display()
             ):
                 grouped_documents[key] = list(group)
             context["grouped_documents"] = grouped_documents
@@ -521,13 +497,12 @@ class LinkTemporaryDocumentView(TempUploadListView, PermissionRequiredMixin, For
 
         document_type = form.cleaned_data.get("document_type")
 
-        files = TemporaryUpload.objects.filter(group=group, user=self.request.user)
-        temp_documents = SaveTempFiles(
-            files,
+        save_temp_files(
+            group=group,
+            user=self.request.user,
             content_object=object,
             document_type=document_type,
         )
-        temp_documents.save_all()
 
         if self.request.htmx:
             # Return empty 204 response so HTMX knows it's successful
@@ -662,4 +637,3 @@ class ExtractedDateDeleteView(LoginRequiredMixin, View):
         user = request.user
         clear_extraction_results(user, self.group)
         return HttpResponseRedirect(self.get_success_url())
-

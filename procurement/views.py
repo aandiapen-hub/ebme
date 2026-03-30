@@ -10,7 +10,7 @@ from django.views import View
 
 from documents.models import TblDocumentLinks, DocumentTypes, TemporaryUpload
 from documents.utils import get_extraction_results, save_extraction_results
-from documents.views import SaveTempFiles
+from documents.views import save_temp_files
 
 # import Models
 from .models import (
@@ -306,20 +306,16 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
             formset.instance = self.object
             formset.save()
 
-            temp_file_group = self.request.POST.get("temp_file_group")
+            temp_file_group = self.request.POST.get("temp_file_group", None)
 
-            if temp_file_group and temp_file_group != "None":
-                files = TemporaryUpload.objects.filter(
-                    user=self.request.user, group=temp_file_group
+            if self.temp_file_group is not None:
+                save_temp_files(
+                    group=temp_file_group,
+                    user=self.request.user,
+                    content_object=self.object,
+                    document_type=DocumentTypes.DELIVERY_NOTE,
+                    file_name=f"delivery_note_{self.object.pk}",
                 )
-                if files:
-                    delivery_note_file = SaveTempFiles(
-                        temp_files=files,
-                        content_object=self.object,
-                        document_type=DocumentTypes.DELIVERY_NOTE,
-                        file_name=f"delivery_note_{self.object.pk}",
-                    )
-                    delivery_note_file.save_all()
             messages.success(self.request, "Delivery note created successfully.")
 
         return HttpResponseRedirect(self.get_success_url())
@@ -532,18 +528,14 @@ class InvoicesCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
         with transaction.atomic():
             self.object = form.save()
             temp_file_group = self.request.POST.get("temp_file_group", None)
-            if temp_file_group and temp_file_group != "None":
-                files = TemporaryUpload.objects.filter(
-                    user=self.request.user, group=temp_file_group
+            if temp_file_group is not None:
+                save_temp_files(
+                    group=temp_file_group,
+                    user=self.request.user,
+                    content_object=self.object,
+                    document_type=DocumentTypes.INVOICE,
+                    file_name=f"invoice_'+{self.object.pk}",
                 )
-                if files:
-                    invoice_file = SaveTempFiles(
-                        temp_files=files,
-                        content_object=self.object,
-                        document_type=DocumentTypes.INVOICE,
-                        file_name=f"invoice_'+{self.object.pk}",
-                    )
-                    invoice_file.save_all()
 
         return HttpResponseRedirect(self.get_success_url())
 

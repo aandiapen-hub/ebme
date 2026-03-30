@@ -90,7 +90,7 @@
           </div>
           <div class='col-12' id="document_div">
               <!--Documents -->
-              {% include "documents/partials/generic_document_partial.html" with object_id=job.jobid content_type="assets.tbljob" %}
+              {% include "documents/partials/generic_document_partial.html" with object=job.pk content_type="assets.tbljob" %}
           </div>
         </div>
 

@@ -133,7 +133,7 @@ class TblDocTableRef(models.Model):
 
 
 class TblDocumentLinks(models.Model):
-    document_link_id = models.BigAutoField(primary_key=True)
+    document_link_id = models.BigAutoField(primary_key=True, editable=False)
     documentid = models.ForeignKey(
         TblDocuments,
         on_delete=models.PROTECT,
@@ -147,7 +147,9 @@ class TblDocumentLinks(models.Model):
     )
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey("content_type", "object_id")
-    customer = models.ForeignKey("assets.Tblcustomer", on_delete=models.PROTECT)
+    customer = models.ForeignKey(
+        "assets.Tblcustomer", on_delete=models.PROTECT, null=True, blank=True
+    )
 
     class Meta:
         managed = False
@@ -185,10 +187,8 @@ class DocumentsView(models.Model):
     customerid = models.ForeignKey(
         "assets.Tblcustomer", models.DO_NOTHING, db_column="CustomerID"
     )
-    document_type_id = models.ForeignKey(
+    document_type_id = models.IntegerField(
         DocumentTypes,
-        models.PROTECT,
-        db_column="document_type_id",
         null=True,
         blank=True,
     )

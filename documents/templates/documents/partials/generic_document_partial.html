@@ -25,7 +25,7 @@
 {% include 'partials/messages.html' %}
         <div
         hx-get="{% url 'documents:list_documents' %}?object_id={{object}}&content_type={{content_type}}"
-        hx-trigger="intersect"
+        hx-trigger="intersect, documentUpdated from:body"
         hx-target="this"
         hx-swap='innerHTML'>
           <div class="spinner-border " role="status">
