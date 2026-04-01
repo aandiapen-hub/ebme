@@ -150,3 +150,12 @@ def save_temp_files(group, user, content_object, document_type=None, file_name=N
 
             for file in non_image_files:
                 file.delete()
+
+
+def delete_link_document(link):
+    with transaction.atomic():
+        documentid = link.documentid.pk
+        link.delete()
+        other_document_links = TblDocumentLinks.objects.filter(documentid=documentid)
+        if not other_document_links.exists():
+            TblDocuments.objects.get(document_id=documentid).delete()

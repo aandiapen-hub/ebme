@@ -9,7 +9,7 @@ from django.urls import reverse, reverse_lazy
 from django.db import transaction
 from django.views import View
 from django.core.exceptions import ValidationError
-from .service import create_document_from_file, save_temp_files
+from .service import create_document_from_file, save_temp_files, delete_link_document
 
 # import models
 from .models import (
@@ -126,9 +126,9 @@ class DocumentLinkDeleteView(
 ):
     model = TblDocumentLinks
     template_name = "documents/partials/document_crud_modal.html"
-    permission_required = "documents.delete_TblDocumentLinks"
+    permission_required = "documents.delete_tbldocumentlinks"
 
-    success_url = reverse_lazy("documents:list_documents")  # or wherever you want
+    success_url = reverse_lazy("documents:table_document_links")  # or wherever you want
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -137,26 +137,13 @@ class DocumentLinkDeleteView(
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        success_url = self.get_success_url()
-
-        link = TblDocumentLinks.objects.get(
-            document_link_id=self.object.document_link_id
-        )
-        link.delete()
-        try:
-            document = TblDocuments.objects.get(document_id=self.object.document_id)
-            document.delete()
-        except Exception as e:
-            messages.warning(
-                self.request,
-                f"Link Deleted. But document is still linked to other records. Error:{str(e)}",
-            )
-            return HttpResponseRedirect(success_url)
-
+        delete_link_document(self.object)
         if self.request.htmx:
             # Return an empty 204 response so HTMX knows it's successful
-            return HttpResponse(status=204)
-        return HttpResponseRedirect(success_url)
+            response = HttpResponse(status=204)
+            response["HX-Trigger"] = "documentUpdated"
+            return response
+        return HttpResponseRedirect(self.success_url)
 
 
 class DocumentLinkUpdateView(
