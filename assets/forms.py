@@ -76,7 +76,20 @@ class AssetBulkUpdateForm(forms.Form):
         queryset=Tblcustomer.objects.all(), required=False, label="Customer"
     )
     modelid = forms.ModelChoiceField(
-        queryset=Tblmodel.objects.all(), label="Model", required=False
+        queryset=Tblmodel.objects.all(),
+        required=False,
+        widget=ModelSelect2Widget(
+            model=Tblmodel,
+            search_fields=[
+                "modelname__icontains",
+                "brandid__brandname__icontains",
+                "categoryid__categoryname__icontains",
+            ],
+            attrs={
+                "data-placeholder": "Select Model",
+                "data-minimum-input-length": 0,
+            },
+        ),
     )
     softwareversion = forms.CharField(required=False, label="Software Version")
     ppmscheduleid = forms.ModelChoiceField(

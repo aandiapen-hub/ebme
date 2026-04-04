@@ -5,9 +5,10 @@ from .models import TblDocuments, TblDocumentLinks, TemporaryUpload, DocumentTyp
 from django_select2.forms import (
     ModelSelect2Widget,
 )
+from .service import create_document_from_file
 
 
-class DocumentLinkCreateForm(forms.ModelForm):
+class DocumentCreateForm(forms.ModelForm):
     document_bytea = forms.FileField(
         widget=forms.FileInput(attrs={"capture": "environment"})
     )
@@ -28,7 +29,11 @@ class LinkTemporaryDocumentForm(forms.Form):
 class DocumentUpdateForm(forms.ModelForm):
     class Meta:
         model = TblDocuments
-        fields = "__all__"
+        fields = (
+            "document_name",
+            "document_description",
+            "document_type_id",
+        )
 
     document_bytea = forms.FileField(required=False)
 
@@ -158,3 +163,46 @@ class DocumentLinkUpdateForm(forms.ModelForm):
                 },
             ),
         }
+
+
+class BulkLinkDocument(forms.Form):
+    document = forms.FileField(
+        required=True,
+        widget=forms.FileInput(
+            attrs={
+                "accept": "image/*",  # Accept only images
+                "capture": "environment",  # Suggest rear camera on mobile
+            }
+        ),
+    )
+    document_type = forms.ChoiceField(required=True, choices=DocumentTypes.choices)
+    document_name = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={"autofocus": None, "placeholder": "Name (Optional)"}
+        ),
+    )
+    document_description = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={"autofocus": None, "placeholder": "Description (Optional)"}
+        ),
+    )
+    source_object = forms.IntegerField(widget=forms.HiddenInput(), required=False)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        uploaded_file = cleaned_data.get("document")
+
+        document_name = cleaned_data["document_name"] or uploaded_file.name
+        document = create_document_from_file(
+            uploaded_file=uploaded_file,
+            document_type_id=cleaned_data["document_type"],
+            document_name=document_name,
+            document_description=cleaned_data["document_description"],
+        )
+        cleaned_data["source_object"] = document
+
+
+class BulkDeleteLink(forms.Form):
+    pass

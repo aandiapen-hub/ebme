@@ -3,11 +3,14 @@ from .views import (
     DocumentAndLinkCreateView,
     DocumentLinksTableView,
     DocumentsTableView,
-    DocumentDownloadView,
+    DocumentDownloadFromLinkView,
     DocumentLinkDeleteView,
     DocumentListView,
     DocumentLinkUpdateView,
+    DocumentDetailView,
     DocumentUpdateView,
+    DocumentDeleteView,
+    DocumentDownloadView,
     DocumentPreView,
     TempUploadListView,
     TempUploadDetailView,
@@ -19,8 +22,13 @@ from .views import (
     GetExtractedData,
     UpdateExtractedData,
     ExtractedDateDeleteView,
+    BulkLinkDocument,
+    BulkDeleteLink,
 )
 
+from assets.views import UNIVERSAL_SEARCH_FIELDS as ASSET_UNIVERSAL_SEARCH_FIELDS
+from jobs.views import SEARCHFILEDS as JOB_UNIVERSAL_SEARCH_FIELDS
+from assets.models import AssetView, JobView
 
 app_name = "documents"
 
@@ -37,9 +45,9 @@ urlpatterns = [
         name="create_document_link",
     ),
     path(
-        "documents/download/<int:pk>/",
-        DocumentDownloadView.as_view(),
-        name="download_document",
+        "documents/downloadfromlink/<int:pk>/",
+        DocumentDownloadFromLinkView.as_view(),
+        name="download_document_from_link",
     ),
     path(
         "document_links/<int:pk>/delete/",
@@ -53,9 +61,24 @@ urlpatterns = [
         name="update_document_link",
     ),
     path(
+        "documents/<int:pk>/",
+        DocumentDetailView.as_view(),
+        name="view_document",
+    ),
+    path(
+        "documents/<int:pk>/download",
+        DocumentDownloadView.as_view(),
+        name="download_document",
+    ),
+    path(
         "documents/<int:pk>/update",
         DocumentUpdateView.as_view(),
         name="update_document",
+    ),
+    path(
+        "documents/<int:pk>/delete",
+        DocumentDeleteView.as_view(),
+        name="delete_document",
     ),
     path("user_temp_files/", TempUploadListView.as_view(), name="user_temp_files"),
     path("temp_files/<int:pk>", TempUploadDetailView.as_view(), name="temp_file"),
@@ -95,5 +118,29 @@ urlpatterns = [
         "documents/extracted_data/<str:group>/delete",
         ExtractedDateDeleteView.as_view(),
         name="delete_extracted_data",
+    ),
+    #  bulk document create links
+    path(
+        "documents/bulk_link_assets/",
+        BulkLinkDocument.as_view(
+            model=AssetView,
+            universal_search_fields=ASSET_UNIVERSAL_SEARCH_FIELDS,
+            success_view="assets:assets_list",
+        ),
+        name="bulk_link_to_assets",
+    ),
+    path(
+        "documents/bulk_link_jobs/",
+        BulkLinkDocument.as_view(
+            model=JobView,
+            universal_search_fields=JOB_UNIVERSAL_SEARCH_FIELDS,
+            success_view="jobs:jobs_list",
+        ),
+        name="bulk_link_to_jobs",
+    ),
+    path(
+        "documents/bulk_delete_link",
+        BulkDeleteLink.as_view(),
+        name="bulk_delete_links",
     ),
 ]

@@ -1,10 +1,11 @@
 import hashlib
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from .models import TblDocuments, TblDocumentLinks, TemporaryUpload
 from django.core.exceptions import ValidationError
 from PIL import Image
 import uuid
 import io
+from django.contrib.contenttypes.models import ContentType
 
 
 def resolve_customer(content_object):
@@ -21,9 +22,11 @@ def resolve_customer(content_object):
 
 
 def link_document_to_object(document, content_object, customer):
-    link = TblDocumentLinks.objects.create(
+    content_type = ContentType.objects.get_for_model(content_object)
+    link, created = TblDocumentLinks.objects.get_or_create(
         documentid=document,
-        content_object=content_object,
+        content_type=content_type,
+        object_id=content_object.pk,
         customer=customer,
     )
     return link
@@ -31,6 +34,7 @@ def link_document_to_object(document, content_object, customer):
 
 def create_document_from_file(
     *,
+    document=None,
     uploaded_file=None,
     document_type_id,
     temp_file=None,
@@ -38,13 +42,15 @@ def create_document_from_file(
     content_object=None,
     document_description=None,
 ):
-    if uploaded_file is None and temp_file is None:
+    if document is None and uploaded_file is None and temp_file is None:
         raise ValidationError("No file found!")
+
+    content = None
 
     if uploaded_file:
         content = uploaded_file.read()
         mime_type = uploaded_file.content_type
-        file_size = uploaded_file.size
+        document_name = document_name or uploaded_file.name
 
     if temp_file:
         if "image/" in mime_type:
@@ -55,23 +61,58 @@ def create_document_from_file(
                 content = f.read()
         document_name = temp_file.original_name
         mime_type = temp_file.mime_type
-        file_size = temp_file.file_size
 
-    file_hash = hashlib.sha256(content).hexdigest()
+    # --------------------------------------
+    # check if document already exists in DB
+    # --------------------------------------
+    if content:
+        file_hash = hashlib.sha256(content).hexdigest()
+    else:
+        file_hash = None
+
     customer = resolve_customer(content_object)
 
     with transaction.atomic():
-        document, created = TblDocuments.objects.get_or_create(
-            document_hash=file_hash,
-            defaults={
-                "document_name": document_name,
-                "mime_type": mime_type,
-                "document_bytea": content,
-                "document_description": document_description,
-                "file_size": file_size,
-                "document_type_id": document_type_id,
-            },
-        )
+        # ------------------------------------------------
+        # Updating a document
+        # ------------------------------------------------
+        if document is not None and file_hash:
+            duplicate = TblDocuments.objects.filter(document_hash=file_hash).exclude(
+                pk=document.pk
+            )
+            if duplicate.exists():
+                raise ValidationError("This uploaded file already exists.")
+
+        if document is not None and content:
+            document.document_name = document_name
+            document.mime_type = mime_type
+            document.description = document_description
+            document.set_content(content, file_hash=file_hash)
+
+        if document is not None:
+            document.document_name = document_name
+            document.description = document_description
+
+        else:
+            # ------------------------------------------------
+            # creating new document and links
+            # ------------------------------------------------
+
+            # first check if document exists by hash
+            document = TblDocuments.objects.filter(document_hash=file_hash).first()
+            if document is None:
+                document = TblDocuments(
+                    document_name=document_name,
+                    mime_type=mime_type,
+                    document_description=document_description,
+                )
+            document.set_content(content, file_hash=file_hash)
+
+        try:
+            document.save()
+        except IntegrityError:
+            raise ValidationError("This file already exists.")
+
         if content_object:
             link_document_to_object(
                 document=document, content_object=content_object, customer=customer

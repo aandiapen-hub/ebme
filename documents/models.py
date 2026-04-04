@@ -26,6 +26,11 @@ class DocumentTypes(models.IntegerChoices):
 
 
 class TblDocuments(models.Model):
+    """
+    Use create document from file service
+    to create object for this model
+    """
+
     document_id = models.BigAutoField(primary_key=True)
     document_name = models.CharField()
     document_description = models.TextField(blank=True, null=True)
@@ -48,6 +53,11 @@ class TblDocuments(models.Model):
 
     def __str__(self):
         return self.document_name
+
+    def set_content(self, content, file_hash=None):
+        self.document_bytea = content
+        self.document_hash = file_hash or hashlib.sha256(content).hexdigest()
+        self.file_size = len(content)
 
     class Meta:
         managed = False
@@ -140,6 +150,7 @@ class TblDocumentLinks(models.Model):
         blank=True,
         null=True,
         db_column="document_id",
+        related_name="links",
     )
     content_type = models.ForeignKey(
         ContentType,
@@ -155,19 +166,13 @@ class TblDocumentLinks(models.Model):
         managed = False
         db_table = "tbl_document_links"
         ordering = ["document_link_id"]
+        permissions = [
+            ("bulk_create_links", "Can bulk create links"),
+            ("bulk_delete_links", "Can bulk delete links"),
+        ]
 
-    @staticmethod
-    def delete_link_documents(obj):
-        links = obj.document_links.all()
-        for link in links:
-            with transaction.atomic():
-                documentid = link.documentid.document_id
-                link.delete()
-                other_document_links = TblDocumentLinks.objects.filter(
-                    documentid=documentid
-                )
-                if not other_document_links.exists():
-                    TblDocuments.objects.get(document_id=documentid).delete()
+    def __str__(self):
+        return repr(self.document_link_id)
 
 
 class DocumentsView(models.Model):

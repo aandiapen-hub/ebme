@@ -78,9 +78,17 @@ class FilteredAssetTableView(
         "customerid",
         "ppm_compliance",
     ]
-    bulk_update = {
-        "url": reverse_lazy("assets:bulk_update_assets"),
-        "permission": "assets.bulk_change_assets",
+    bulk_actions = {
+        "bulk_update": {
+            "url": reverse_lazy("assets:bulk_update_assets"),
+            "permission": "assets.bulk_change_assets",
+            "name": "Update",
+        },
+        "bulk_link_document": {
+            "url": reverse_lazy("documents:bulk_link_to_assets"),
+            "permission": "documents.bulk_create_links",
+            "name": "Link Document",
+        },
     }
 
 

@@ -5,9 +5,9 @@
         <!-- data export-->
         <a class="btn btn-sm btn-outline-primary" href="{% querystring '_export'='csv' %}">Export(csv)</a>
 
-          <!--Multiple asset edits buttons-->
-          {% if bulk_update %}
-          {% include "buttons/bulk_update_button.html" with bulk_update_url=bulk_update %}        
-          {% endif %}
+          <!--Bulk update button-->
+          {% for action in bulk_actions %}
+          {% include "buttons/bulk_update_button.html" with button_content=action.name url=action.url %}        
+          {% endfor %}
 
 </div> 

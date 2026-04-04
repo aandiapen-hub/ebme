@@ -1,0 +1,24 @@
+
+{% load django_bootstrap5 %}
+
+
+{% block content %}
+<div class='container'>
+<p class='text-danger'>Delete {{count}} records</p>
+<form class="form"
+hx-post="{% url 'documents:bulk_delete_links' %}?{{ request.GET.urlencode }}"
+hx-include='#row_select_form'
+hx-trigger='submit'
+hx-target='#bulk_update_content'
+hx-swap='innerHTML'
+>
+        {% csrf_token %}
+        {{form.media}}
+        {% bootstrap_form form %}
+
+        <button class="btn btn-primary" type="submit">Delete</button>
+
+
+        </form>
+<div>
+{% endblock %}

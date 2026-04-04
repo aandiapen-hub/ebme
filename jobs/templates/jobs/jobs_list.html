@@ -63,16 +63,6 @@
                 </ul>
               {% endif %}
                 
-              {% if perms.assets.bulk_update_tbljob %}
-                <!--Multiple asset edits buttons-->
-                    <button type='button'
-                      class="btn btn-outline-warning"
-                      hx-get="{% url 'jobs:bulk_update_jobs' %}"
-                      hx-include='#filter-form, #row_select_form'
-                      hx-push-url='true'>
-                      Edit <i class="bi bi-pencil-fill"></i>
-                    </button>
-              {% endif %}
         </div>
 
     </div>

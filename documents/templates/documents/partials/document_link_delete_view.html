@@ -1,0 +1,32 @@
+{% load django_bootstrap5 %}
+
+<div  class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete Document Link</h5>
+      </div>
+      <div class="modal-body">
+
+        <form id='document_link_create_form' class="form" method="post"
+        enctype="multipart/form-data"
+        hx-post="{{request.get_full_path}}"
+        hx-trigger="submit"
+        hx-target="#modals-here"
+        hx-on::after-Request= "bootstrap.Modal.getInstance(document.getElementById('modals-here')).hide();">
+        <h4>Delete document link {{object}}</h4>
+  
+        {{form.media}}
+        {% bootstrap_messages %}
+
+        {% csrf_token %}
+        {% bootstrap_form form %}
+
+        {% bootstrap_button button_type="submit" content="Delete" %}
+
+      </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>

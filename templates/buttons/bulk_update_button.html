@@ -1,5 +1,5 @@
-  <a
-      hx-get="{{bulk_update_url}}?{{ request.GET.urlencode }}"
+<a
+      hx-get="{{url}}?{{ request.GET.urlencode }}"
       hx-include='#row_select_form'
       hx-target='#bulk_update_content'
       hx-indicator='#bulk_update_spinner'
@@ -9,5 +9,5 @@
       data-bs-toggle="offcanvas"
       data-bs-target="#bulk_update_offcanvas"
       aria-controls="bulk_update_offcanvas">
-      Bulk Update
+      {{ button_content }}
   </a>

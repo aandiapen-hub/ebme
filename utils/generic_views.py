@@ -1,5 +1,6 @@
 from django.urls import reverse
 from django_htmx.http import HttpResponseClientRedirect
+from django.db import IntegrityError
 from django.shortcuts import render
 from django.views.generic.edit import FormMixin
 from django_filters.views import FilterView
@@ -17,6 +18,9 @@ from django.contrib import messages
 from collections import Counter
 from django_tables2.export.views import ExportMixin
 from django.core.exceptions import ValidationError
+
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
 
 
 # get visible columns for a model for a user
@@ -93,13 +97,28 @@ def get_dynamic_table_class(table_model, visible_columns=None, template_columns=
     return DynamicTable
 
 
+class TableViewActionsContentMixins:
+    bulk_actions = {}
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        bulk_actions = []
+        for key, action in self.bulk_actions.items():
+            if self.request.user.has_perm(action["permission"]):
+                bulk_actions.append({"url": action["url"], "name": action["name"]})
+            context["bulk_actions"] = bulk_actions
+        return context
+
+
 # 3. Generic filtered table view
-from django.views.decorators.cache import never_cache
-from django.utils.decorators import method_decorator
-
-
 @method_decorator(never_cache, name="dispatch")
-class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
+class FilteredTableView(
+    TableViewActionsContentMixins,
+    SingleTableMixin,
+    ExportMixin,
+    FilterView,
+):
     paginate_by = 20
     permission_required = None  # Override in subclass - Mandatory
     model = None  # override in subclass - Mandatory
@@ -107,7 +126,7 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
     template_name = None  # override in subclass - Mandatory
     universal_search_fields = None  # override in subclass - Mandatory
     default_columns = []
-    bulk_update = None
+    bulk_actions = {}  # overridein subclass if bulk actions are available
 
     def dispatch(self, request, *args, **kwargs):
         self.visible_columns = (
@@ -325,11 +344,6 @@ class FilteredTableView(SingleTableMixin, ExportMixin, FilterView):
                 for v in cleaned_data.values()
             )
 
-        if self.bulk_update is not None and self.request.user.has_perm(
-            self.bulk_update["permission"]
-        ):
-            context["bulk_update"] = self.bulk_update["url"]
-
         return context
 
 
@@ -340,9 +354,9 @@ class BulkUpdateView(FilteredTableView, FormMixin):
     universal_search_fields = None  # override in subclass - Mandatory
     success_view = None  # override in sublcass - Mandatory
     validator = None  # override in subclass for record specifid validator
-    operation = None  # override in subclass or 'update' or 'create_link'
+    operation = None  # override in subclass or 'delete', 'update' or 'create_link',
     table_to_update = None  # table to update
-
+    form_class = None  # override in subclass - Mandatory
     link_source_field = None
     link_target_field = None
 
@@ -402,6 +416,9 @@ class BulkUpdateView(FilteredTableView, FormMixin):
     def persist_objects(self, qs, updates):
         self.table_to_update.objects.filter(pk__in=qs.values("pk")).update(**updates)
 
+    def delete_objects(self, qs):
+        return qs.delete()
+
     def bulk_link_objects(
         self,
         source_object,
@@ -413,8 +430,7 @@ class BulkUpdateView(FilteredTableView, FormMixin):
     ):
         if not target_qs.exists():
             return
-        extra_fields = extra_fields
-
+        extra_fields = extra_fields or {}
         objects_to_create = [
             link_model(
                 **{source_field: source_object, target_field: target}, **extra_fields
@@ -455,12 +471,23 @@ class BulkUpdateView(FilteredTableView, FormMixin):
 
             if self.operation == "create_link":
                 self.bulk_link_objects(
-                    source_object=form.cleaned_data("source_object"),
+                    source_object=form.cleaned_data["source_object"],
                     target_qs=qs,
                     link_model=self.table_to_update,
-                    source_field=self.source_field,
-                    target_field=self.target_field,
+                    source_field=self.link_source_field,
+                    target_field=self.link_target_field,
                 )
+
+            if self.operation == "delete":
+                try:
+                    self.delete_objects(qs)
+                except ValidationError as e:
+                    form.add_error(None, e)
+                    return self.form_invalid(form)
+                except IntegrityError as e:
+                    form.add_error(None, e)
+                    return self.form_invalid(form)
+
             return HttpResponseClientRedirect(self.get_success_url())
 
         return self.form_invalid(form)

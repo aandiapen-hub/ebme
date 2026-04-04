@@ -15,13 +15,13 @@
                     {% for document in documents %}
 
                         <li class="list-group-item">
-                        {{document.documentid.document_name}} - {{document.documentid.creation_date}}
+                        {{document.documentid.document_name}} - {{document.pk}}
                         {{document.documentid.document_description}}
                         
-                        <a href="{% url 'documents:download_document' pk=document.document_link_id %}"
+                        <a href="{% url 'documents:download_document_from_link' pk=document.document_link_id %}"
                             type="button"
                             class="btn btn-outline-info btn-sm">
-                            <i data-bs-toggle="tooltip" title="View Document" class="bi bi-cloud-arrow-down"></i>
+                            <i data-bs-toggle="tooltip" title="Download Document" class="bi bi-cloud-arrow-down"></i>
                         </a>
                         <button id="update_doc_button"
                             hx-get="{% url 'documents:update_document_link' pk=document.document_link_id%}"
@@ -30,7 +30,7 @@
                             data-bs-toggle="modal"
                             data-bs-target="#modals-here"
                             class="btn btn-outline-warning btn-sm">
-                            <i  data-bs-toggle="tooltip" title="Edit Document" class="bi bi-pencil-square"></i>    
+                            <i  data-bs-toggle="tooltip" title="Edit Document Link" class="bi bi-pencil-square"></i>    
                         </button>  
 
                         <button id="delete_doc_button"
@@ -40,8 +40,13 @@
                             data-bs-toggle="modal"
                             data-bs-target="#modals-here"
                             class="btn btn-outline-danger btn-sm">
-                            <i data-bs-toggle="tooltip" title="Delete Document" class="bi bi-file-earmark-minus"></i>    
+                            <i data-bs-toggle="tooltip" title="Delete Document Link" class="bi bi-file-earmark-minus"></i>    
                         </button> 
+                        <a href="{% url 'documents:view_document' pk=document.documentid.pk %}"
+                            type="button"
+                            class="btn btn-outline-info btn-sm">
+                            <i data-bs-toggle="tooltip" title="View Document" class="bi bi-file-earmark"></i>
+                        </a>
                         </li>
                 {% endfor %}  
                 </ul>

@@ -880,11 +880,6 @@ class JobUpdateFromReportView(JobUpdateView):
         return response
 
 
-from django.views.decorators.cache import never_cache
-from django.utils.decorators import method_decorator
-
-
-@method_decorator(never_cache, name="dispatch")
 class FilteredJobTableView(
     LoginRequiredMixin, CustomerJobListPermissionMixin, FilteredTableView
 ):
@@ -905,7 +900,15 @@ class FilteredJobTableView(
         "startdate",
         "enddate",
     ]
-    bulk_update = {
-        "url": reverse_lazy("jobs:bulk_update_jobs"),
-        "permission": "assets.bulk_update_tbljob",
+    bulk_actions = {
+        "bulk_update": {
+            "url": reverse_lazy("jobs:bulk_update_jobs"),
+            "permission": "assets.bulk_update_tbljob",
+            "name": "Update",
+        },
+        "bulk_link_document": {
+            "url": reverse_lazy("documents:bulk_link_to_jobs"),
+            "permission": "documents.bulk_create_links",
+            "name": "Link Document",
+        },
     }

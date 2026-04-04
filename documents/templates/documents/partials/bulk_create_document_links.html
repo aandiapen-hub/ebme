@@ -1,0 +1,25 @@
+
+{% load django_bootstrap5 %}
+
+
+{% block content %}
+<div class='container'>
+<p>Add documents to {{count}} records</p>
+<form class="form"
+enctype='multipart/form-data'
+hx-post="{% url 'documents:bulk_link_to_assets' %}?{{ request.GET.urlencode }}"
+hx-include='#row_select_form'
+hx-trigger='submit'
+hx-target='#bulk_update_content'
+hx-swap='innerHTML'
+>
+        {% csrf_token %}
+        {{form.media}}
+        {% bootstrap_form form %}
+
+        <button class="btn btn-primary" type="submit">Save</button>
+
+
+        </form>
+<div>
+{% endblock %}

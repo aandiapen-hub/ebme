@@ -6,7 +6,6 @@ from django.shortcuts import redirect, render
 from django.http import FileResponse, HttpResponse, HttpResponseRedirect, Http404
 from django.contrib import messages
 from django.urls import reverse, reverse_lazy
-from django.db import transaction
 from django.views import View
 from django.core.exceptions import ValidationError
 from .service import create_document_from_file, save_temp_files, delete_link_document
@@ -31,16 +30,18 @@ from django.views.generic import (
 
 # import forms
 from .forms import (
-    DocumentLinkCreateForm,
+    DocumentCreateForm,
     DocumentUpdateForm,
     TempFileUploadForm,
     QuickScannerForm,
     LinkTemporaryDocumentForm,
     DocumentLinkUpdateForm,
+    BulkLinkDocument,
+    BulkDeleteLink,
 )
 
 # import generic filter table view
-from utils.generic_views import FilteredTableView
+from utils.generic_views import FilteredTableView, BulkUpdateView
 from django.db.models import ForeignKey
 
 
@@ -53,13 +54,17 @@ from .utils import get_extraction_results
 
 
 # Create your views here.
+DOCUMENT_LINK_SEARCH = [
+    "documentid__document_name__icontains",
+    "documentid__icontains",
+]
 
 
 class DocumentAndLinkCreateView(
     LoginRequiredMixin, PermissionRequiredMixin, CreateView
 ):
     model = TblDocuments
-    form_class = DocumentLinkCreateForm
+    form_class = DocumentCreateForm
     template_name = "documents/partials/document_crud_modal.html"
 
     success_url = reverse_lazy("documents:table_document_links")  # or wherever you want
@@ -76,56 +81,38 @@ class DocumentAndLinkCreateView(
         return context
 
     def form_valid(self, form):
-        try:
-            # Create the related DocumentLink
-            object_id = self.request.GET.get("object_id")
-            content_type = self.request.GET.get("content_type")
-            model = apps.get_model(content_type)
-            object = model.objects.get(pk=object_id)
+        # Create the related DocumentLink
+        object_id = self.request.GET.get("object_id")
+        content_type = self.request.GET.get("content_type")
+        model = apps.get_model(content_type)
+        object = model.objects.get(pk=object_id)
 
-            document_type_id = form.cleaned_data.get("document_type_id")
-            # check whether a new file is being uploaded or permanent document
-            # is being created from temporary uploads
-            uploaded_file = self.request.FILES["document_bytea"]
-            document_name = form.cleaned_data.get("document_name")
-            document_description = form.cleaned_data.get("document_description")
+        document_type_id = form.cleaned_data.get("document_type_id")
+        # check whether a new file is being uploaded or permanent document
+        # is being created from temporary uploads
+        uploaded_file = self.request.FILES["document_bytea"]
+        document_name = form.cleaned_data.get("document_name")
+        document_description = form.cleaned_data.get("document_description")
 
-            create_document_from_file(
-                uploaded_file=uploaded_file,
-                document_type_id=document_type_id,
-                document_name=document_name,
-                content_object=object,
-                document_description=document_description,
-            )
+        create_document_from_file(
+            uploaded_file=uploaded_file,
+            document_type_id=document_type_id,
+            document_name=document_name,
+            content_object=object,
+            document_description=document_description,
+        )
 
-            if self.request.htmx:
-                return HttpResponse(status=204)
-            else:
-                return HttpResponseRedirect(self.success_url)
-
-        except Exception as e:
-            if "unique_has" in str(e):
-                import hashlib
-
-                uploaded_file.seek(0)
-                dup_hash = hashlib.sha256(uploaded_file.read()).hexdigest()
-                existing_doc = TblDocuments.objects.filter(
-                    document_hash=dup_hash
-                ).first()
-                messages.warning(
-                    self.request,
-                    f"Document already exists in Database.Existing document id: {existing_doc.pk}",
-                )
-            else:
-                messages.warning(self.request, f"Error:{str(e)}")
-            return self.form_invalid(form)
+        if self.request.htmx:
+            return HttpResponse(status=204)
+        else:
+            return HttpResponseRedirect(self.success_url)
 
 
 class DocumentLinkDeleteView(
     LoginRequiredMixin, DocumentLinkPermissionMixin, DeleteView
 ):
     model = TblDocumentLinks
-    template_name = "documents/partials/document_crud_modal.html"
+    template_name = "documents/partials/document_link_delete_view.html"
     permission_required = "documents.delete_tbldocumentlinks"
 
     success_url = reverse_lazy("documents:table_document_links")  # or wherever you want
@@ -164,20 +151,54 @@ class DocumentLinkUpdateView(
         return redirect(self.get_success_url())
 
 
+class DocumentDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
+    model = TblDocuments
+    template_name = "documents/document_detail_view.html"
+    permission_required = "documents.view_tbldocuments"
+    context_object_name = "document"
+
+
 class DocumentUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = TblDocuments
     template_name = "documents/document_update.html"
     permission_required = "documents.change_tbldocuments"
     form_class = DocumentUpdateForm
-    success_url = reverse_lazy("documents:table_document_links")
+
+    def get_success_url(self):
+        return reverse("documents:view_document", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
-        uploaded_file = self.request.FILES.get("document_bytea")
-        if uploaded_file:
-            form.instance.document_bytea = uploaded_file.read()
-            form.instance.mime_type = uploaded_file.content_type
-            form.instance.file_size = uploaded_file.size
-        return super().form_valid(form)
+        document = self.get_object()
+        document_type_id = form.cleaned_data.get("document_type_id")
+        # check whether a new file is being uploaded or permanent document
+        # is being created from temporary uploads
+        uploaded_file = self.request.FILES.get("document_bytea", None)
+        document_name = form.cleaned_data.get("document_name")
+        document_description = form.cleaned_data.get("document_description")
+
+        try:
+            create_document_from_file(
+                document=document,
+                uploaded_file=uploaded_file,
+                document_type_id=document_type_id,
+                document_name=document_name,
+                document_description=document_description,
+            )
+        except ValidationError as e:
+            form.add_error(None, e)
+            return self.form_invalid(form)
+
+        if self.request.htmx:
+            return HttpResponse(status=204)
+        else:
+            return HttpResponseRedirect(self.get_success_url())
+
+
+class DocumentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    model = TblDocuments
+    template_name = "documents/document_update.html"
+    permission_required = "documents.delete_tbldocuments"
+    success_url = reverse_lazy("documents:table_documents")
 
 
 class DocumentLinksTableView(
@@ -188,11 +209,16 @@ class DocumentLinksTableView(
     permission_required = "documents.view_tbldocumentlinks"
     template_name = "documents/documents_links.html"
     template_columns = {"actions": "documents/tables/document_links_buttons.html"}
-    universal_search_fields = [
-        "documentid__document_name__icontains",
-        "documentid__icontains",
-    ]
+    universal_search_fields = DOCUMENT_LINK_SEARCH
     exclude = ["document_bytea"]
+
+    bulk_actions = {
+        "bulk_delete": {
+            "url": reverse_lazy("documents:bulk_delete_links"),
+            "permission": "documents.bulk_delete_links",
+            "name": "Delete",
+        },
+    }
 
 
 class DocumentsTableView(
@@ -202,7 +228,7 @@ class DocumentsTableView(
     paginate_by = 20
     permission_required = "documents.view_tbldocuments"
     template_name = "documents/documents.html"
-    template_columns = {"actions": "documents/tables/documents_buttons.html"}
+    template_columns = {"open": "documents/tables/open.html"}
     universal_search_fields = [
         "document_name__icontains",
         "document_description__icontains",
@@ -211,7 +237,9 @@ class DocumentsTableView(
     exclude = ("document_bytea",)
 
 
-class DocumentDownloadView(LoginRequiredMixin, DocumentLinkPermissionMixin, DetailView):
+class DocumentDownloadFromLinkView(
+    LoginRequiredMixin, DocumentLinkPermissionMixin, DetailView
+):
     model = TblDocumentLinks
     permission_required = "documents.view_tbldocumentlinks"
 
@@ -222,6 +250,21 @@ class DocumentDownloadView(LoginRequiredMixin, DocumentLinkPermissionMixin, Deta
             content_type=document_link.documentid.mime_type,
             headers={
                 "Content-Disposition": f'attachment; filename="{document_link.documentid.document_name}"'
+            },
+        )
+
+
+class DocumentDownloadView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
+    model = TblDocuments
+    permission_required = "documents.view_tbldocuments"
+
+    def render_to_response(self, context, **response_kwargs):
+        document = self.get_object()
+        return HttpResponse(
+            document.document_bytea,
+            content_type=document.mime_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{document.document_name}"'
             },
         )
 
@@ -624,3 +667,27 @@ class ExtractedDateDeleteView(LoginRequiredMixin, View):
         user = request.user
         clear_extraction_results(user, self.group)
         return HttpResponseRedirect(self.get_success_url())
+
+
+class BulkLinkDocument(BulkUpdateView):
+    permission_required = "documents.bulk_create_links"
+    model = None  # defined in url
+    template_name = "documents/partials/bulk_create_document_links.html"  # override in subclass - Mandatory
+    universal_search_fields = None  # defined in url
+    success_view = None  # defined in url
+    operation = "create_link"
+    table_to_update = TblDocumentLinks
+
+    form_class = BulkLinkDocument
+    link_source_field = "documentid"
+    link_target_field = "content_object"
+
+
+class BulkDeleteLink(BulkUpdateView):
+    permission_required = "documents.bulk_delete_links"
+    model = TblDocumentLinks
+    template_name = "documents/partials/bulk_delete_document_links.html"  # override in subclass - Mandatory
+    universal_search_fields = DOCUMENT_LINK_SEARCH
+    success_view = "documents:table_document_links"
+    operation = "delete"
+    form_class = BulkDeleteLink

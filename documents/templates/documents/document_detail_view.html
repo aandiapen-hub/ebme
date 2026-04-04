@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}
+
+
+
+
+<!--List Job Details -->
+
+<div id="document_details" class='container'>
+<h3>Document</h3>
+        <div class="row bg-white p-4 rounded">
+          <div class="col">
+            <small class="text-muted">ID:</small>
+            <p>{{ document.pk }}</p>
+            <small class="text-muted">Name:</small>
+            <p>{{ document.document_name }}</p>
+           
+            <small class="text-muted">Description:</small>
+            <p>{{ document.document_description}}</p>
+
+            <small class="text-muted">Type:</small>
+            <p>{{ document.get_document_type_id_display }}</p>
+
+            <a href='{% url "documents:table_document_links" %}?documentid__iexact={{document.pk}}'
+              class='text-decoration-none btn btn-primary'>View Document Links</a>
+          </div>
+          <div class='col text-end'>
+
+            {% if perms.documents.view_tbldocuments %}
+
+                <a
+                class="btn btn-sm btn-outline-primary "
+                href="{% url 'documents:download_document' document.pk %}">
+                Download <i class="bi bi-cloud-download"></i>
+                </a>
+                {% endif %}
+
+            {% if perms.documents.change_tbldocuments %}
+                <a
+                class="btn btn-sm btn-outline-secondary ms-3"
+                href="{% url 'documents:update_document' document.pk %}">
+                Update <i class="bi bi-pen"></i>
+                </a>
+            {% endif %}
+
+            {% if perms.documents.delete_tbldocuments %}
+                <a
+                class="btn btn-sm btn-outline-danger ms-3"
+                href="{% url 'documents:delete_document' document.pk %}">
+                Delete <i class="bi bi-trash2"></i>
+                </a>
+            {% endif %}
+
+          </div>
+        </div>
+</div>
+{% endblock content %}
