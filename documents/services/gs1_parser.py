@@ -75,7 +75,6 @@ def gs1_resolver(gs1_data):
             output['create_asset_from_gs1'] = True
 
 
-
     # check for gtin
     if gtin:
         known_model = Tblmodel.objects.filter(gtin=gtin).first()

@@ -41,9 +41,6 @@ from functools import reduce
 
 from utils.generic_views import BulkUpdateView
 
-from .utils.barcode_reader import scan_barcode
-from .utils.barcode_reader_ai import barcode_reader_ai
-
 # import permissions
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .mixins import CustomerAssetPermissionMixin

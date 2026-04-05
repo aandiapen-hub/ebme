@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load partials%}
+{% load static %}
+
+{% block content %}
+
+<div class="container">
+
+<div hx-get="{% url 'documents:create_temp_files' %}"
+hx-swap="outerHTML"
+hx-trigger="load">
+</div>
+
+  <div class='row'>
+
+    <div id="delete_all_div" class="col">
+      <h4>Uploaded Images</h4>
+      <form
+          hx-post="{% url 'documents:delete_all_temp_files' %}"
+          hx-target="#images_div"
+          hx-trigger="click"
+          hx-swap="outerHTML"
+          hx-select='#images_div'
+          hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
+              <button class="btn btn-warning" type="submit">
+                      Delete All
+              </button>
+        </form>
+    </div>
+  </div>
+
+  <div id="images_div" class='row g-3 justify-content-evenly'>
+      {% for group in temp_files_groups %}
+        {% for temp_files in group %}
+        {% include "documents/partials/temp_file_group.html" %}
+        {% endfor %}
+      {% endfor %}
+      
+      <!-- view temp file modal -->
+      {% include "documents/partials/temp_file_view_modal.html" %}
+
+</div>
+</div>
+
+
+
+{% endblock content %}

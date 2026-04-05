@@ -36,7 +36,7 @@ from django_filters.views import FilterView
 
 from documents.models import TblDocumentLinks, TemporaryUpload
 from documents.utils import get_extraction_results, save_extraction_results
-from documents.service import save_temp_files
+from documents.services.documents import save_temp_files
 
 from utils.generic_views import BulkUpdateView, get_visible_columns
 

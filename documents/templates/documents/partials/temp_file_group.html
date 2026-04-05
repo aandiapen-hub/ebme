@@ -1,6 +1,6 @@
 {% load static %}
-<div id="group_{{ group }}" class="col-auto border">
-          {% for file in temp_files %}
+<div id="group_{{ group.pk }}" class="col-auto border">
+          {% for file in group.temp_uploads.all %}
           {% include "documents/partials/temp_file.html" %}
           {% endfor %}
               <div id="extracted_data" class="col">

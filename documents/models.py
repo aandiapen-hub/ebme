@@ -3,6 +3,10 @@ from django.db import models
 import hashlib
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+import uuid
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
 
 # Create your models here.
 from django.core.files.storage import FileSystemStorage
@@ -70,22 +74,46 @@ temp_storage = FileSystemStorage(
 )
 
 
-class TemporaryUpload(models.Model):
-    file = models.FileField(upload_to="", storage=temp_storage)
-    mime_type = models.CharField(max_length=100)
-    original_name = models.CharField(max_length=100)
-    file_size = models.BigIntegerField()
+class TempUploadGroup(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,  # delete files if user is deleted
+        related_name='temp_upload_group')
+    document_type_id = models.IntegerField(
+        choices=DocumentTypes.choices,
+        default=DocumentTypes.UNKNOWN,
     )
+
+    combined_ocr_text = models.TextField(blank=True)
+    extracted_json = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = 'temp_upload_group'
+
+
+class TemporaryUpload(models.Model):
+    file = models.FileField(upload_to="", storage=temp_storage)
+    group = models.ForeignKey(
+        TempUploadGroup,
+        on_delete=models.CASCADE,
+        related_name='temp_uploads',
+        db_column='group'
+    )
+    mime_type = models.CharField(max_length=100)
+    original_name = models.CharField(max_length=100)
+    page_number = models.IntegerField(null=True, blank=True)
+    file_size = models.BigIntegerField()
+    ocr_text = models.TextField(blank=True)
     upload_at = models.DateTimeField(auto_now_add=True)
-    group = models.IntegerField(default=1)
 
     @classmethod
-    def from_uploaded_file(cls, user, file, group=None):
+    def from_uploaded_file(cls, file, group):
         return cls.objects.create(
-            user=user,
             file=file,
             mime_type=file.content_type,
             file_size=file.size,
@@ -118,16 +146,15 @@ class TemporaryUpload(models.Model):
 
         super().save(*args, **kwargs)
 
-    def delete(self, *args, **kwargs):
-        # Ensure the file is also deleted from disk when model is deleted
-        if self.file:
-            self.file.delete(save=False)
-            clear_extraction_results(user_id=self.user, group=self.group)
-        super().delete(*args, **kwargs)
-
     class Meta:
         managed = False
         db_table = "tbl_temporaryupload"
+
+
+@receiver(post_delete, sender=TemporaryUpload)
+def delete_uploaded_file(sender, instance, **kwargs):
+    if instance.file:
+        instance.file.delete(save=False)
 
 
 class TblDocTableRef(models.Model):
@@ -210,3 +237,5 @@ def calculate_document_checksum(file_path):
         for chunk in iter(lambda: f.read(4096), b""):
             sha256.update(chunk)
     return sha256.hexdigest()
+
+

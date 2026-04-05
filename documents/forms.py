@@ -5,7 +5,7 @@ from .models import TblDocuments, TblDocumentLinks, TemporaryUpload, DocumentTyp
 from django_select2.forms import (
     ModelSelect2Widget,
 )
-from .service import create_document_from_file
+from documents.services.documents import create_document_from_file
 
 
 class DocumentCreateForm(forms.ModelForm):

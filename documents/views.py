@@ -8,12 +8,17 @@ from django.contrib import messages
 from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.core.exceptions import ValidationError
-from .service import create_document_from_file, save_temp_files, delete_link_document
+from .services.documents import (
+    create_document_from_file,
+    save_temp_files,
+    delete_link_document,
+)
 
 # import models
 from .models import (
     TblDocuments,
     TblDocumentLinks,
+    TempUploadGroup,
     TemporaryUpload,
 )
 
@@ -344,15 +349,11 @@ class DocumentPreView(LoginRequiredMixin, View):
 
 
 class TempFilesDeleteAllView(LoginRequiredMixin, DeleteView):
+    model = TempUploadGroup
     success_url = reverse_lazy("documents:user_temp_files")
 
-    def post(self, request, *args, **kwargs):
-        user = request.user
-        files = TemporaryUpload.objects.filter(user=user)
-        for f in files:
-            f.delete()
-
-        return HttpResponseRedirect(self.success_url)
+    def get_queryset(self):
+        return TempUploadGroup.objects.filter(user=self.request.user)
 
 
 class TempFilesDeleteView(LoginRequiredMixin, DeleteView):
@@ -378,57 +379,34 @@ class TempFilesDeleteView(LoginRequiredMixin, DeleteView):
         return HttpResponseRedirect(self.success_url)
 
 
-class TemporaryUploadCreateView(
-    LoginRequiredMixin, PermissionRequiredMixin, CreateView
-):
-    model = TemporaryUpload
-    template_name = "documents/partials/temp_document_create.html"
+class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
+    template_name = "documents/partials/temp_upload_create.html"
     form_class = TempFileUploadForm
     permission_required = "documents.add_tbl_temporaryupload"
+    success_url = reverse_lazy("documents:create_temp_files")
 
     def form_valid(self, form):
         file = self.request.FILES.get("files")
-        raw_group = self.request.POST.get("group")
+        group_id = self.request.GET.get("group", None)
+        print('groupid', group_id)
 
-        groups = list(
-            TemporaryUpload.objects.filter(user=self.request.user).values_list(
-                "group", flat=True
+        if group_id is not None:
+            group = TempUploadGroup.objects.filter(pk=group_id).first()
+            if not self.request.user.admin and group.user != self.request.user:
+                raise ValidationError("Group belongs to another user")
+        else:
+            group = TempUploadGroup.objects.create(
+                user=self.request.user,
             )
-        )
-
-        if groups:
-            latest_group = max(groups)
-        else:
-            latest_group = 0
-        # cases when group is 'new' or a group is specified. otherwise the latest group will be used.
-        if raw_group:
-            try:
-                group = int(raw_group)
-                group_content_type = (
-                    TemporaryUpload.objects.filter(group=group).first().mime_type
-                )
-                if (
-                    "image" not in group_content_type
-                    or "image" not in file.content_type
-                ):
-                    return self.form_invalid(form)
-
-            except:
-                if "new" in raw_group:
-                    group = latest_group + 1
-
-        else:
-            group = latest_group
 
         object = TemporaryUpload.from_uploaded_file(
-            user=self.request.user,
             file=file,
             group=group,
         )
 
         if self.request.htmx:
             group_document_count = TemporaryUpload.objects.filter(
-                user=self.request.user, group=object.group
+                group=object.group
             ).count()
             if group_document_count == 1:
                 context = {"group": object.group, "temp_files": [object]}
@@ -444,53 +422,33 @@ class TemporaryUploadCreateView(
                 )
 
         else:
-            return HttpResponseRedirect(reverse("documents:create_temp_files"))
+            return super.form_valid(form)
 
     def form_invalid(self, form):
-        messages.warning(self.request, "Incorrect file type uploaded.")
-        response = render(self.request, "partials/messages.html")
+        response = self.render_to_response(self.get_context_data(form=form))
         response["HX-Retarget"] = "this"
         response["HX-Reswap"] = "beforeend"
         return response
 
 
-class TempUploadDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
-    model = TemporaryUpload
-    template_name = "documents/partials/temp_file.html"
-    context_object_name = "file"
-    permission_required = "documents.view_tbl_temporaryupload"
+class TempUploadGroupView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
+    model = TempUploadGroup
+    template_name = "documents/partials/temp_file_group.html"
+    context_object_name = "group"
+    permission_required = "documents.view_tbl_temporaryuploadgroup"
 
-    def get_object(self, queryset=None):
-        obj = super().get_object(queryset)
-        if obj.user != self.request.user:
-            raise Http404("File not found or is not yours")
-        return obj
+    def get_queryset(self):
+        return super().get_queryset().filter(user=self.request.user)
 
 
 class TempUploadListView(LoginRequiredMixin, ListView):
-    model = TemporaryUpload
-    template_name = "documents/temp_files_list.html"
-    context_object_name = "temp_files_groups"
+    model = TempUploadGroup
+    template_name = "documents/temp_group_list.html"
+    context_object_name = "temp_groups"
     permission_required = "documents.view_tbl_temporaryupload"
 
     def get_queryset(self):
-        qs = super().get_queryset()
-
-        group = self.request.GET.get("group")
-        if group:
-            user_qs = qs.filter(user=self.request.user, group=group)
-
-        else:
-            user_qs = qs.filter(user=self.request.user)
-        if user_qs:
-            grouped_qs = {}
-            for obj in user_qs:
-                key = getattr(obj, "group")
-                if key not in grouped_qs:
-                    grouped_qs[key] = []
-                grouped_qs[key].append(obj)
-                sorted_grouped_qs = dict(sorted(grouped_qs.items()))
-            return sorted_grouped_qs
+        return super().get_queryset().filter(user=self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -520,7 +478,6 @@ class LinkTemporaryDocumentView(TempUploadListView, PermissionRequiredMixin, For
         content_type = self.request.GET.get("content_type")
 
         model = apps.get_model(content_type)
-        print(model, object_id)
         object = model.objects.get(pk=object_id)
 
         # Create the related DocumentLink
@@ -593,26 +550,6 @@ URL_MAP = {
     "invoice": "procurement:invoices_reader_output",
     "delivery_note": "procurement:delivery_note_reader_output",
 }
-
-
-class GetExtractedData(LoginRequiredMixin, TemplateView):
-    template_name = "documents/partials/get_extracted_data.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        group = self.kwargs.get("group")
-        if group:
-            extracted_data = get_extraction_results(self.request.user, group)
-            context["extracted_data"] = extracted_data
-            context["group"] = group
-            if extracted_data:
-                document_type = extracted_data.get("document_type", None)
-                if document_type:
-                    context["action"] = reverse(
-                        URL_MAP.get(document_type), kwargs={"temp_file_group": group}
-                    )
-
-        return context
 
 
 class UpdateExtractedData(LoginRequiredMixin, TemplateView):
