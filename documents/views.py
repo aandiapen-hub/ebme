@@ -6,7 +6,6 @@ from django.shortcuts import redirect, render
 from django.http import FileResponse, HttpResponse, HttpResponseRedirect, Http404
 from django.contrib import messages
 from django.urls import reverse, reverse_lazy
-from django.views import View
 from django.core.exceptions import ValidationError
 from .services.documents import (
     create_document_from_file,
@@ -30,7 +29,6 @@ from django.views.generic import (
     ListView,
     DetailView,
     FormView,
-    TemplateView,
 )
 
 # import forms
@@ -42,7 +40,8 @@ from .forms import (
     LinkTemporaryDocumentForm,
     DocumentLinkUpdateForm,
     BulkLinkDocument,
-    BulkDeleteLink,
+    EmptyForm,
+    TempUploadGroupUpdateForm,
 )
 
 # import generic filter table view
@@ -54,9 +53,6 @@ from django.db.models import ForeignKey
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from .mixins import DocumentLinkPermissionMixin
 from pdf2image import convert_from_path
-from .utils import clear_extraction_results, save_extraction_results
-from .utils import get_extraction_results
-
 
 # Create your views here.
 DOCUMENT_LINK_SEARCH = [
@@ -328,14 +324,11 @@ class DocumentListView(LoginRequiredMixin, DocumentLinkPermissionMixin, ListView
         return context
 
 
-class DocumentPreView(LoginRequiredMixin, View):
-    def get(self, request):
-        pk = request.GET.get("pk")
-        user = request.user
-        try:
-            temp_upload = TemporaryUpload.objects.get(pk=pk, user=user)
-        except TemporaryUpload.DoesNotExist:
-            raise Http404("File not found or is not yours")
+class DocumentPreView(LoginRequiredMixin, DetailView):
+    model = TemporaryUpload
+
+    def get(self, request, *args, **kwargs):
+        temp_upload = self.get_object()
         mime_type = temp_upload.mime_type
         if mime_type == "application/pdf":
             page = convert_from_path(temp_upload.file.path, first_page=1, last_page=1)
@@ -348,12 +341,16 @@ class DocumentPreView(LoginRequiredMixin, View):
         return FileResponse(temp_upload.file.open("rb"), content_type=mime_type)
 
 
-class TempFilesDeleteAllView(LoginRequiredMixin, DeleteView):
-    model = TempUploadGroup
+class TempFilesDeleteAllView(LoginRequiredMixin, FormView):
     success_url = reverse_lazy("documents:user_temp_files")
+    form_class = EmptyForm
 
-    def get_queryset(self):
+    def get_groups(self):
         return TempUploadGroup.objects.filter(user=self.request.user)
+
+    def form_valid(self, form):
+        self.get_groups().delete()
+        return super().form_valid(form)
 
 
 class TempFilesDeleteView(LoginRequiredMixin, DeleteView):
@@ -362,7 +359,7 @@ class TempFilesDeleteView(LoginRequiredMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if request.user == self.object.user:
+        if request.user == self.object.group.user:
             self.object.delete()
 
         # HTMX request → empty response
@@ -370,38 +367,57 @@ class TempFilesDeleteView(LoginRequiredMixin, DeleteView):
             response = HttpResponse(status=200)
 
             if not TemporaryUpload.objects.filter(
-                group=self.object.group, user=request.user
+                group=self.object.group
             ).exists():
-                response["HX-Retarget"] = f"#group_{self.object.group}"
+                response["HX-Retarget"] = f"#group_{self.object.group.pk}"
 
             return response  # No Content
 
         return HttpResponseRedirect(self.success_url)
 
 
+class ExtractTextFromImages(LoginRequiredMixin, FormView):
+    form_class = EmptyForm
+
+    def get_success_url(self):
+        return reverse('documents:temp_group', kwargs={'pk':self.obj.group.pk})
+
+    def form_valid(self, form):
+        self.obj = TemporaryUpload.objects.get(pk=self.kwargs.get('pk'))
+        #from documents.services.ocr import extract_text
+        #extract_text(self.obj)
+
+        from documents.services.read_barcode import extract_barcode
+        extract_barcode(self.obj)
+
+        return HttpResponseRedirect(self.get_success_url())
+
+
+
 class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     template_name = "documents/partials/temp_upload_create.html"
     form_class = TempFileUploadForm
     permission_required = "documents.add_tbl_temporaryupload"
-    success_url = reverse_lazy("documents:create_temp_files")
+
+    def get_success_url(self):
+        return reverse("documents:temp_group", kwargs={'pk': self.group})
 
     def form_valid(self, form):
         file = self.request.FILES.get("files")
         group_id = self.request.GET.get("group", None)
-        print('groupid', group_id)
 
         if group_id is not None:
-            group = TempUploadGroup.objects.filter(pk=group_id).first()
-            if not self.request.user.admin and group.user != self.request.user:
+            self.group = TempUploadGroup.objects.filter(pk=group_id).first()
+            if self.group.user != self.request.user:
                 raise ValidationError("Group belongs to another user")
         else:
-            group = TempUploadGroup.objects.create(
+            self.group = TempUploadGroup.objects.create(
                 user=self.request.user,
             )
 
         object = TemporaryUpload.from_uploaded_file(
             file=file,
-            group=group,
+            group=self.group,
         )
 
         if self.request.htmx:
@@ -412,13 +428,13 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
                 context = {"group": object.group, "temp_files": [object]}
                 return render(
                     self.request,
-                    "documents/partials/temp_file_group.html",
+                    "documents/temp_file_group.html#temp_group",
                     context=context,
                 )
             else:
                 context = {"file": object}
                 return render(
-                    self.request, "documents/partials/temp_file.html", context
+                    self.request, "documents/temp_file.html#temp_group", context
                 )
 
         else:
@@ -433,15 +449,33 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
 
 class TempUploadGroupView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = TempUploadGroup
-    template_name = "documents/partials/temp_file_group.html"
     context_object_name = "group"
-    permission_required = "documents.view_tbl_temporaryuploadgroup"
+    permission_required = "documents.view_tbl_temporaryupload"
 
     def get_queryset(self):
         return super().get_queryset().filter(user=self.request.user)
 
+    def get_template_names(self):
+        if self.request.htmx:
+            return ["documents/temp_file_group.html#temp_group"]
+        else:
+            return ["documents/temp_file_group.html"]
 
-class TempUploadListView(LoginRequiredMixin, ListView):
+
+class TempUploadGroupUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = TempUploadGroup
+    permission_required = "documents.change_tbl_temporaryupload"
+    form_class = TempUploadGroupUpdateForm
+    template_name = 'documents/temp_file_group_update.html'
+
+    def get_queryset(self):
+        return super().get_queryset().filter(user=self.request.user)
+
+    def get_success_url(self):
+        return reverse('documents:temp_group', kwargs={'pk':self.object.pk})
+
+
+class TempUploadListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     model = TempUploadGroup
     template_name = "documents/temp_group_list.html"
     context_object_name = "temp_groups"
@@ -455,6 +489,7 @@ class TempUploadListView(LoginRequiredMixin, ListView):
         context["success_url"] = self.request.GET.get("success_url")
         context["target"] = self.request.GET.get("target")
         return context
+
 
 
 class LinkTemporaryDocumentView(TempUploadListView, PermissionRequiredMixin, FormMixin):
@@ -552,60 +587,6 @@ URL_MAP = {
 }
 
 
-class UpdateExtractedData(LoginRequiredMixin, TemplateView):
-    template_name = "documents/update_extracted_data.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        group = self.kwargs.get("temp_file_group")
-        if group:
-            extracted_data = get_extraction_results(self.request.user, group)
-            context["extracted_data"] = extracted_data
-            context["group"] = group
-        return context
-
-    def post(self, request, *args, **kwargs):
-        form = request.POST.dict()
-
-        if "device_id" in form.get("document_type"):
-            form["suggested_brands"] = request.POST.getlist("suggested_brands")
-            form["suggested_categories"] = request.POST.getlist("suggested_categories")
-
-        group = self.kwargs.get("temp_file_group")
-        form.pop("csrfmiddlewaretoken")
-        save_extraction_results(
-            user_id=self.request.user, group=group, results=form, hours=1
-        )
-
-        URL_MAP = {
-            "device_id": "assets:barcode_output",
-            "service_report": "jobs:report_reader_output",
-            "invoice": "procurement:invoices_reader_output",
-            "delivery_note": "procurement:delivery_note_reader_output",
-        }
-
-        document_type = form.get("document_type")
-
-        if document_type not in URL_MAP:
-            raise ValueError(f"Unknown document type: {document_type}")
-
-        url = reverse(URL_MAP.get(document_type), kwargs={"temp_file_group": group})
-
-        return HttpResponseRedirect(url)
-
-
-class ExtractedDateDeleteView(LoginRequiredMixin, View):
-    def get_success_url(self):
-        # Use self.object to access the updated object
-        return reverse("documents:get_extracted_data", kwargs={"group": self.group})
-
-    def post(self, request, *args, **kwargs):
-        self.group = self.kwargs.get("group")
-        user = request.user
-        clear_extraction_results(user, self.group)
-        return HttpResponseRedirect(self.get_success_url())
-
-
 class BulkLinkDocument(BulkUpdateView):
     permission_required = "documents.bulk_create_links"
     model = None  # defined in url
@@ -627,4 +608,5 @@ class BulkDeleteLink(BulkUpdateView):
     universal_search_fields = DOCUMENT_LINK_SEARCH
     success_view = "documents:table_document_links"
     operation = "delete"
-    form_class = BulkDeleteLink
+    form_class = EmptyForm
+

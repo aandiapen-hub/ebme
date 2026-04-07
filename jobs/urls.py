@@ -19,10 +19,6 @@ from .views import (
     GenerateReportView,
     SparePartsUsedDetail,
     JobBulkUpdateView,
-    ServiceReportReader,
-    ServiceReportOutput,
-    JobCreateFromReportView,
-    JobUpdateFromReportView,
 )
 
 app_name = "jobs"
@@ -87,26 +83,5 @@ urlpatterns = [
         "testequipmentused_create/<int:jobid>/",
         TestEquipmentUsedCreate.as_view(),
         name="testequipmentused_create",
-    ),
-    # servicereport reader
-    path(
-        "report_scanner/<int:temp_file_group>/",
-        ServiceReportReader.as_view(),
-        name="report_scanner",
-    ),
-    path(
-        "report_output/<int:temp_file_group>/",
-        ServiceReportOutput.as_view(),
-        name="report_reader_output",
-    ),
-    path(
-        "create_job_from_report/<int:temp_file_group>/",
-        JobCreateFromReportView.as_view(),
-        name="create_job_from_report",
-    ),
-    path(
-        "update_job_from_report/<int:pk>/<int:temp_file_group>/",
-        JobUpdateFromReportView.as_view(),
-        name="job_update_from_report",
     ),
 ]

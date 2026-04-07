@@ -14,15 +14,15 @@ from .views import (
     DocumentPreView,
     TempUploadListView,
     TempUploadGroupView,
+    TempUploadGroupUpdate,
     TemporaryUploadCreateView,
     TempFilesDeleteAllView,
     TempFilesDeleteView,
     QuickScanner,
     LinkTemporaryDocumentView,
-    UpdateExtractedData,
-    ExtractedDateDeleteView,
     BulkLinkDocument,
     BulkDeleteLink,
+    ExtractTextFromImages,
 )
 
 from assets.views import UNIVERSAL_SEARCH_FIELDS as ASSET_UNIVERSAL_SEARCH_FIELDS
@@ -80,8 +80,9 @@ urlpatterns = [
         name="delete_document",
     ),
     path("user_temp_files/", TempUploadListView.as_view(), name="user_temp_files"),
-    path("temp_files/<int:pk>", TempUploadGroupView.as_view(), name="temp_group"),
-    path("temp_files/load_image/", DocumentPreView.as_view(), name="load_image"),
+    path("temp_files/<uuid:pk>", TempUploadGroupView.as_view(), name="temp_group"),
+    path("temp_files/<uuid:pk>/update", TempUploadGroupUpdate.as_view(), name="temp_group_update"),
+    path("temp_files/<int:pk>/load_image/", DocumentPreView.as_view(), name="load_image"),
     path(
         "temp_files/delete_all/",
         TempFilesDeleteAllView.as_view(),
@@ -100,19 +101,9 @@ urlpatterns = [
     path(
         "temp_files/create/",
         TemporaryUploadCreateView.as_view(),
-        name="create_temp_files",
+        name="create_temp_file",
     ),
     path("documents/quickscanner/", QuickScanner.as_view(), name="quick_scanner"),
-    path(
-        "documents/extracted_data/<int:temp_file_group>/update",
-        UpdateExtractedData.as_view(),
-        name="update_extracted_data",
-    ),
-    path(
-        "documents/extracted_data/<str:group>/delete",
-        ExtractedDateDeleteView.as_view(),
-        name="delete_extracted_data",
-    ),
     #  bulk document create links
     path(
         "documents/bulk_link_assets/",
@@ -136,5 +127,10 @@ urlpatterns = [
         "documents/bulk_delete_link",
         BulkDeleteLink.as_view(),
         name="bulk_delete_links",
+    ),
+    path(
+        "documents/<int:pk>/extract_text",
+        ExtractTextFromImages.as_view(),
+        name="extract_text",
     ),
 ]

@@ -6,8 +6,6 @@ from .views import (AssetCreateView,
                     AssetDeleteView,
                     AssetJobsListView,
                     AssetBulkUpdateView,
-                    BarCodeReader,
-                    BarcodeOutput,
                     QuickBrandCreateView,
                     QuickCategoryCreateView,
                     QuickModelGtinUpdate)
@@ -23,8 +21,6 @@ urlpatterns = [
     path("jobsummary/<int:assetid>/", AssetJobsListView.as_view(), name="asset_jobs"),
     path("bulk_update/",AssetBulkUpdateView.as_view(),name='bulk_update_assets'),
     #utils
-    path("barcode_scanner/<int:temp_file_group>/",BarCodeReader.as_view(),name='barcode_scanner'),
-    path("barcode_output/<int:temp_file_group>/",BarcodeOutput.as_view(),name='barcode_output'),
 
     path("quickbrandcreate/",QuickBrandCreateView.as_view(),name='quick_create_brand'),
     path("quickcategorycreate/",QuickCategoryCreateView.as_view(),name='quick_create_category'),

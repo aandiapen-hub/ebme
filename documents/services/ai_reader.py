@@ -4,9 +4,6 @@ import base64
 from pdf2image import convert_from_bytes
 from PIL import Image
 from io import BytesIO
-import zxingcpp
-from biip.gs1_messages import GS1Message
-from biip.gs1_element_strings import GS1ElementString
 import json
 import os
 
@@ -56,14 +53,6 @@ def process_images(files):
         if file.mime_type == "image/jpeg":
             with open(file.file.path, "rb") as img_file:
                 img_b64 = base64.b64encode(img_file.read()).decode("utf-8")
-            encoded_images.append(
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{img_b64}",
-                    },
-                }
-            )
 
         elif file.mime_type == "application/pdf":
             pdf_bytes = file.file.path.read()
@@ -74,64 +63,20 @@ def process_images(files):
                 im_bytes = im_file.getvalue()
                 img_b64 = base64.b64encode(im_bytes).decode("utf-8")
 
-                encoded_images.append(
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{img_b64}",
-                        },
-                    }
-                )
+        encoded_images.append(
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64,{img_b64}",
+                },
+            }
+        )
 
     return encoded_images
 
 
 def encode_image(image):
     return base64.b64encode(image.read()).decode("utf-8")
-
-
-def scan_barcode(files):
-    output = {}
-    for file in files:
-        img = Image.open(file.file.path)
-        try:
-            decoded_data = zxingcpp.read_barcodes(img, text_mode=zxingcpp.Plain)
-        except:
-            pass
-
-        if len(decoded_data) == 0:
-            continue
-
-        else:
-            # code_list = []
-            for i, code in enumerate(decoded_data):
-                # code_list.append(code.text)
-                if code.content_type == zxingcpp.GS1:
-                    output.update(parse_gs1code(code.text))
-                else:
-                    output[f"{file.file.name}_value{i}"] = code.text
-        # output['code'] = code_list
-    return output
-
-
-def parse_gs1code(data):
-    output1 = {}
-    try:
-        x = GS1Message.parse(data)
-        for es in x.element_strings:
-            if es.ai.data_title == "PROD DATE":
-                output1["PROD_DATE"] = es.date.strftime("%Y-%m-%d")
-
-            else:
-                output1[es.ai.data_title] = es.value
-                if es.ai.data_title == "GIAI":
-                    output1["ASSET_NO"] = es.value[-7:]
-
-    except:
-        data = data.translate(str.maketrans("", "", "_:,()"))
-        data = GS1ElementString.extract(data)
-        output1[data.ai.data_title] = data.value
-    return output1
 
 
 def barcode_reader_ai(files):

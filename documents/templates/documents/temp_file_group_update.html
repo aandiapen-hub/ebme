@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+  <form
+  method='post'
+  action='{% url "documents:temp_group_update" pk=object.pk %}'
+  >
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    {% bootstrap_button button_type='submit' content='Update' %}
+  </form>
+
+{% endblock content %}

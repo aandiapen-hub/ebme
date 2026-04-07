@@ -9,7 +9,6 @@ from django.utils.timezone import now
 from django.views import View
 
 from documents.models import TblDocumentLinks, DocumentTypes, TemporaryUpload
-from documents.utils import get_extraction_results, save_extraction_results
 from documents.views import save_temp_files
 
 # import Models
@@ -370,6 +369,7 @@ class DeliveryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         return self.render_to_response(context)
 
 
+    # utils
 class DeliveryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = TblDeliveries
     permission_required = "procurement.delete_tbldeliveries"
@@ -400,78 +400,6 @@ class DeliveryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
             )
             context = self.get_context_data(object=self.object)
             return self.render_to_response(context)
-
-
-class DeliveryNoteReader(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = "procurement.change_tbldeliveries"
-    template_name = "procurement/partials/delivery_note_reader.html"
-
-    def post(self, request, *args, **kwargs):
-        return self.form_valid(request.POST)
-
-    def get_success_url(self, **kwargs):
-        return reverse(
-            "procurement:delivery_note_reader_output",
-            kwargs={"temp_file_group": self.group},
-        )
-
-    def form_valid(self, form):
-        self.group = self.kwargs.get("temp_file_group")
-        files = TemporaryUpload.objects.filter(user=self.request.user, group=self.group)
-        from .utils.document_reader import delivery_note_reader
-
-        output = delivery_note_reader(files)
-        if len(output) == 0:
-            messages.warning(self.request, "No Delivery Information found")
-            return render(self.request, "partials/messages.html", context=None)
-        output["document_type"] = "delivery_note"
-        save_extraction_results(
-            user_id=self.request.user, group=self.group, results=output, hours=1
-        )
-
-        response = HttpResponse()
-        response["HX-Redirect"] = self.get_success_url()
-        return response
-
-
-class DeliveryNoteReaderOutput(
-    LoginRequiredMixin, PermissionRequiredMixin, TemplateView
-):
-    template_name = "procurement/partials/delivery_note_reader_output.html"
-    permission_required = "procurement.change_tbldeliveries"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        self.group = self.kwargs.get("temp_file_group")
-
-        context["temp_file_group"] = self.group
-
-        output = get_extraction_results(user_id=self.request.user, group=self.group)
-        if not output:
-            context["error"] = "No delivery note data found."
-        else:
-            context["output"] = output
-            # lookup PO in database
-            po_id = output.get("po", "")
-            if po_id:
-                po = TblPurchaseOrder.objects.filter(po_id=po_id).first()
-
-                if po:
-                    context["po_id"] = po
-                else:
-                    context["error"] = "Purchase order not recognised"
-
-            # lookup deliverynote in database
-            delivery_note = output.get("DelNote", "")
-            if delivery_note:
-                delnotes = TblDeliveries.objects.filter(
-                    delivery_note_number__icontains=delivery_note
-                )
-                if delnotes.exists():
-                    context["existing_delivery"] = delnotes[0]
-                else:
-                    context["new_delivery_required"] = "true"
-        return context
 
 
 # invoices
@@ -505,24 +433,6 @@ class InvoicesCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
 
     def get_success_url(self):
         return reverse("procurement:po_detail", kwargs={"pk": self.object.po})
-
-    def get_initial(self):
-        initial = super().get_initial()
-        temp_file_group = self.request.GET.get("temp_file_group")
-
-        invoice_reader_output = get_extraction_results(
-            self.request.user, temp_file_group
-        )
-
-        if invoice_reader_output:
-            for key, value in invoice_reader_output.items():
-                initial[key] = value
-        else:
-            for key, value in self.request.GET.items():
-                initial[key] = value
-
-        initial["creation_date"] = now().date().isoformat()
-        return initial
 
     def form_valid(self, form):
         with transaction.atomic():
@@ -598,73 +508,3 @@ class InvoicesListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
             return qs.filter(po=po)
         return qs
 
-
-class InvoiceReader(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = "procurement.change_tblinvoices"
-    template_name = "procurement/partials/delivery_note_reader.html"
-
-    def post(self, request, *args, **kwargs):
-        return self.form_valid(request.POST)
-
-    def get_success_url(self, **kwargs):
-        return reverse(
-            "procurement:invoices_reader_output", kwargs={"temp_file_group": self.group}
-        )
-
-    def form_valid(self, form):
-        self.group = self.kwargs.get("temp_file_group")
-        files = TemporaryUpload.objects.filter(user=self.request.user, group=self.group)
-
-        from .utils.invoice_reader import invoice_reader
-
-        output = invoice_reader(files)
-        if len(output) == 0:
-            messages.warning(self.request, "No Invoice Information found")
-            return render(self.request, "partials/messages.html", context=None)
-
-        output["document_type"] = "invoice"
-        save_extraction_results(
-            user_id=self.request.user, group=self.group, results=output, hours=1
-        )
-
-        response = HttpResponse()
-        response["HX-Redirect"] = self.get_success_url()
-        return response
-
-
-class InvoiceReaderOutput(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
-    template_name = "procurement/partials/invoice_reader_output.html"
-    permission_required = "procurement.change_tblinvoices"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        self.group = self.kwargs.get("temp_file_group")
-        output = get_extraction_results(user_id=self.request.user, group=self.group)
-
-        if self.group:
-            context["temp_file_group"] = self.group
-
-        if not output:
-            context["error"] = "No invoice data found."
-        else:
-            context["output"] = output
-            # lookup PO in database
-            po_id = output.get("po", "")
-            if po_id:
-                po = TblPurchaseOrder.objects.filter(po_id=po_id).first()
-                if po:
-                    context["po_id"] = po
-                else:
-                    context["error"] = "Purchase order not recognised"
-
-            # lookup invoice in database
-            invoice_no = output.get("invoice_no", "")
-            if invoice_no:
-                invoice = TblInvoices.objects.filter(
-                    invoice_no__icontains=invoice_no
-                ).first()
-                if invoice:
-                    context["existing_invoice"] = invoice
-                else:
-                    context["new_invoice_required"] = "true"
-        return context

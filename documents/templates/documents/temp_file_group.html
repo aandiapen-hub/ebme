@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+{% load partials %}
+
+{% partialdef temp_group %}
+      <div class='col' id="group_{{ group.pk }}">
+            {% for file in group.temp_uploads.all %}
+            {% include "documents/partials/temp_file.html" %}
+            {% endfor %}
+
+            <ul>
+            {% for key,value in group.extracted_json %}
+                <li>{{key}} : {{value}}</li>
+            {% endfor %}
+            </ul>
+
+                <form id='add_image_{{ group.pk }}' enctype="multipart/form-data" method="post"
+                  hx-post="{% url 'documents:create_temp_file' %}?group={{ group.pk }}"
+                  hx-target="#group_{{ group.pk }}"
+                  hx-swap="afterbegin"
+                  hx-trigger='change'
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                  {% include "documents/partials/temp_file_input.html" %}
+                </form>
+                <div class='d-inline-flex mt-1 gap-1'>
+                  <a href='{% url "documents:temp_group" pk=group.pk %}'
+                    class='text-decoration-none btn btn-outline-primary'>
+                    Open Group
+                  </a>
+
+                  <a href='{% url "documents:temp_group_update" pk=group.pk %}'
+                    class='btn btn-primary text-decoration-none'>Update</a>
+                </div>
+        </div>
+{% endpartialdef temp_group%}
+
+{% block content %}
+<div class='container'>
+  <div class='row'>
+    {% partial temp_group %}
+  </div>
+</div>
+{% endblock %}

@@ -6,12 +6,25 @@
 
 <div class="container">
 
-<div hx-get="{% url 'documents:create_temp_files' %}"
-hx-swap="outerHTML"
-hx-trigger="load">
-</div>
+  <div class="row">
+      <div class="col">
+          <h3>Create New Group</h3>
 
-  <div class='row'>
+          <form id='add_image_new' enctype="multipart/form-data" method="post"
+          hx-post="{% url 'documents:create_temp_file' %}"
+          hx-target="#images_div"
+          hx-swap="afterbegin"
+          hx-indicator="#spinner"
+          hx-trigger='change'
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+              {% include "documents/partials/temp_file_input.html" %}
+          <img  id="spinner" class="htmx-indicator" src="{% static 'spinners/3-dots-fade.svg' %}">
+          </form>
+
+      </div>
+  </div>
+
+  <div class='row mb-3'>
 
     <div id="delete_all_div" class="col">
       <h4>Uploaded Images</h4>
@@ -29,17 +42,17 @@ hx-trigger="load">
     </div>
   </div>
 
-  <div id="images_div" class='row g-3 justify-content-evenly'>
-      {% for group in temp_files_groups %}
-        {% for temp_files in group %}
-        {% include "documents/partials/temp_file_group.html" %}
+  <div id="images_div" class='container'>
+      <div class='row'>
+        {% for group in temp_groups %}
+          {% include "documents/temp_file_group.html#temp_group" %}
         {% endfor %}
-      {% endfor %}
+      </div>
+  </div>
       
       <!-- view temp file modal -->
       {% include "documents/partials/temp_file_view_modal.html" %}
 
-</div>
 </div>
 
 

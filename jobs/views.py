@@ -12,13 +12,11 @@ from django.views.generic import (
     DeleteView,
     ListView,
     DetailView,
-    FormView,
 )
 from django.shortcuts import render
 from django.db import transaction
 
 from assets.models import (
-    AssetView,
     JobView,
     Tbljobstatus,
     Tbljobtypes,
@@ -35,7 +33,6 @@ from django_filters.views import FilterView
 
 
 from documents.models import TblDocumentLinks, TemporaryUpload
-from documents.utils import get_extraction_results, save_extraction_results
 from documents.services.documents import save_temp_files
 
 from utils.generic_views import BulkUpdateView, get_visible_columns
@@ -674,210 +671,6 @@ class TestEquipmentUsedDelete(
             # Return an empty response to indicate successful deletion
             return HttpResponse(status=200)
         return super().post(request, *args, **kwargs)
-
-
-class ServiceReportReader(LoginRequiredMixin, CustomerJobPermissionMixin, View):
-    # form_class = ServiceReportReaderForm
-    template_name = "jobs/report_reader.html"
-    permission_required = "assets.add_tbljob"
-
-    def post(self, request, *args, **kwargs):
-        return self.form_valid(request.POST)
-
-    def form_valid(self, form):
-        self.group = self.kwargs.get("temp_file_group")
-
-        files = TemporaryUpload.objects.filter(user=self.request.user, group=self.group)
-
-        from .utils.report_reader import report_reader
-
-        output = report_reader(files)
-
-        # output = {'serialnumber': 'MBP0000998', 'jobtypename': 'PPM', 'jobstatus': 'Completed', 'job_no': '400203903', 'reported_fault': 'Preventative maintenance', 'call_date': '2018-02-15', 'jobstartdate': '2018-02-15', 'jobenddate': '2018-02-26', 'workdone': 'Device cleaned and disinfected. Main board and battery clips replaced. SpO2 module error 010 resolved. Device fully checked for functionality and safety. Software version V1.05.00 used.', 'further_work': 'None'}
-
-        if len(output) == 0:
-            messages.warning(
-                self.request, "Document does not contain service or calibration data"
-            )
-            return render(self.request, "partials/messages.html", context=None)
-        cleaned_output = self.clean_parsed_data(output)
-
-        save_extraction_results(
-            user_id=self.request.user, group=self.group, results=cleaned_output, hours=1
-        )
-
-        response = HttpResponse()
-        response["HX-Redirect"] = reverse(
-            "jobs:report_reader_output", kwargs={"temp_file_group": self.group}
-        )
-        return response
-
-    def clean_parsed_data(self, raw):
-        # Example sanitization or remapping
-        jobtypeid = Tbljobtypes.objects.get(
-            jobtypename=raw.get("jobtypename")
-        ).jobtypeid
-        jobstatusid = Tbljobstatus.objects.get(
-            jobstatusname=raw.get("jobstatus")
-        ).jobstatusid
-        return {
-            "serialnumber": raw.get("serialnumber", ""),
-            "jobtypeid": jobtypeid,
-            "jobstatusid": jobstatusid,
-            "workdone": raw.get("workdone"),
-            "jobstartdate": raw.get("jobstartdate"),
-            "jobenddate": raw.get("jobenddate"),
-            "document_type": "service_report",
-        }
-
-
-class ServiceReportOutput(LoginRequiredMixin, CustomerJobPermissionMixin, FormView):
-    form_class = JobCreateForm
-    template_name = "jobs/partials/report_reader_output.html"
-    permission_required = "assets.add_tbljob"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        self.group = self.kwargs.get("temp_file_group")
-
-        new_job_data = get_extraction_results(
-            user_id=self.request.user, group=self.group
-        )
-        serial_number = new_job_data.get("serialnumber")
-        assets = AssetView.objects.filter(serialnumber__icontains=serial_number)
-        jobslist = {}
-        for asset in assets:
-            jobslist[asset.assetid] = JobView.objects.filter(
-                assetid=asset.assetid
-            ).order_by("-startdate")
-
-        context["jobslist"] = jobslist
-        context["temp_document_group"] = self.group
-        return context
-
-
-class JobCreateFromReportView(JobCreateView):
-    template_name = "jobs/partials/create_job_from_report.html"
-
-    def get_initial(self):
-        """Set a default value for the 'assetid' field using a query parameter"""
-        initial = super().get_initial()
-        group = self.kwargs.get("temp_file_group")
-        # job info from session data
-        new_job_data = get_extraction_results(user_id=self.request.user, group=group)
-
-        if new_job_data:
-            initial.update(new_job_data)
-        return initial
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["temp_document_group"] = self.kwargs.get("temp_file_group")
-        return context
-
-    def form_valid(self, form):
-        try:
-            with transaction.atomic():
-                self.object = form.save()
-                self.group = self.kwargs.get("temp_file_group", None)
-                if self.group is not None:
-                    save_temp_files(
-                        group=self.group,
-                        user=self.request.user,
-                        content_object=self.object,
-                        document_type=DocumentTypes.SERVICE_REPORT,
-                    )
-                    save_temp_files.save_all()
-
-            response = HttpResponse(status=200)
-            response["HX-redirect"] = self.get_success_url()
-            return response
-
-        except Exception as e:
-            messages.warning(self.request, f"job could not be updated. Error:{str(e)}")
-            return self.form_invalid(form)
-
-    def get_success_url(self):
-        return reverse_lazy("jobs:job_update", kwargs={"pk": self.object.jobid})
-
-    def form_invalid(self, form):
-        response = render(
-            self.request, "partials/messages.html", context={"form": form}
-        )
-        response["HX-Retarget"] = "this"
-        response["HX-Reswap"] = "beforeend"
-
-        return response
-
-
-class JobUpdateFromReportView(JobUpdateView):
-    template_name = "jobs/partials/update_job_from_report.html"
-
-    def get_success_url(self):
-        return reverse_lazy("jobs:job_summary", kwargs={"pk": self.object.jobid})
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Store original model values
-        job = JobView.objects.get(jobid=self.object.jobid)
-        context["temp_document_group"] = self.request.GET.get("group")
-        context["original_values"] = model_to_dict(job)
-        return context
-
-    def get_initial(self):
-        initial = super().get_initial()
-        self.group = self.kwargs.get("temp_file_group")
-        new_job_data = get_extraction_results(
-            user_id=self.request.user, group=self.group
-        )
-        if new_job_data:
-            current_job_data = self.get_object()
-            initial.update(new_job_data)
-            initial["workdone"] = (
-                current_job_data.workdone
-                + "\nInformation From Job Report: \n"
-                + new_job_data["workdone"]
-            )
-            initial["temp_document_group"] = self.group
-        return initial
-
-    def form_valid(self, form):
-        try:
-            with transaction.atomic():
-                self.object = form.save()
-                self.group = self.kwargs.get("temp_file_group", None)
-
-                if self.group is not None:
-                    save_temp_files(
-                        group=self.group,
-                        content_object=self.object,
-                        document_type=DocumentTypes.SERVICE_REPORT,
-                        file_name="job" + str(self.object.pk),
-                    )
-                    save_temp_files.save_all()
-        except Exception as e:
-            if "unique_hash" in str(e):
-                messages.warning(
-                    self.request,
-                    "Job could not be updated because service report already exists in database.\
-                                         The report cannot be saved again.",
-                )
-            else:
-                messages.warning(
-                    self.request, f"job could not be updated. Error:{str(e)}"
-                )
-            return self.form_invalid(form)
-
-        return HttpResponseRedirect(self.get_success_url())
-
-    def form_invalid(self, form):
-        response = render(
-            self.request, "partials/messages.html", context={"form": form}
-        )
-        response["HX-Retarget"] = f"#job_update_div_{self.object.jobid}"
-        response["HX-Reswap"] = "beforeend"
-        return response
 
 
 class FilteredJobTableView(

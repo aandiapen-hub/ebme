@@ -1,6 +1,6 @@
 
 <div id="file_div_{{file.pk}}"  class="position-relative d-inline-block m-2">
-    <img src='{% url "documents:load_image" %}?pk={{ file.pk }}' style="width: 150px; height: auto;"
+    <img src='{% url "documents:load_image" pk=file.pk %}' style="width: 150px; height: auto;"
         class="img-thumbnail"
         _="on click
             set cloned to me.cloneNode(true)
@@ -17,6 +17,12 @@
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
         hx-swap="outerHTML">
         X
+    </button>
+        <button class="btn btn-warning btn-sm position-absolute top-0 end-1 m-1"
+        hx-post="{% url "documents:extract_text" pk=file.pk %}"
+        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+        hx-swap="none">
+        read
     </button>
 </div>
 

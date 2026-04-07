@@ -31,7 +31,7 @@ def parse_gs1code(file=None, scanned_code=None):
     for code in gs1_codes:
         # ignore internal codes
         if code.startswith('9'):
-           return None 
+           return None
         parsed_gs1 = biip.parse(code)
 
         if parsed_gs1.gs1_message is None:

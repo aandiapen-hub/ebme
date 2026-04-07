@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.contenttypes.models import ContentType
 
-from .models import TblDocuments, TblDocumentLinks, TemporaryUpload, DocumentTypes
+from .models import TblDocuments, TblDocumentLinks, TemporaryUpload, DocumentTypes, TempUploadGroup
 from django_select2.forms import (
     ModelSelect2Widget,
 )
@@ -204,5 +204,13 @@ class BulkLinkDocument(forms.Form):
         cleaned_data["source_object"] = document
 
 
-class BulkDeleteLink(forms.Form):
+class EmptyForm(forms.Form):
     pass
+
+
+class TempUploadGroupUpdateForm(forms.ModelForm):
+    class Meta:
+        model = TempUploadGroup
+        fields = (
+            'document_type_id',
+        )

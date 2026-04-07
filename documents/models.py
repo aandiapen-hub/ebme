@@ -17,8 +17,6 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 from PIL import Image
 
-from documents.utils import clear_extraction_results
-
 
 class DocumentTypes(models.IntegerChoices):
     UNKNOWN = 0, "UNKNOWN"
@@ -109,6 +107,8 @@ class TemporaryUpload(models.Model):
     page_number = models.IntegerField(null=True, blank=True)
     file_size = models.BigIntegerField()
     ocr_text = models.TextField(blank=True)
+    ocr_boxes = models.JSONField(default=dict, blank=True)
+    barcode_data = models.JSONField(default=dict, blank=True)
     upload_at = models.DateTimeField(auto_now_add=True)
 
     @classmethod
@@ -122,27 +122,47 @@ class TemporaryUpload(models.Model):
         )
 
     def save(self, *args, **kwargs):
-        # Only compress if new file is being uploaded
-        if self.file:
+        update_fields = kwargs.get("update_fields")
+
+        should_process_file = (
+            not update_fields
+            or "file" in update_fields
+        )
+
+        if should_process_file and self.file:
             ext = os.path.splitext(self.file.name)[1].lower()
 
             if ext in [".jpg", ".jpeg", ".png"]:
-                img = Image.open(self.file)
+                self.file.open("rb")
+                img = Image.open(self.file).copy()
 
-                # Convert PNG with transparency to RGB (avoid errors)
+                # Convert PNG with transparency to RGB
                 if img.mode in ("RGBA", "P"):
                     img = img.convert("RGB")
 
-                # Create a BytesIO buffer
                 buffer = BytesIO()
-                if ext in [".jpg", ".jpeg"]:
-                    img.save(buffer, format="JPEG", quality=70, optimize=True)
-                elif ext == ".png":
-                    img.save(buffer, format="PNG", optimize=True)
 
-                # Replace file with compressed version
+                if ext in [".jpg", ".jpeg"]:
+                    img.save(
+                        buffer,
+                        format="JPEG",
+                        quality=70,
+                        optimize=True
+                    )
+                elif ext == ".png":
+                    img.save(
+                        buffer,
+                        format="PNG",
+                        optimize=True
+                    )
+
                 buffer.seek(0)
-                self.file.save(self.file.name, ContentFile(buffer.read()), save=False)
+
+                self.file.save(
+                    self.file.name,
+                    ContentFile(buffer.read()),
+                    save=False
+                )
 
         super().save(*args, **kwargs)
 
@@ -155,7 +175,8 @@ class TemporaryUpload(models.Model):
 def delete_uploaded_file(sender, instance, **kwargs):
     if instance.file:
         instance.file.delete(save=False)
-
+    if TemporaryUpload.objects.filter(group=instance.group.pk).count() == 0:
+        TempUploadGroup.objects.get(pk=instance.group.pk).delete()
 
 class TblDocTableRef(models.Model):
     table_id = models.BigIntegerField(primary_key=True)

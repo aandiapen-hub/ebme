@@ -786,7 +786,7 @@ def test_temp_file_delete_view_posts_htmx(client, user_setup, mocker):
 # Test TempFilesDeleteView
 @pytest.mark.django_db
 def test_temporary_upload_create_view_requires_login(user_setup, client):
-    url = reverse("documents:create_temp_files")
+    url = reverse("documents:create_temp_file")
     response = client.get(url)
     assert response.status_code == 302
     assert "/login" in response.url.lower()
