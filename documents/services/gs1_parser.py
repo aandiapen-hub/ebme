@@ -8,6 +8,72 @@ from assets.models import AssetView, Tblmodel, JobView
 from parts.models import Tblpartslist
 
 
+def data_builder(
+    # barcode and gtin
+    parsed_gs1=None,  # raw gs1 data
+    gtin=None,
+    add_gtin=False,
+
+    # asset information
+    asset_id=None,  # confirmed asset
+    assets=None,
+    too_many_assets=False,
+
+    create_asset=None,  # true or false
+
+    # job information
+    jobs=None,
+    too_many_jobs=False,
+
+    # model information
+    model_id=None,  # model matching gtin
+    models_with_gtin=None,  # models without gtin from assets with serial number
+    models_without_gtin=None,  # models with gtin from assets with serial number
+    suggested_new_model_names=None,
+    suggested_model_brands=None,
+    suggested_model_categories=None,
+
+    # spare part information
+    part_id=None,  # part matching gtin
+    suggested_new_part_names=None,
+    suggested_part_brands=None,
+    suggested_part_categories=None,
+):
+
+    return {
+        'gs1': {
+            'parsed_gs1': parsed_gs1,
+            'gtin': gtin,
+            'add_gtin': add_gtin,
+        },
+        'asset': {
+            'asset_id': asset_id,
+            'assets': assets or [],
+            'create_asset': create_asset,
+            'too_many_assets': too_many_assets,
+        },
+        'job': {
+            'jobs': jobs,
+            'too_many_jobs': too_many_jobs,
+        },
+        'model': {
+            'model_id': model_id,
+            'models_with_gtin': models_with_gtin,
+            'models_without_gtin': models_without_gtin or [],
+            'suggested_new_name': suggested_new_model_names or [],
+            'suggested_brands': suggested_model_brands or [],
+            'suggested_categories': suggested_model_categories or [],
+        },
+        'part': {
+            'part_id': part_id,
+            'suggested_new_name': suggested_new_part_names or [],
+            'suggested_brands': suggested_part_brands or [],
+            'suggested_categories': suggested_part_categories or [],
+
+        }
+    }
+
+
 def quick_scan_barcode(image):
     img = Image.open(image)
     barcodes = zxingcpp.read_barcodes(img, text_mode=zxingcpp.Plain)
@@ -18,13 +84,14 @@ def quick_scan_barcode(image):
     return gs1_codes
 
 
-
 def parse_gs1code(file=None, scanned_code=None):
     if file:
         # scan image for barcode and get a list of test
         gs1_codes = [code.text for code in quick_scan_barcode(file)]
+        print('code to be parsed from file', gs1_codes)
     else:
         gs1_codes = [scanned_code]
+        print('code to be parsed from text given', gs1_codes)
 
     output = {}
 
@@ -44,8 +111,6 @@ def parse_gs1code(file=None, scanned_code=None):
                 raise ValidationError(
                     {"__all__": "Multiple GS1 barcode of the same type scanned"}
                 )
-            if es.ai.data_title == "PROD DATE":
-                output["PROD_DATE"] = es.date.strftime("%Y-%m-%d")
 
             if es.ai.data_title == "GIAI":
                 output["ASSET_NO"] = es.value[-7:]
@@ -53,16 +118,15 @@ def parse_gs1code(file=None, scanned_code=None):
     return output
 
 
-def gs1_resolver(gs1_data):
-    output = {}
-    known_model = None
-    known_part = None
-    asset_no = gs1_data.get("ASSET_NO", None)
-    gtin = gs1_data.get("GTIN", None)
-    serialnumber = gs1_data.get("SERIAL", None)
+def gs1_resolver(parsed_gs1):
+    output = data_builder()
+
+    asset_no = parsed_gs1.get("ASSET_NO", None)
+    gtin = parsed_gs1.get("GTIN", None)
+    serialnumber = parsed_gs1.get("SERIAL", None)
 
     output["gtin"] = gtin
-    output["gs1"] = gs1_data
+    output["gs1"] = parsed_gs1
 
     # check for asset number on database
     if asset_no:
@@ -74,18 +138,16 @@ def gs1_resolver(gs1_data):
         else:
             output['create_asset_from_gs1'] = True
 
-
     # check for gtin
     if gtin:
         known_model = Tblmodel.objects.filter(gtin=gtin).first()
-        print('known model', known_model)
         output["model"] = known_model
         known_part = Tblpartslist.objects.filter(gtin=gtin).first()
         output["part"] = known_part
         if known_part:
             return output
         # create model or spare part from gs1_data
-        output["create_gtin"] = not known_model and not known_part
+        output["add_gtin"] = not known_model and not known_part
 
     # check for full gs1 match otherwise create asset
     if serialnumber and known_model:
@@ -152,10 +214,8 @@ def process_barcode(file=None, scanned_code=None):
     except ValidationError:
         output = non_gs1_result(scanned_code)
         output['search_term'] = scanned_code
-        print('non gs1 uotput', output)
         return output
     else:
         output = gs1_resolver(decoded_info)
         output['search_term'] = f"{output.get('gs1').get('SERIAL', '')} {output.get('gs1').get('ASSET_NO', '')}"
-        print('gs1_putpu', output)
         return output

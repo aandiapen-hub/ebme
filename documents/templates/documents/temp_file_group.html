@@ -8,11 +8,6 @@
             {% include "documents/partials/temp_file.html" %}
             {% endfor %}
 
-            <ul>
-            {% for key,value in group.extracted_json %}
-                <li>{{key}} : {{value}}</li>
-            {% endfor %}
-            </ul>
 
                 <form id='add_image_{{ group.pk }}' enctype="multipart/form-data" method="post"
                   hx-post="{% url 'documents:create_temp_file' %}?group={{ group.pk }}"
@@ -30,7 +25,24 @@
 
                   <a href='{% url "documents:temp_group_update" pk=group.pk %}'
                     class='btn btn-primary text-decoration-none'>Update</a>
+
+                  <button class="btn btn-warning btn-sm"
+                  hx-post="{% url "documents:extract_text" pk=group.pk %}"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-swap="none">
+                  read
+              </button>
+
                 </div>
+        </div>
+        <h4>group combined_ocr_text</h4>
+          {{group.combined_ocr_text}}
+        <h4>group combined_extracted_json</h4>
+            <ul>
+            {% for key,value in group.extracted_json.items %}
+                <li>{{key}} : {{value}}</li>
+            {% endfor %}
+            </ul>
         </div>
 {% endpartialdef temp_group%}
 

@@ -2,52 +2,94 @@ from openai import OpenAI
 
 import base64
 from pdf2image import convert_from_bytes
-from PIL import Image
 from io import BytesIO
-import json
 import os
+from .ocr import extract_text
+from .read_barcode import extract_barcode
 
 
-def openaiImageProcessing(files):
+from datetime import date
+from typing import Optional
+from pydantic import BaseModel, Field
+from documents.models import TempUploadGroup, TemporaryUpload, DocumentTypes
+
+
+class AssetData(BaseModel):
+    gtin: Optional[str] = None
+    serial: Optional[str] = None
+    asset_no: Optional[str] = None
+    prod_date: Optional[date] = None
+
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    category: Optional[str] = None
+
+    brandnames: list[str] = Field(default_factory=list)
+    modelnames: list[str] = Field(default_factory=list)
+    categorynames: list[str] = Field(default_factory=list)
+
+    model_description: Optional[str] = None
+
+
+PROMPT_CONTENT = {
+    DocumentTypes.ASSET_DATA.value: {
+        "user_prompt": "Get information about the medical equipment from the images\
+                            and decoded text and gs1 decoded informations. gs1 decoded information is always acurate. If the information\
+                            is not clear, return none, do not guess.",
+        "system_prompt": "You are a biomedical equipment administrator with expertise in cataloging\
+                        medical equipment and devices on a database.",
+    }
+}
+
+
+def openaiImageProcessing(group):
     client = OpenAI(
         api_key=os.getenv("OPENAI_KEY"), organization="org-gRDyA6SKcK90YA5ar9lTpdQ6"
     )
 
-    encoded_images = process_images(files)
-    barcode_prompt = scan_barcode(files)
+    qs = TemporaryUpload.objects.filter(group=group)
+    document_type = group.document_type_id
 
-    # gpt promt
-    prompt = f"Based on the information in the photo I provided and from online sources,\
-    give me the brand, model name, model reference number and model description\
-    of the medical device. If the brand and trade name are ambiguous, provide me with the top 3 possible equipment brands.\
-    Provide me with 3 possible categories using medical device nomenclature.\
-    OCR software was used to recognise text in this picture.\
-    {barcode_prompt}\
-    Provide the results in a valid json format with the\
-    following keys:GTIN, SERIAL, ASSET_NO, brands, model_name, model_description,\
-    ,PROD_DATE,categories.\
-    If document is not eqiupment labels or IDs, return a json with key document_type and value unknown."
+    encoded_images = encode_images(qs)
 
-    content = [{"type": "text", "text": prompt}] + encoded_images
+    # extract text and barcode data from images
+    extract_data(group, qs)
 
-    response = client.chat.completions.create(
+    # compbine extracted data for the group as perparation for LLM prompt
+    gs1 = repr(group.extracted_json["barcode"])
+    decoded_text = [item for item in qs.values_list("ocr_text", flat=True) if item]
+
+    # start building prompt
+    content = [
+        {"type": "input_text", "text": PROMPT_CONTENT[document_type]["user_prompt"]}
+    ]
+    if gs1:
+        content.append({"type": "input_text", "text": gs1})
+    if decoded_text:
+        content.append({"type": "input_text", "text": ",".join(decoded_text)})
+
+    print("content", content)
+    content = content + encoded_images
+
+    response = client.responses.parse(
         model="gpt-4o",
         temperature=0.3,
-        response_format={"type": "json_object"},
-        messages=[
+        input=[
+            {
+                "role": "system",
+                "content": PROMPT_CONTENT[document_type]["system_prompt"],
+            },
             {
                 "role": "user",
                 "content": content,
-            }
+            },
         ],
+        text_format=AssetData,
     )
-
-    ai_response = response.choices[0].message.content
-
-    return json.loads(ai_response)
+    return response.output_parsed
 
 
-def process_images(files):
+def encode_images(files):
     encoded_images = []
     for file in files:
         if file.mime_type == "image/jpeg":
@@ -65,20 +107,37 @@ def process_images(files):
 
         encoded_images.append(
             {
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/jpeg;base64,{img_b64}",
-                },
+                "type": "input_image",
+                "image_url": f"data:image/jpeg;base64,{img_b64}",
             }
         )
-
     return encoded_images
 
 
-def encode_image(image):
-    return base64.b64encode(image.read()).decode("utf-8")
+def extract_data(group, qs):
+    [extract_text(obj) for obj in qs]
+    combined_ocr_text = list(qs.values_list("ocr_text", flat=True))
+    print("combined_ocr_data", combined_ocr_text)
+    group.combined_ocr_text = combined_ocr_text
+
+    [extract_barcode(obj) for obj in qs]
+    barcode_lists = list(qs.values_list("barcode_data", flat=True))
+    flattened_barcode_list = [
+        barcode for barcode_list in barcode_lists for barcode in barcode_list
+    ]
+    keys = ("text", "parsed")
+    barcode_list = [
+        {key: barcode.get(key, None) for key in keys}
+        for barcode in flattened_barcode_list
+    ]
+    group.extracted_json["barcode"] = barcode_list
+    group.save()
 
 
-def barcode_reader_ai(files):
-    return openaiImageProcessing(files)
-
+def extract_information_with_ai(group_id):
+    group = TempUploadGroup.objects.get(pk=group_id)
+    group.extracted_json.update(
+        {"ai": openaiImageProcessing(group).model_dump(mode="json")}
+    )
+    print("group extracted_json", group.extracted_json)
+    group.save(update_fields=["extracted_json"])

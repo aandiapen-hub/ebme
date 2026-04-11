@@ -1,14 +1,14 @@
 from PIL import Image
 import zxingcpp
+from documents.services.gs1_parser import parse_gs1code
 
 
 def extract_barcode(file):
     with file.file.open('rb') as f:
         image = Image.open(f).convert('L').copy()
-    barcodes = zxingcpp.read_barcodes(image)
+    barcodes = zxingcpp.read_barcodes(image, text_mode=zxingcpp.Plain)
 
     if len(barcodes) == 0:
-        print('no barcode found')
         return None
 
     decoded_barcodes = []
@@ -16,6 +16,7 @@ def extract_barcode(file):
     width, height = image.size
 
     for barcode in barcodes:
+        print('barcode', barcode.text.replace('(', '').replace(')', ''), barcode.format)
         pos = barcode.position
         points = [
             {"x": pos.top_left.x, "y": pos.top_left.y},
@@ -33,8 +34,9 @@ def extract_barcode(file):
         h = max(ys) - y
 
         result = {
-            "text": barcode.text,
+            "text": barcode.text.replace('(', '').replace(')', ''),
             "format": str(barcode.format),
+            "parsed": parse_gs1code(scanned_code=barcode.text.replace('(', '').replace(')', '')),
             "x": x,
             "y": y,
             "w": w,
@@ -45,8 +47,8 @@ def extract_barcode(file):
             "h_pct": round((h / height) * 100, 4),
         }
         decoded_barcodes.append(result)
-    file.barcode_data = decoded_barcodes
 
+    file.barcode_data = decoded_barcodes
     file.save(update_fields=['barcode_data'])
 
 

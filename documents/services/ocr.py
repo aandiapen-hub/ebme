@@ -1,17 +1,30 @@
+from PIL import Image, ImageFilter, ImageOps
+import pytesseract
+from pytesseract import Output
+
+import math
+from statistics import median
 from PIL import Image
 import pytesseract
 from pytesseract import Output
 
 
-def extract_text(file, min_conf=65):
+def extract_text(file, min_conf=50):
     with file.file.open('rb') as f:
-        image = Image.open(f).convert("L").copy()
+        img = Image.open(f).convert('L').copy()
+
+
+    config = (
+        "--psm 11 "
+    )
+
     data = pytesseract.image_to_data(
-        image,
-        config="--psm 6",
+        img,
+        config=config,
         output_type=Output.DICT)
 
-    width, height = image.size
+
+    width, height = img.size
 
     words = []
     full_text = []
@@ -22,7 +35,7 @@ def extract_text(file, min_conf=65):
             continue
 
         conf = float(data["conf"][i])
-        if conf < min_conf:
+        if conf < min_conf or len(text)<=3:
             continue
         x = data['left'][i]
         y = data['top'][i]
@@ -55,4 +68,5 @@ def extract_text(file, min_conf=65):
             }
     }
 
+    print('ocr text for file', full_text)
     file.save(update_fields=['ocr_text', 'ocr_boxes'])

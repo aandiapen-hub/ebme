@@ -129,7 +129,7 @@ urlpatterns = [
         name="bulk_delete_links",
     ),
     path(
-        "documents/<int:pk>/extract_text",
+        "documents/<uuid:pk>/extract_text",
         ExtractTextFromImages.as_view(),
         name="extract_text",
     ),

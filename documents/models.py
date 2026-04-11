@@ -25,6 +25,7 @@ class DocumentTypes(models.IntegerChoices):
     INVOICE = 30, "Invoice"
     DELIVERY_NOTE = 40, "Delivery Note"
     SERVICE_REPORT = 50, "Service Report"
+    ASSET_DATA = 60, "Asset Data"
 
 
 class TblDocuments(models.Model):

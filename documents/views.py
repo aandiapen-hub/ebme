@@ -380,15 +380,11 @@ class ExtractTextFromImages(LoginRequiredMixin, FormView):
     form_class = EmptyForm
 
     def get_success_url(self):
-        return reverse('documents:temp_group', kwargs={'pk':self.obj.group.pk})
+        return reverse('documents:temp_group', kwargs={'pk': self.kwargs.get('pk')})
 
     def form_valid(self, form):
-        self.obj = TemporaryUpload.objects.get(pk=self.kwargs.get('pk'))
-        #from documents.services.ocr import extract_text
-        #extract_text(self.obj)
-
-        from documents.services.read_barcode import extract_barcode
-        extract_barcode(self.obj)
+        from documents.services.ai_reader import extract_information_with_ai
+        extract_information_with_ai(self.kwargs.get('pk'))
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -434,7 +430,7 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
             else:
                 context = {"file": object}
                 return render(
-                    self.request, "documents/temp_file.html#temp_group", context
+                    self.request, "documents/partials/temp_file.html", context
                 )
 
         else:
