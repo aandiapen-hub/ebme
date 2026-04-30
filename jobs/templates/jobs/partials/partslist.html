@@ -1,0 +1,74 @@
+{% load partials %}
+
+{% block content %}
+
+<h2>Spare Parts</h2>
+<div>
+    <button class='btn btn-secondary'
+        hx-get="{% url "jobs:sparepartsused_create" jobid=jobid %}" 
+        hx-target="#modals-here"
+        hx-trigger="click"
+        data-bs-toggle="modal"
+        data-bs-target="#modals-here"
+        class="btn btn-primary">
+        Add part
+    </button>
+</div>
+
+<table class='table table-hover table-bordered'>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Job</th>
+            <th>Part</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="partlist-table">
+        {% for part in partslist %}
+        {%partial part%}    
+    
+        {% endfor %}
+
+    </tbody>
+</table>
+
+
+{% endblock %}
+
+
+{% partialdef part %}
+<tr id="part-{{ part.partsusedid }}">
+    <td>{{ part.partsusedid }}</td>
+    <td>{{ part.jobid }}</td>
+    <td>{{ part.partid }}</td>
+    <td>{{ part.quantity }}</td>
+    <td>{{ part.unitprice }}</td>
+    <td>
+        <button class='btn btn-info' 
+            hx-get="{% url 'jobs:sparepartsused_update' pk=part.partsusedid %}" 
+            hx-target='#part-{{ part.partsusedid}}'
+            hx-swap="outerHTML"
+            hx-trigger="click">
+            Edit
+        </button>
+
+        <button class='btn btn-secondary' 
+            hx-get="{% url 'jobs:sparepartsused_delete' pk=part.partsusedid %}" 
+            hx-target="#modals-here"
+            hx-trigger="click"
+            data-bs-toggle="modal"
+            data-bs-target="#modals-here"
+            class="btn btn-danger">
+            Delete
+        </button>
+    </td>
+</tr>
+
+{%endpartialdef part%}
+
+
+
+

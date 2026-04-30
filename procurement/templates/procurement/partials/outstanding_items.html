@@ -1,0 +1,44 @@
+{% load partials %}
+{% block content %}
+
+<h4>Items</h4>
+{% if outstanding_items %}
+    <table id='outstanding-table' class='table table-hover table-bordered'>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Ordered</th>
+                <th>Unit Price</th>
+                <th>Line Price</th>
+                <th>Delivered</th>
+                <th>outstanding</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in outstanding_items %}
+                    {% partial line %}
+                {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+<h4 class='text-success'>No outstanding items</h4>
+{% endif %}
+
+    {% endblock %}
+
+
+    {% partialdef line %}
+    <tr {% if line.outstanding != 0 %}class="table-warning" {% else %}class="table-success" {% endif %}>
+        <td>{{ line.item }}</td>
+        <td>{{ line.qty_ordered }}</td>
+        <td>{{ line.unit_price }}</td>
+        <td>{{ line.line_price }}</td>
+        <td>{{ line.qty_delivered }}</td>
+        <td>{{ line.outstanding }}</td>
+    </tr>
+
+{%endpartialdef %}
+
+
+
+

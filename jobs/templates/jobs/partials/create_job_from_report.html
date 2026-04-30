@@ -1,0 +1,15 @@
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+<div id='job_details' class='container mb-3'>
+            
+        <div class='col'>
+            <form
+            hx-post="{% url 'jobs:create_job_from_report' temp_file_group=temp_document_group %}">  
+                    {% csrf_token %} 
+
+                        {{form|crispy}}
+                    <button type="submit" class="btn btn-primary">Save Job</button>
+            </form>
+        </div>
+    </div>
+<div>

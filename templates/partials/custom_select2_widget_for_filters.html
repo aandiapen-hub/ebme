@@ -1,0 +1,12 @@
+{# templates/widgets/custom_select2.html #}
+<select name="{{ widget.name }}" {% include "django/forms/widgets/attrs.html" %} multiple>
+  {% for group_name, group_choices, group_index in widget.optgroups %}
+    {% for option in group_choices %}
+      <option value="{{ option.value|stringformat:'s' }}"
+              {% if option.selected %}selected{% endif %}
+              {% include "django/forms/widgets/option_attrs.html" %}>
+        {{ option.label }}
+      </option>
+    {% endfor %}
+  {% endfor %}
+</select>

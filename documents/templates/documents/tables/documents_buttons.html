@@ -1,0 +1,10 @@
+
+    {% if perms.documents.view_tbldocuments %}
+
+        <a
+        class="btn btn-sm btn-outline-primary "
+        href="{% url 'documents:download_document' record.pk %}">
+        Download <i class="bi bi-cloud-download"></i>
+        </a>
+        {% endif %}
+

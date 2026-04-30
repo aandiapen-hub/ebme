@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<div class='container'>
+        <h3>Create Brand</h3>
+        {% bootstrap_messages %}
+        <form class="form"
+        method='POST'
+        action="{{request.path}}">
+        
+        {% csrf_token %}
+        {{form.media}}
+        {% bootstrap_form form %}
+        <button class="btn btn-primary" type="submit">Save</button>
+        <button class="btn btn-secondary" type="button">Cancel</button>
+        </form>
+</div>
+{% endblock content %}

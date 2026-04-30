@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load django_tables2 %}
+{% load i18n %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}
+<div id='orders_list' class="container-flex p-3 row-gap-3">
+    <section id="title" class="row">
+        <article class="col-12">
+            <h1>Orders</h1>
+        </article>
+
+
+        <article class="col-auto">
+          <a class="btn btn-outline-secondary" href="{% url 'procurement:po_create' %}">
+            <i class="bi bi-plus"></i>            
+          </a>  
+        </article>
+
+    </section>
+
+
+</div>
+
+{% include "filter_table.html" with app_link='procurement:po' %}
+
+
+
+{% endblock content %}
+
+

@@ -1,0 +1,14 @@
+
+ {% if result.create_asset %}
+    <div class="col-auto" style="max-width: 18rem;">
+        <div class="card border-success">
+          <div class="card-body">
+            <h5 class="card-title">Create Asset</h5>
+            <p class="card-text">
+            </p>
+            <a class='btn btn-sm btn-warning' href='{% url "assets:create_asset" %}?gs1_data={{result.gs1}}&modelid={{result.model.pk}}'>Add New Asset</a>
+          </div>
+        <div class="card-footer bg-transparent">{{result.gs1}}</div>
+        </div>
+        </div>
+ {% endif %}

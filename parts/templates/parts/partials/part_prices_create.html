@@ -1,0 +1,17 @@
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+<tr>
+    <td>
+    <form
+        hx-post="{{request.path}}"
+        hx-trigger="submit, keyup[altKey&&ctrlKey&&key=='P'] from:body"
+        hx-target='closest tr'
+        hx-swap='outerHTML'>
+        {% csrf_token %}
+
+        {{form|crispy}}
+
+        <button id="save_button" class="btn btn-outline-primary" type="submit">Save</button>
+    </form>
+</td>
+</tr>

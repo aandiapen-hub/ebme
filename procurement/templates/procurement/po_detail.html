@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+
+
+{% block content %}
+
+<!--List po Details -->
+
+<div id="order_details" class='container bg-white p-4 rounded'>
+    <div class="container-fluid">
+        <div class="row"> 
+          <div class="col">
+            <p><small class="text-muted">PO: </small>{{po.po_id}}</p>
+            <p><small class="text-muted">Order Status: </small>{{po.order_status}}</p>
+
+            <p><small class="text-muted">Supplier: </small>{{po.supplier}}</p>
+            <p><small class="text-muted">Date Raised: </small>{{po.date_raised}}</p>
+            <p><small class="text-muted">Delivery Address: </small>{{po.ship_to_add}}</p>
+          </div>
+          <div class="col">
+            <p><small class="text-muted">Value: </small>£{{po.sub_total}}.</p>
+            <p><small class="text-muted">Value incl VAT: </small>£{{po.po_total}}.</p>
+          </div>
+          <div class="col text-end">
+
+
+            <button
+              hx-get="{% url 'procurement:po_update' pk=po.po_id %}"
+              hx-target="#order_details"
+              hx-trigger="click"
+              hx-select='#order_details'
+              hx-push-url='true'
+              hx-swap='outerHTML'
+              class="btn text-primary">EDIT
+            </button>
+
+            <a href="{% url 'procurement:deliveries_create' %}?po_id={{object.po_id}}"
+            class='btn text-primary text-end'>CREATE DELIVERY</a>
+
+            <button
+              hx-get="{% url 'procurement:po_delete' pk=po.po_id %}"
+              hx-target="#actions"
+              hx-trigger="click"
+              hx-swap='innerHTML'
+              data-bs-toggle="collapse"
+              data-bs-target="#actions"
+              class="btn text-danger">DELETE
+            </button>
+
+
+            <a
+              href="{% url 'procurement:gen_po' pk=object.po_id %}"
+              class="btn text-info">PRINT
+            </a>
+            <a
+              href="{% url 'procurement:invoices_create' %}?po={{object.po_id}}"
+              class="btn text-info">Create Invoice
+            </a>
+            </div>
+            <div id='actions' class='collapse'>
+              
+
+        </div>
+        <div id='child_lines_row' class="row">
+          <div class='col-12'
+              id='outstanding_items'            
+              hx-get="{% url 'procurement:outstanding_items' %}?po={{po.po_id}}"
+              hx-trigger="load"
+              hx-swap='innerHTML'>
+          </div>
+
+          <div class='col-12'
+                id='delivery_lines'            
+                hx-get="{% url 'procurement:deliveries' %}?po={{po.po_id}}"
+                hx-trigger="load"
+                hx-swap='innerHTML'>
+          </div>
+
+          <div class='col-12'       
+                id='invoices'            
+                hx-get="{% url 'procurement:invoiceslist' %}?po={{po.po_id}}"
+                hx-trigger="load"
+                hx-swap='innerHTML'>
+
+          </div>
+
+        </div>
+      
+    </div>
+</div>
+
+
+{%endblock content%}
+

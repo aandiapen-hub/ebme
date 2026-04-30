@@ -1,0 +1,13 @@
+<h4>Actions</h4>
+{% for group, action_list in actions.items %}
+  <h5>{{group}}</h5>
+  <div class='d-inline-flex gap-2'>
+    {% for action in action_list %}
+      <a href='{% url action.route_name %}?payload={{action.payload_json|urlencode}}'
+        class='btn btn-sm btn-outline-primary'
+        >
+          {{action.label}}
+      </a>
+    {% endfor %}
+  </div>
+{% endfor %}

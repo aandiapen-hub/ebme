@@ -1,0 +1,19 @@
+
+{% for field in form  %}
+        <div id="div_id_{{ field.name }}" class='col-auto' >
+         <p class="text text-secondary">
+            <i class="bi  bi-x-circle text-danger"
+               type='button'
+                _="
+                on click
+                    remove #div_id_{{field.name}}
+                    wait 20ms
+                    trigger submit on #filter-form
+                end" >
+              </i>
+          {{ field.label_tag }}</p>
+          <div class="d-flex align-items-center gap-2">
+            {{ field }}
+          </div>
+        </div>
+{% endfor %}

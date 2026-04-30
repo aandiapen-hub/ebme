@@ -1,0 +1,39 @@
+{# templates/tables/bootstrap_htmx.html #}
+{% extends "django_tables2/bootstrap5-responsive.html" %}
+
+{% load django_tables2 %}
+{% load i18n %}
+
+
+{# tbody block overrides #}
+{% block table.tbody %}
+<tbody>
+    <form id='row_select_form'>
+        {% for row in table.paginated_rows %} 
+        <tr {% if "Delivered" in row.record.order_status.order_status_name %}class="table-success" {% else %}class="table-warning" {% endif %}
+        hx-target='#orders_list'
+        hx-swap='outerHTML'
+        hx-push-url='true'
+        hx-select='#order_details'
+        hx-get="{% url 'procurement:po_detail' pk=row.record.po_id %}"
+        >
+            {% block table.tbody.row %} 
+                {% for column, cell in row.items %}
+                <td>{{cell}}</td>
+                {% endfor %} 
+
+
+            {% endblock table.tbody.row %} 
+            {% empty %} 
+            {% if table.empty_text %}
+                {% block table.tbody.empty_text %}
+                {% endblock table.tbody.empty_text %} 
+            {% endif %}
+        </tr>
+        {% endfor %}    
+    </form>
+</tbody>
+
+{% endblock table.tbody %}
+
+

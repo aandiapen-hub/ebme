@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+
+<div id='search_form' class="container">
+        <div class='row mt-3'>
+            <div class="col-sm-12 col-md-4">
+                <form id='quick_scan_form' method="post"
+                action=" {% url "documents:quick_scanner" %}"
+                hx-post=" {% url "documents:quick_scanner" %}"
+                hx-target='#search_form'
+                hx-swap='afterend'
+                hx-select='#results'
+                enctype="multipart/form-data"
+                _='
+                  on htmx:afterRequest
+                  wait 50ms
+                  set my value to "" then
+                  call me.focus()
+                '
+                >
+                    <h4>{{form_title}}</h4>
+                    {% csrf_token %}
+                    {% bootstrap_form form layout='horizontal' %}
+                    
+                    {% bootstrap_button button_type='submit' content='Search' %}
+
+                </form>
+            </div>
+        </div>
+</div>
+
+  <div id='results' class='container m-3 p-3 border'>
+    <div class='row'>
+      {% include 'documents/partials/quick_scan/gtin_no_match.html' %}
+      {% include 'documents/partials/quick_scan/asset_exact_match.html' %}
+      {% include 'documents/partials/quick_scan/model_exact_match.html' %}
+      {% include 'documents/partials/quick_scan/asset_create.html' %}
+      {% include 'documents/partials/quick_scan/partial_matches.html' %}
+    </div>
+</div>
+{% endblock content %}

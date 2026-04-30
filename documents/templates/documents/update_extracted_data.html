@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}
+
+<div class="container">
+    <form method="post" action='{% url "documents:update_extracted_data" temp_file_group=group %}'>
+        {% csrf_token %}
+        <ul>
+        {% for key,value in extracted_data.items %}
+            <label  class="form-label" >{{key}}</label>
+            <input class="form-control" type="text" name="{{key}}" value="{{value}}" >
+        {% empty %}
+        <li>No Information</li> 
+        {% endfor %}
+        </ul>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+</div>
+{% endblock content %}

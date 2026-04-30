@@ -1,0 +1,13 @@
+
+{% load django_tables2 %}
+<div id="result_count" class='text ms-auto' hx-swap-oob='true'>
+        Records : {{table.rows|length}}
+        <!-- data export-->
+        <a class="btn btn-sm btn-outline-primary" href="{% querystring '_export'='csv' %}">Export(csv)</a>
+
+          <!--Bulk update button-->
+          {% for action in bulk_actions %}
+          {% include "buttons/bulk_update_button.html" with button_content=action.name url=action.url %}        
+          {% endfor %}
+
+</div> 

@@ -1,0 +1,13 @@
+
+  {% if result.model %}
+<div class="col-sm-6 mb-3 mb-sm-0">
+    <div class="card border-success">
+      <div class="card-body">
+        <h5 class="card-title">Model Found</h5>
+        <p class="card-text">{{result.model}}
+        </p>
+          <a class='btn btn-sm btn-success' href='{% url "model_information:model_view" pk=result.model.pk %}'>Open</a>
+      </div>
+    </div>
+    </div>
+  {% endif %}

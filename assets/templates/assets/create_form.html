@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+
+
+{% block content %}
+
+<div id='asset_details' class="container pb-3">
+
+  <div class='mb-3 d-inline-flex'>
+    <label class='form-label' for='barcode'>Scan Barcode</label>
+    <input type='text', id='barcode', name='barcode'
+      class='form-control'
+    hx-get="{{request.path}}"
+    hx-target="#asset_form"
+    hx-include='#asset_form'
+    hx-swap='outerHTML'
+    hx-select='#asset_form'
+    _='
+      on keyup[key=="Enter"]
+        wait 50ms
+        set my value to "" then
+        call me.focus()
+      end
+      '
+    >
+    <button id='submit_barcode_btn' type='button' class='btn btn-primary'
+      _="
+      on click call #barcode.focus()
+      "
+    >Scan Barcode</button>
+  </div>
+
+
+    <form id='asset_form' hx-post="{{request.path}}"
+    hx-target="#asset_details"
+    hx-swap="innerHTML"
+    hx-trigger="submit"
+    hx-push-url='true'
+    hx-select='#asset_details'>
+        {{ form.media }} 
+        {% csrf_token %}
+    {% bootstrap_form form layout='horizontal' %}
+        <button class="btn btn-primary" type="submit">Submit</button>
+    <a class='btn btn-secondary' href='{% url "assets:assets_list" %}'>Cancel</a>
+ </form>   
+</div>
+
+{% endblock %}

@@ -1,0 +1,13 @@
+
+  {% if result.asset %}
+    <div class="col-auto" style="max-width: 18rem;">
+    <div class="card border-success">
+      <div class="card-body">
+        <h5 class="card-title">Asset Found</h5>
+        <p class="card-text">{{result.asset}}
+        </p>
+      <a class='btn btn-sm btn-success' href='{% url "assets:view_asset" pk=result.asset.pk %}'>Open</a>
+      </div>
+    </div>
+    </div>
+  {% endif %}

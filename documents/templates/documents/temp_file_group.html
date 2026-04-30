@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static %}
+{% load partials %}
+
+{% partialdef temp_group %}
+      <div class='col' id="group_{{ group.pk }}">
+            <h5>Group Type: {{ group.get_document_type_id_display }}</h5>
+            {% for file in group.temp_uploads.all %}
+            {% include "documents/partials/temp_file.html" %}
+            {% endfor %}
+
+
+                <form id='add_image_{{ group.pk }}' enctype="multipart/form-data" method="post"
+                  hx-post="{% url 'documents:create_temp_file' %}?group={{ group.pk }}"
+                  hx-target="#group_{{ group.pk }}"
+                  hx-swap="afterbegin"
+                  hx-trigger='change'
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                  {% include "documents/partials/temp_file_input.html" %}
+                </form>
+                <div class='d-inline-flex mt-1 gap-1'>
+                  <a href='{% url "documents:temp_group" pk=group.pk %}'
+                    class='text-decoration-none btn btn-outline-primary'>
+                    Open
+                  </a>
+
+                  <a href='{% url "documents:temp_group_update" pk=group.pk %}'
+                    class='btn btn-outline-primary text-decoration-none'>
+                     <i class="bi bi-pencil"></i>
+                  </a>
+
+                  <button class="btn btn-outline-warning btn-sm" {% if not group.processable %}disabled{% endif %}
+                    hx-post="{% url "documents:extract_text" pk=group.pk %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-swap="none">
+                    <i class="bi bi-cpu"></i>
+                  </button>
+                  {% if not group.processable %}
+                    <p class='text-warning'>Set document type before processing document</p>
+                  {% endif %}
+
+                </div>
+        </div>
+      {% if group.extracted_json %} 
+        <p class="d-inline-flex gap-1 mt-1">
+          <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#resolved_collapse" aria-expanded="false" aria-controls="resolved_collapse">Resolved</button>
+          <button class="btn btn-sm btn-outline-primary" type='button' data-bs-toggle="collapse" data-bs-target="#ocr_collapse"  aria-expanded="false" aria-controls="ocr_collapse">Ocr</button>
+          <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#barcode_collapse" aria-expanded="false" aria-controls="barcode_collapse">Extracted Info</button>
+        </p>
+        <div class="row">
+          <div class="col">
+            <div class="collapse multi-collapse" id="resolved_collapse">
+              <div class="card card-body">
+                  {% for key, value in group.extracted_json.resolved.items %}
+                      <p>{{key}}</p>
+                        <ul>
+                          {% for k, v in value.items %}
+                          <li>{{k}} : {{v}}</li>
+                          {% endfor %}
+                        </ul>
+                  {% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="collapse multi-collapse" id="ocr_collapse">
+              <div class="card card-body">
+              {{group.combined_ocr_text}}
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="collapse multi-collapse" id="barcode_collapse">
+              <div class="card card-body">
+                  <ul>
+                  {% for key, value in group.extracted_json.items %}
+                      <li>{{key}} : {{value}}</li>
+                  {% endfor %}
+                  </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+{% endpartialdef temp_group%}
+
+{% block content %}
+<div class='container'>
+  <div class='row'>
+    {% partial temp_group %}
+    {% include 'documents/partials/temp_group_actions.html' with actions=actions %}
+  </div>
+  <!-- view temp file modal -->
+  {% include "documents/partials/temp_file_view_modal.html" %}
+</div>
+{% endblock %}

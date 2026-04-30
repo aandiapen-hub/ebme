@@ -1,0 +1,26 @@
+<div class="card">
+  <div class="card-header">
+    Open Jobs
+  </div>
+  <div class="card-body">
+    <h5 class="card-title">
+    {{total_jobs}} Open Jobs
+    </h5>
+    <p class="card-text"></p>
+  </div>
+  <div class="card-body">
+    <a href='{% url "jobs:jobs_list" %}?jobstatusid__iexact=0&jobstatusid__iexact=2&jobstatusid__iexact=3&jobstatusid__iexact=5'class="btn btn-outline-warning mb-3">View Open Jobs</a>
+      {% for jobtypename, statuses in details.items %}
+        <h5>{{ jobtypename }}</h5>
+        <ul class="list-group list-group-flush">
+          {% for status in statuses %}
+            <li class="list-group-item">
+              <a class='btn btn-warning' href='{% url "jobs:jobs_list" %}?jobtypeid__iexact={{ status.jobtypeid }}&jobstatusid__iexact={{ status.jobstatusid }}'>
+              {{ status.jobstatus }}<span class="badge text-bg-secondary"> {{ status.count }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endfor %}
+  </div>
+</div>

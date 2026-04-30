@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load partials %}
+{% load render_table from django_tables2 %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}
+<div class="container-flex p-3 row-gap-3">
+    <section id="title" class="row">
+        <article class="col-12">
+            <h1>Brands</h1>
+        </article>
+    </section>
+
+
+<!-- Button to create a new brand -->
+ 
+    {% if perms.assets.add_tblbrands %}
+        <button
+        hx-get="{% url 'model_information:create_brand'%}"
+        hx-target="#modals-here"
+        hx-trigger="click"
+        data-bs-toggle="modal"
+        data-bs-target="#modals-here"
+        class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-plus-lg"></i>
+        </button>
+    {% endif %}
+
+
+</div>
+
+
+
+{% include "filter_table.html" with app_link='model_information:brandlist' %}
+
+
+
+{% endblock content %}

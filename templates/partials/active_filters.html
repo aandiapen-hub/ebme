@@ -1,0 +1,41 @@
+{% load custom_tags %}
+
+<div class="active-filters">
+    {% if has_active_filters %}
+    <div class="row justify-content-start">
+      <div class="col">
+        <h5>Active Filters</h5>
+
+          {% for name, value in filter.form.cleaned_data.items %}
+            {% if value  or value == False %}
+              {%if 'universal_search' in name %}
+              {{name}}
+                <button class="btn btn-sm btn-info" type="button"
+                    _="on click
+                            set #id_universal_search.value to ''
+                          trigger change on #filter-form
+                          remove me
+                      ">
+                <strong>{{ name }}:</strong>
+                {{ value|display_filter_value }}  ✕
+                </button>
+                {% else %}
+                <button class="btn btn-sm btn-info" type="button"
+                    _="on click
+                          remove #div_id_{{ name }}
+                          trigger change on #filter-form
+                          remove me
+                      ">
+                <strong>{{ name }}:</strong>
+                {{ value|display_filter_value }}  ✕
+                </button>
+                {% endif %}
+            {% endif %}
+          {% endfor %}  
+
+      </div>
+    </div>
+    {% else %}
+      <p>No filters active.</p>
+    {% endif %}
+</div>

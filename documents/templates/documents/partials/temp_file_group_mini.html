@@ -1,0 +1,23 @@
+{% load static %}
+
+{% block content %}
+<div class='container'>
+  <div class='row'>
+      <div class='col' id="group_{{ temp_group.pk }}">
+            <h5>Group Type: {{ temp_group.get_document_type_id_display }}</h5>
+            {% for file in temp_group.temp_uploads.all %}
+            {% include "documents/partials/temp_file.html" %}
+            {% endfor %}
+
+                <div class='d-inline-flex mt-1 gap-1'>
+                  <a href='{% url "documents:temp_group" pk=temp_group.pk %}'
+                    class='text-decoration-none btn btn-outline-primary'>
+                    Open
+                  </a>
+                </div>
+        </div>
+  </div>
+  <!-- view temp file modal -->
+  {% include "documents/partials/temp_file_view_modal.html" %}
+</div>
+{% endblock %}

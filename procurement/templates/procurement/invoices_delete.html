@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+{% block content %}    
+<div class='container mb-3'>
+    <form action="{% url 'procurement:invoices_delete' pk=invoice.pk %}", method="post">
+            {% csrf_token %} 
+
+                {{form|crispy}}
+                <p>Are you sure you would like to delete invoice {{invoice}}?</p>
+
+            <button type="submit" class="btn btn-danger">Delete Invoice</button>
+    </form>
+<div>
+{%endblock content%}

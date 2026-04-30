@@ -1,0 +1,46 @@
+
+{% load static %}
+<div id="filter-column"  hx-swap-oob='innerHTML' >
+  <div id='div_filter_fields' class='row gy-3'>
+    {{ filter.form.media }}
+
+    {% for field in filter.form %}
+      {% if 'search' in field.name %}
+    <div id="div_id_{{ field.name }}" class='col'  >
+      <p class="text text-secondary">{{ field.label_tag }}</p>
+          <div class="d-flex align-items-center gap-2">
+            {{ field }}
+          </div>
+      </div>
+      {% else %}
+        <div id="div_id_{{ field.name }}" class='col-auto' >
+         <p class="text text-secondary">
+            <i class="bi  bi-x-circle text-danger"
+               type='button'
+                _="
+                on click
+                    remove #div_id_{{field.name}}
+                    wait 20ms
+                    trigger submit on #filter-form
+                ">
+              </i>
+          {{ field.label_tag }}</p>
+          <div class="d-flex align-items-center gap-2">
+            {{ field }}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+
+  </div>
+  <div class='row mt-1'>
+    <div class='col'>
+        <button hidden id='filter_form_submit_button' class='btn btn-warning'  type='submit'>Apply filters</button>
+    </div>
+  </div>
+<img id="spinner" class="htmx-indicator"
+     width="24" height="24"
+     src="{% static 'spinners/3-dots-fade.svg' %}">
+</div>
+
+

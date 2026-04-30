@@ -1,0 +1,27 @@
+
+{% if form.assetid.value %}
+    <div class="row">
+        <div class="col">
+            <button id='cancel_button'
+                class='btn btn-outline-secondary'
+                hx-get='{% url "assets:view_asset" pk=form.assetid.value %}'
+                hx-target='#body'
+                hx-swap='outerHTML'
+                hx-push-url='true'>
+                <i class="bi bi-backspace"></i> Cancel & Return to Asset
+            </button>
+        </div>
+    </div>
+
+ {% else %}
+    <div class="row mb-3">
+        <div class="col">
+
+        <a class="btn btn-outline-secondary"
+        type="button"
+        href="{% url 'jobs:jobs_list' %}">
+        <i class="bi bi-backspace"></i> Return to Jobs</a>
+    </div>
+    </div>
+
+{% endif %}

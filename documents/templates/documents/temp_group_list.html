@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load partials%}
+{% load static %}
+
+{% block content %}
+
+<div class="container">
+
+  <div class="row">
+      <div class="col">
+          <h3>Create New Group</h3>
+
+          <form id='add_image_new' enctype="multipart/form-data" method="post"
+          hx-post="{% url 'documents:create_temp_file' %}"
+          hx-target="#images_div"
+          hx-swap="afterbegin"
+          hx-indicator="#spinner"
+          hx-trigger='change'
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+              {% include "documents/partials/temp_file_input.html" %}
+          <img  id="spinner" class="htmx-indicator" src="{% static 'spinners/3-dots-fade.svg' %}">
+          </form>
+
+      </div>
+  </div>
+
+  <div class='row mb-3'>
+
+    <div id="delete_all_div" class="col">
+      <h4>Uploaded Images</h4>
+      <form
+          hx-post="{% url 'documents:delete_all_temp_files' %}"
+          hx-target="#images_div"
+          hx-trigger="click"
+          hx-swap="outerHTML"
+          hx-select='#images_div'
+          hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
+              <button class="btn btn-warning" type="submit">
+                      Delete All
+              </button>
+        </form>
+    </div>
+  </div>
+
+  <div id="images_div" class='container'>
+      <div class='row'>
+        {% for group in temp_groups %}
+          {% include "documents/temp_file_group.html#temp_group" %}
+        {% endfor %}
+      </div>
+  </div>
+      
+      <!-- view temp file modal -->
+      {% include "documents/partials/temp_file_view_modal.html" %}
+
+</div>
+
+
+
+{% endblock content %}

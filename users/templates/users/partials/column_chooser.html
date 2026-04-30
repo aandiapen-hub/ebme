@@ -1,0 +1,80 @@
+
+<div class="container text-start">
+  <div class="row">
+    <div class="col">
+      <h4>Available Columns</h4>
+      <input
+      id="available_column_search"
+      type="search"
+        class="form-control"
+        _="on input
+         show <ul>li/> in next <ul/>
+            when its textContent.toLowerCase() contains my value.toLowerCase()
+          "/>
+
+      <ul 
+        id="available_columns"
+        class="list-group"
+        value="available_columns">
+
+        {% for column in available_columns  %}
+          <li class="list-group-item list-group-item-action"
+              draggable="true"
+            _="on click
+            if 'selected_columns' matches id of the closest <ul/> 
+              then put me at the end of #available_columns
+              else put me at the end of #selected_columns
+              end
+             on dragstart
+             set window.draggedItem to me
+             on dragover halt default
+             on drop put window.draggedItem before me">  
+             <span>{{ column }}</span>
+                <input type="hidden" name="columns" value={{column}}>
+          </li>
+        {% endfor %}
+    </div>
+    <div class="col">
+      <h4>Selected Columns</h4> 
+        <input
+        id="selected_column_search"
+        type="search"
+        class="form-control"
+        
+        _="on input
+          show <ul>li/> in next <ul/>
+            when its textContent.toLowerCase() contains my value.toLowerCase()
+          "/>
+      <form method='post' action='{{ request.get_full_path }}'>
+        {% csrf_token %}
+        <input type="hidden" name="request_model" value="{{ request_model }}">
+        <input type="hidden" name="success_url" value="{{ success_url }}">
+        <input type="hidden" name="query_params" value="{{ query_params }}">
+        <ul id='selected_columns' class="list-group" value="selected_columns">
+            {% for column in visible_columns  %}
+          <li class="list-group-item list-group-item-action"
+              draggable="true"
+            _="on click
+            if 'selected_columns' matches id of the closest <ul/> 
+              then put me at the end of #available_columns
+              else put me at the end of #selected_columns
+              end
+             on dragstart set window.draggedItem to me
+             on dragover halt default
+             on drop put window.draggedItem before me">
+            <span>{{ column }}</span>
+            <input type="hidden" name="columns" value={{column}}>
+          </li>
+            {% endfor %}  
+
+
+          </ul>
+        <button class='btn btn-outline-primary' type='submit'>Save</button>
+
+      </form> 
+    </div>
+
+  </div>
+</div>
+
+

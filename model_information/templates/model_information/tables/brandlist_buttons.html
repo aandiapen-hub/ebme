@@ -1,0 +1,25 @@
+
+{% if perms.assets.change_tblbrands %}
+    <button
+        hx-get="{% url 'model_information:update_brand' pk=record.brandid %}"
+        hx-target="#modals-here"
+        hx-trigger="click"
+        data-bs-toggle="modal"
+        data-bs-target="#modals-here"
+        class="btn btn-sm btn-outline-primary"
+        type='button'>Edit <i class="bi bi-pencil-fill"></i>
+    </button>
+{% endif %}
+
+
+{% if perms.assets.delete_tblbrands %}
+    <button
+    hx-get="{% url 'model_information:delete_brand' pk=record.brandid %}"
+    hx-target="#modals-here"
+    hx-trigger="click"
+    data-bs-toggle="modal"
+    data-bs-target="#modals-here"
+    class="btn btn-sm btn-outline-danger ms-3"
+    type='button'>Delete <i class="bi bi-file-earmark-x"></i>
+    </button>
+{% endif %}

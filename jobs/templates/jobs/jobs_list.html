@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% load querystring from django_tables2 %}
+{% load export_url from django_tables2 %}
+{% load i18n %}
+
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+
+{% block content %}
+<div class="container-flex p-3 row-gap-3">
+  <div class='d-flex flex-row  gap-2 align-items-center'>
+        <div id='div_title_name'>
+            <h1>Jobs</h1>
+        </div>
+
+
+        <div id='action_create' class='ms-auto'> 
+          {% if perms.assets.add_tbljob %}
+          <!--Create new job buttons-->
+
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            <ul class="dropdown-menu">
+                <li>
+                  <!--Create new job manually button-->
+                  <a class="dropdown-item" href="{% url 'jobs:job_create' %}">
+                    Create New <i class="bi bi-pencil"></i></i>
+                  </a>
+                </li>
+          {% endif %}
+        </div>
+    
+        <div id='action_reports' class="dropdown">
+          {% if perms.assets.genreport_tbljob %}
+
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-download"></i>
+            </button>
+            <ul class="dropdown-menu">
+                <li>
+                  <button 
+                    class="dropdown-item"
+                    hx-get="{% url 'jobs:gen_report' %}?report_type=service_report"
+                    hx-include='#filter-form'
+                    type='button'
+                    hx-trigger='click'>
+                    Service Report <i class="bi bi-file-earmark-pdf fs-3"></i>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    class="dropdown-item"
+                    hx-get="{% url 'jobs:gen_report' %}?report_type=job_list"
+                    hx-include='#filter-form'
+                    type='button'
+                    hx-trigger='click'>
+                    Job List <i class="bi bi-file-earmark-spreadsheet fs-3"></i>
+                  </button>
+                </li>
+                </ul>
+              {% endif %}
+                
+        </div>
+
+    </div>
+
+
+</div>
+
+
+{% include "filter_table.html" with app_link='jobs:jobs_list'%}
+
+
+{% endblock content %}

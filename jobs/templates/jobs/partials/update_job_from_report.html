@@ -1,0 +1,81 @@
+
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+<div class="row">
+        <div class = 'col'>
+            <h4>Current Job Details</h4>
+            <ul class="list-group">
+                <li
+                _="on mouseover add .bg-success to #div_id_jobid
+                on mouseout remove .bg-success from #div_id_jobid"
+                 class="list-group-item"> Job ID: {{ original_values.jobid }} </li>
+                <li
+                 _="on mouseover add .bg-success to #div_id_jobtypeid
+                on mouseout remove .bg-success from #div_id_jobtypeid"
+                 class="list-group-item"> Job Type: {{ original_values.jobtypename }} </li>
+                <li
+                _="on mouseover add .bg-success to #div_id_technicianid
+                on mouseout remove .bg-success from #div_id_technicianid" class="list-group-item">
+                Technician: {{ original_values.technician_name }} </li>
+                <li
+                _="on mouseover add .bg-success to #div_id_jobstatusid
+                on mouseout remove .bg-success from #div_id_jobstatusid"
+                class="list-group-item"> Job Status: {{ original_values.jobstatus }} </li>
+                <li
+                _="on mouseover add .bg-success to #div_id_jobstartdate
+                on mouseout remove .bg-success from #div_id_jobstartdate" class="list-group-item"> Start Date: {{ original_values.startdate }} </li>
+                <li
+                 _="on mouseover add .bg-success to #div_id_jobenddate
+                on mouseout remove .bg-success from #div_id_jobenddate" class="list-group-item"> End Date: {{ original_values.enddate }} </li>
+                <li
+                 _="on mouseover add .bg-success to #div_id_workdone
+                on mouseout remove .bg-success from #div_id_workdone" class="list-group-item"> Work Done: {{ original_values.workdone }} </li>
+            </ul>
+   
+        </div>
+
+        <div class="col-2 ">
+            <h4 class="text-danger">Update to<i class="bi bi-arrow-right"></i></h4>
+        </div>
+
+        <div class='col'>
+            <form hx-post='{{request.path}}'
+            hx-target='#job_details'
+            hx-swap='innerHTML'
+            hx-trigger="click from:#submit_button_{{original_values.jobid}}">
+                
+                <h4>Update Job Details</h4>
+                {{form.media}}
+                {% csrf_token %}
+                {{ form|crispy }}
+
+            </form>
+        </div>
+    
+
+        <div class="col-12"
+            hx-trigger='load'
+            hx-get="{% url "jobs:sparepartsused" %}?jobid={{ form.jobid.value }}">
+                <div class="spinner-border " role="status">
+                <span class="visually-hidden">Loading...</span>
+                </div>
+        </div>
+
+        <div class="col-12"
+            hx-trigger='load'
+            hx-get="{% url "jobs:testequipmentused" %}?jobid={{ form.jobid.value }}">
+                <div class="spinner-border " role="status">
+                <span class="visually-hidden">Loading...</span>
+                </div>
+        </div>
+        
+
+        <button id='submit_button_{{original_values.jobid}}' class='btn btn-primary'>Save Changes</button>
+
+        <button id='cancel_button_{{ original_values.jobid  }}'
+            class='btn btn-secondary'   
+            _="on click set the innerHTML of #job_update_div_{{ original_values.jobid  }} to null ">
+            Cancel
+        </button>
+        
+    
+</div>

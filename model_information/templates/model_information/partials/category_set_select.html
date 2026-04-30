@@ -1,0 +1,27 @@
+<script id="set-select-script">
+    const categorySelect = document.getElementById('id_categoryid');
+    if (categorySelect) {
+        var option = new Option('{{ data.category.categoryname }}', '{{ data.category.categoryid }}', true, true);
+        $('#id_categoryid').append(option).trigger('change');
+        htmx.trigger('#mainform', 'change');
+    }
+
+    if (typeof modal === 'undefined') {
+    let modal = bootstrap.Modal.getInstance(document.getElementById('modals-here'));
+    if (modal) modal.hide();
+    }
+</script>
+
+
+<button
+    value="{{data.category.categoryid}}"
+    class = 'btn btn-outline-primary'
+    onclick= "const option = new Option('{{data.category.categoryname}}','{{data.category.categoryid}}', true, true);
+                $('#id_categoryid').append(option).trigger('change');"
+>{{data.category.categoryname}}</button>
+
+
+
+
+
+

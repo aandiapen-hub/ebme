@@ -1,0 +1,42 @@
+{% load partials %}
+{% block content %}
+
+<h4>PO Lines</h4>
+<table class='table table-hover table-bordered'>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>po</th>
+            <th>item</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>line_price</th>
+        </tr>
+    </thead>
+    <tbody id="polines-table">
+        {% for line in po_lines %}
+        {%partial line%}    
+    
+        {% endfor %}
+
+    </tbody>
+</table>
+
+
+{% endblock %}
+
+
+{% partialdef line %}
+<tr id="line-{{ line.line_id }}">
+    <td>{{ line.line_id }}</td>
+    <td>{{ line.po }}</td>
+    <td>{{ line.item }}</td>
+    <td>{{ line.qty_ordered }}</td>
+    <td>{{ line.unit_price }}</td>
+    <td>{{ line.line_price }}</td>
+</tr>
+{%endpartialdef %}
+
+
+
+

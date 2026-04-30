@@ -1,0 +1,129 @@
+{% load static %}
+
+<nav class="navbar navbar-expand-lg bg-body-tertiary">
+  <div class="container-fluid bg-primary-subtle">
+      <H1
+      type='button'
+        class='text text-secondary'
+        data-bs-toggle="offcanvas"
+        data-bs-target="#offcanvasWithBothOptions"
+        aria-controls="offcanvasWithBothOptions">
+      <i class="bi bi-lg bi-list"></i>
+      </H1>
+
+      <form role="search" class="d-flex"
+        id='quick_scan_form' method="post"
+        action="{% url "documents:quick_scanner" %}"
+        enctype="multipart/form-data"
+        >
+          {% csrf_token %}
+        <input type='text' class='form-control'  placeholder='Quick Search' name='scanned_code'
+        _="on load or keyup
+        if my value is not '' then
+        remove @hidden from #quick_search_submit_button
+        else add @hidden to #quick_search_submit_button"
+        > 
+        <input type='file' id='file_input' capture='environment' class='form-control' name='file' hidden
+          _="on change send submit to #quick_scan_form">
+          <label for='file_input' class="btn btn-outline-primary" type="Button" ><i class="bi bi-camera"></i></label>
+          <button id='quick_search_submit_button' class="btn btn-outline-primary" hidden  type="submit"><i class="bi bi-search"></i></button>
+      
+      </form>
+
+    </div>
+</nav>
+
+
+<div class="offcanvas offcanvas-start" data-bs-scroll="true" tabindex="-1" id="offcanvasWithBothOptions" aria-labelledby="offcanvasWithBothOptionsLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="offcanvasWithBothOptionsLabel">
+          <img src="{%  static 'company_info/PNG-LOGO.png' %}" alt="" width="150" height="50"> 
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+
+
+          
+              <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li>
+                  <a class="nav-link {% if '/dashboards' in request.path %}active{% endif %}" href={% url "dashboards:overview" %}>Dashboard</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {% if '/users' in request.path %}active{% endif %}" aria-current="page" href="{% url "users:landing" %}">Home</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {% if '/assets' in request.path %}active{% endif %}" href={% url "assets:assets_list" %}>Assets</a>
+                  </li>
+                <li>
+                  <a class="nav-link {% if '/jobs' in request.path %}active{% endif %}" href={% url "jobs:jobs_list" %}>Jobs</a>
+                </li>
+                {% if request.user.is_staff %}
+                  <li class="nav-item dropdown">
+                    <a class="nav-link {% if '/model_information' in request.path %}active{% endif %} dropdown-toggle" href='#' role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                      Model Information
+                    </a>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url "model_information:brandlist" %}">Brands</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="{% url 'model_information:modellist' %}">Models</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="{% url 'model_information:categorylist' %}">Categories</a></li>
+                    </ul>
+                  </li>
+
+
+                  <!--Documents-->
+                  <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle {% if '/documents' in request.path %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Documents
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url "documents:table_documents" %}">Documents</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url "documents:table_document_links" %}">Document Links</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url "documents:user_temp_files" %}">Temp Doc Upload</a></li>
+
+                  </ul>
+                  </li>
+
+                  <li>
+                    <a class="nav-link" href={% url "parts:parts" %}>Parts</a>
+                  </li>
+                  <!--procurement-->
+                  <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle {% if '/procurement' in request.path %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Procurement
+                  </a>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url 'procurement:po' %}">Purchase Orders</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href=".">Deliveries</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="{% url 'procurement:invoices_table' %}">Invoices</a></li>
+                    </ul>
+                  </li>
+                <li>
+                  
+
+                {% endif %}           
+                <!--user logged in-->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle"> {{user.first_name}} {{user.last_name}}</i>
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'users:logout' %}">Log Out</a></li>
+                    <li><a class="dropdown-item" href="{% url 'users:update_password' %}">Update Password</a></li>
+                  </ul>
+                </li>
+                </ul>
+  </div>
+</div>
+
+
+
+
+
+

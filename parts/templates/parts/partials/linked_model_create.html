@@ -1,0 +1,9 @@
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+<form method="post" action="{% url 'parts:linked_models_create' %}">
+ {% csrf_token %}
+ {{form.media}}
+    {{form|crispy}}
+    <button id='submit_button' class='btn btn-outline-primary' type="submit">Save</button>
+</form>

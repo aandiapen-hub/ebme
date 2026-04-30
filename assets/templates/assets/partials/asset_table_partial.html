@@ -1,0 +1,23 @@
+{% load django_tables2 %}
+
+
+<div id="main-content">
+    {%render_table table%}
+</div>
+
+<div class='container' id="side-panel" hx-swap-oob="true">
+    {{ chart|safe}}
+
+    <!--summary table -->
+   <h4>Summary Table</h4>
+   <ul>
+   {% for col, stats in column_summary.items %}
+       <li>
+       <strong>{{ col }}</strong>
+       <ul>
+           <li>Unique Count: {{ stats.unique_count }}</li>
+       </ul>
+       </li>
+   {% endfor %}
+   </ul>
+</div>

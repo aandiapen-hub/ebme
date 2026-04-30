@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div id="model-detail" class='col-12 bg-white p-2'>
+      <div class="container-fluid">
+          <div class="row"> 
+            <div class="col">
+              <p><small class="text-muted">Part ID: </small>{{object.partid}}</p>
+              <p><small class="text-muted">Part No: </small>{{object.part_number}}</p>
+              <p><small class="text-muted">Name: </small>{{object.short_name}}</p>
+              <p><small class="text-muted">Description: </small>{{object.description}}</p>
+              <p><small class="text-muted">Supplier: </small>{{object.supplier_name}}</p>
+              {% if object.inactive %}
+              <p> Part Inactive </p>
+              {% endif %}
+              
+            </div>
+            <div class='col text-end'>
+              {% if perms.parts.change_tblpartslist %}
+                <button
+                hx-get="{% url 'parts:update_part' pk=object.partid %}"
+                hx-target="#model-detail"
+                hx-swap="outerHTML"
+                hx-trigger="click"
+                class="btn text-primary">
+                Edit
+                </button>
+              {% endif %}
+              {% if perms.parts.delete_tblpartslist %}
+              <button
+              hx-get="{% url 'parts:delete_part' pk=object.partid %}"
+              hx-trigger="click"
+              hx-target="#model-detail"
+              hx-swap="outerHTML"
+              class="btn text-danger">
+              Delete
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+    </div>
+  </div>
+
+
+  <div id='parts_list_section' class="row">
+
+    <div class='col-12 bg-white p-2'
+      id="parts_price_list"
+      hx-get="{% url 'parts:part_prices' %}?partid={{object.partid}}"
+      hx-trigger="load"
+      hx-target="this"
+      hx-swap="innerHTML">
+    </div>
+  </div>
+  
+
+  <div id='linked_models' class="row">
+
+    <div class='col-12 bg-white p-2'
+      id="parts_price_list"
+      hx-get="{% url 'parts:linked_models' %}?partid={{object.partid}}"
+      hx-trigger="load"
+      hx-target="this"
+      hx-swap="innerHTML">
+    </div>
+  </div>
+  
+
+
+</div>
+{% endblock content %}
+
+
+
+
+

@@ -1,0 +1,25 @@
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+
+    <form 
+        hx-post="{{request.path}}"
+        hx-trigger='click from:#confirm_button'
+        hx-target='this'
+        hx-swap='outerHTML'
+        > 
+        {% csrf_token %}
+        {{ form|crispy }}
+        <p>Are you sure you would like to delete this delivery?</p>
+        <button id='confirm_button' class="btn btn-danger" type="button">Confirm </button>
+    </form>
+    <div id="messages">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+

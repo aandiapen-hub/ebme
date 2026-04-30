@@ -1,0 +1,47 @@
+{% load static %}
+              <div id="action_buttons_{{ group }}">
+                <button id='scan_asset_button_{{ group }}' type="button" class="btn btn-outline-primary btn-sm mt-3"
+                  hx-post='{% url "assets:barcode_scanner" temp_file_group=group %}'
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-indicator="find #spinner"
+                  hx-swap="afterbegin">
+                  Get Asset Info <img  id="spinner" class="htmx-indicator" src="{% static 'spinners/3-dots-fade.svg' %}">
+
+                </button>
+
+                <button id='scan_asset_button_{{ group }}' type="button" class="btn btn-outline-primary btn-sm mt-3"
+                  hx-post='{% url "assets:barcode_scanner" temp_file_group=group %}?use_ai=true'
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-indicator="find #spinner"
+                  hx-swap="afterbegin">
+                  Get Asset Info (with AI) <img  id="spinner" class="htmx-indicator" src="{% static 'spinners/3-dots-fade.svg' %}">
+
+                </button>
+
+                <button id='scan_report_button_{{ group }}' type="button" class="btn btn-outline-primary btn-sm mt-3"
+                  hx-post='{% url "jobs:report_scanner" temp_file_group=group %}'
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-indicator="find #spinner"
+                  hx-disabled-elt="#action_buttons_{{ group }} *"
+                  hx-swap="afterbegin">
+                  Scan Service Report <img  id="spinner" class="htmx-indicator" src="{% static 'spinners/3-dots-fade.svg' %}">
+                </button>
+
+                <button id='scan_delivery_note_{{ group }}' type="button" class="btn btn-outline-primary btn-sm mt-3"
+                  hx-post='{% url "procurement:delivery_note_reader" temp_file_group=group %}'
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-indicator="find #spinner"
+                  hx-disabled-elt="#action_buttons_{{ group }} *"
+                  hx-swap="afterbegin">
+                  Scan Delivery Note <img  id="spinner" class="htmx-indicator" src="{% static 'spinners/3-dots-fade.svg' %}">
+                </button>
+
+                <button id='scan_invoices_{{ group }}' type="button" class="btn btn-outline-primary btn-sm mt-3"
+                  hx-post='{% url "procurement:invoices_reader" temp_file_group=group %}'
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  hx-indicator="find #spinner"
+                  hx-disabled-elt="#action_buttons_{{ group }} *"
+                  hx-swap="afterbegin">
+                  Scan Invoice <img  id="spinner" class="htmx-indicator" src="{% static 'spinners/3-dots-fade.svg' %}">
+                </button>
+              </div>

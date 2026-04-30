@@ -1,0 +1,35 @@
+<h4>Update Existing Model</h4>
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">modelid</th>
+      <th scope="col">Name</th>
+      <th scope="col">Brand</th>
+      <th scope="col">Category</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for model in models  %}
+    <tr>
+      <td>{{model.modelid}}</td>
+      <td>{{model.modelname}}</td>
+      <td>{{model.brandid}}</td>
+      <td>{{model.categoryid}}</td>
+      <td>
+        <button
+            type='button'
+            hx-get='{% url "assets:quick_update_model" pk=model.modelid %}?temp_document_group={{ temp_document_group }}'
+            include='#id_gtin'
+            hx-trigger='click'
+            hx-target='#asset_details'
+            hx-swap='innerHTML'
+            class='btn btn-outline-primary'>
+            Update GTIN
+      </button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+

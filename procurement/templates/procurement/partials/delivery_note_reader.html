@@ -1,0 +1,33 @@
+ {% extends "base.html" %}
+ {% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+{% load static %}
+
+
+ {% block content %}
+<div id='barcode_reader' class='container'>
+    <form class="form"
+    hx-post='{{request.path}}'
+    hx-target='this'
+    hx-select='#reader_output'
+    hx-swap='outerHTML'
+    hx-push-url='true'
+    hx-indicator='#spinner'
+    hx-trigger='click from:#save_button'
+    enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <button id="save_button" class="btn btn-primary" type="button">Read Document</button>
+    </form>
+    <img  id="spinner" class="htmx-indicator" src="{% static "spinners/3-dots-fade.svg" %}">
+
+</div>  
+
+
+<div class='container' id='temp_files' >
+    {% if request.session.temp_file != '' %}
+        {% include "documents/partials/temp_files_loader.html" with target='#barcode_reader' success_url='procurement:delivery_note_reader barcode_scanner' %}
+    {% endif %}
+</div>
+
+{% endblock content %}
+

@@ -1,0 +1,12 @@
+<script id="set-select-script">
+    const brandSelect = document.getElementById('id_brandid');
+    if (brandSelect) {
+        var option = new Option('{{ data.brand.brandname }}', '{{ data.brand.brandid }}', true, true);
+        $('#id_brandid').append(option).trigger('change');
+    }
+</script>
+
+<script>
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modals-here'));
+    if (modal) modal.hide();
+</script>

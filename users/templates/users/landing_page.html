@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+
+
+{% block content %}
+
+
+
+<H1>Hi {{ user.first_name|title}}</H1>
+
+
+<div class="card w-50 mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Dashboard</h5>
+      <p class="card-text">See an Overview of your Inventory Compliance</p>
+      <a href="{% url "dashboards:overview" %}" class="btn btn-outline-primary">Open</a>
+    </div>
+  </div>
+  
+  <div class="card w-50 mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Assets</h5>
+      <p class="card-text">Explore your inventory</p>
+      <a href="{% url "assets:assets_list" %}" class="btn btn-outline-primary">Open</a>
+    </div>
+  </div>
+
+  <div class="card w-50 mb-3">
+    <div class="card-body">
+      <h5 class="card-title">Jobs</h5>
+      <p class="card-text">View jobs</p>
+      <a href="{% url "jobs:jobs_list" %}" class="btn btn-outline-primary">Open</a>
+    </div>
+  </div>
+
+{% endblock content %}
+
+

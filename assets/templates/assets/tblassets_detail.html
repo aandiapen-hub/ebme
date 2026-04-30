@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+{% block content %}
+
+<form>
+    <div class="form-group">
+      {{ asset|crispy }}
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
+
+
+
+{% endblock %}
