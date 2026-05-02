@@ -26,7 +26,11 @@
 
                   <a href='{% url "documents:temp_group_update" pk=group.pk %}'
                     class='btn btn-outline-primary text-decoration-none'>
-                     <i class="bi bi-pencil"></i>
+                     <i class="bi bi-pencil"></i>Group type
+                  </a>
+                  <a href='{% url "documents:update_group_data" pk=group.pk %}'
+                    class='btn btn-outline-primary text-decoration-none'>
+                     <i class="bi bi-pencil"></i>Group Data
                   </a>
 
                   <button class="btn btn-outline-warning btn-sm" {% if not group.processable %}disabled{% endif %}

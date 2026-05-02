@@ -4,8 +4,6 @@ from django_select2.forms import ModelSelect2Widget
 
 
 class ModelQuickCreateForm(forms.ModelForm):
-    temp_group_pk = forms.TextInput()
-
     class Meta:
         model = Tblmodel
         fields = "__all__"

@@ -23,6 +23,7 @@ from .views import (
     BulkLinkDocument,
     BulkDeleteLink,
     ExtractTextFromImages,
+    TempUploadMergedDataUpdate,
 )
 
 from assets.views import UNIVERSAL_SEARCH_FIELDS as ASSET_UNIVERSAL_SEARCH_FIELDS
@@ -132,5 +133,10 @@ urlpatterns = [
         "documents/<uuid:pk>/extract_text",
         ExtractTextFromImages.as_view(),
         name="extract_text",
+    ),
+    path(
+        "documents/<uuid:pk>/update_data",
+        TempUploadMergedDataUpdate.as_view(),
+        name="update_group_data",
     ),
 ]

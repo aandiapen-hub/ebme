@@ -60,21 +60,6 @@
     hx-swap='innerHTML'>
   </div>    
   
-
-  <div id="set-select-script">
-      <script>
-        const modelSelect = document.getElementById('id_modelid');
-        if (modelSelect) {
-            var option = new Option('{{ object.modelname }}', '{{ object.modelid }}', true, true);
-            $('#id_modelid').append(option).trigger('change');
-        }
-
-        if (typeof modal === 'undefined') {
-        let modal = bootstrap.Modal.getInstance(document.getElementById('modals-here'));
-        if (modal) modal.hide();
-        }
-    </script>
-  </div>
 {% endblock content %}
 
 

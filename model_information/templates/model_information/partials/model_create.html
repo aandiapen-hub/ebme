@@ -12,7 +12,7 @@
                 <div class="col">
                         {% bootstrap_messages %}
                         <form
-                                class="form" method="post" action="{{request.path}}"
+                                class="form" method="post" action=""
                                 novalidate>
                                 {{form.media}}
                                 {% csrf_token %}
@@ -26,7 +26,7 @@
                 <div class="col">
                   <h5>Name Options</h5>
                   <ul>
-                    {% for name in payload.modelname %}
+                    {% for name in processed_payload.modelname %}
                       <button class='btn btn-sm btn-outline-secondary'
                         _='on click set value of #id_modelname to my innerText'>
                         {{name}}
@@ -50,7 +50,7 @@
                     {% endif %}
                   <p>Existing</p>
                   <ul>
-                    {% for category in payload.existing_categories %}
+                    {% for category in existing_categories %}
                       <button class='btn btn-sm btn-outline-secondary'
                         _='on click set value of #id_modelname to my innerText'>
                         {{category}}
@@ -59,11 +59,11 @@
                   </ul>
                   <p>Suggested New</p>
                   <ul>
-                    {% for category_name in payload.cagetory_options %}
-                      <button class='btn btn-sm btn-outline-secondary'
-                        _='on click set value of #id_modelname to my innerText'>
-                        {{category_name}}
-                      </button>
+                    {% for category_name in payload.cagetoryname %}
+                        <a href='{% url "model_information:create_category" %}?payload={{payload}}'
+                        class='btn btn-sm btn-outline-secondary'>
+                          {{category_name}}
+                        </a>
                     {% endfor %}
                   </ul>
                 </div>
@@ -83,7 +83,7 @@
                   {% endif %}
                   <p>Existing</p>
                   <ul>
-                    {% for brand in payload.existing_brands %}
+                    {% for brand in existing_brands %}
                       <button class='btn btn-sm btn-outline-secondary'
                         _='on click set value of #id_modelname to my innerText'>
                         {{brand}}
@@ -92,8 +92,8 @@
                   </ul>
                   <p>Suggested New</p>
                   <ul>
-                    {% for brand_name in payload.brand_options %}
-                        <a href='{% url "model_information:create_brand" %}?brandname={{brand_name}}&temp_group_pk={{payload.temp_group_pk}}'
+                    {% for brand_name in processed_payload.brandname %}
+        <a href='{% url "model_information:create_brand" %}?payload={{payload}}'
                         class='btn btn-sm btn-outline-secondary'>
                           {{brand_name}}
                         </a>

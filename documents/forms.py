@@ -4,8 +4,11 @@ from django.contrib.contenttypes.models import ContentType
 from .models import TblDocuments, TblDocumentLinks, TemporaryUpload, DocumentTypes, TempUploadGroup
 from django_select2.forms import (
     ModelSelect2Widget,
+    ModelSelect2MultipleWidget,
 )
 from documents.services.documents import create_document_from_file
+
+from assets.models import Tblbrands
 
 
 class DocumentCreateForm(forms.ModelForm):
@@ -214,3 +217,20 @@ class TempUploadGroupUpdateForm(forms.ModelForm):
         fields = (
             'document_type_id',
         )
+
+
+class AssetDataUpdate(forms.Form):
+    GTIN = forms.CharField(required=False)
+    SERIAL = forms.CharField(required=False)
+    ASSET_NO = forms.CharField(required=False)
+    PROD_DATE: forms.CharField(required=False)
+    model_description = forms.CharField(required=False)
+    brand_id = forms.ModelMultipleChoiceField(
+        queryset=Tblbrands.objects.all(),
+        required=False,
+        widget=ModelSelect2MultipleWidget(
+            model=Tblbrands,
+            search_fields=['brandname'],
+        )
+    )
+

@@ -124,14 +124,22 @@ def match_options(qs, fieldname, options):
     for item in options:
         search_terms += item.split()
     search_term = [term for term in search_terms if len(term) > 3]
-    print("search_term", search_terms)
     q_filter = Q()
     search_criteria = f"{fieldname}__icontains"
     for term in search_term:
         q_filter |= Q(**{search_criteria: term})
-    pks = list(qs.filter(q_filter).values_list("pk", flat=True))
-    print("matched pks", pks)
-    return pks
+
+    filtered = qs.filter(q_filter).values_list("pk", fieldname)
+    qs_ids = []
+    qs_names = set()
+
+    for pk, name in filtered:
+        qs_ids.append(pk)
+        qs_names.add(name)
+
+    options = [option for option in options if option not in qs_names]
+
+    return list(qs_ids), options
 
 
 def gs1_resolver(parsed_data):
@@ -254,7 +262,7 @@ def gs1_resolver(parsed_data):
     brand_name_options = parsed_data.get("brand_name_options", None)
     brand_ids = []
     if brand_name_options is not None:
-        brand_ids = match_options(
+        brand_ids, brand_name_options = match_options(
             qs=Tblbrands.objects.all(),
             fieldname="brandname",
             options=brand_name_options,
@@ -266,7 +274,7 @@ def gs1_resolver(parsed_data):
     category_name_options = parsed_data.get("category_name_options", [])
     category_ids = []
     if category_name_options is not None:
-        category_ids = match_options(
+        category_ids, category_name_options = match_options(
             qs=Tblcategories.objects.all(),
             fieldname="categoryname",
             options=category_name_options,
@@ -392,9 +400,9 @@ class ActionResolver:
                         "temp_group_pk": self.temp_group_pk,
                         "gtin": self.data.get("gtin").get("value"),
                         "modelname": self.data.get("model").get("name_options"),
-                        "brand_options": self.data.get("brand").get("brand_options"),
+                        "brandname": self.data.get("brand").get("brand_options"),
                         "brandid": self.data.get("brand").get("brand_ids"),
-                        "category_options": self.data.get("model").get(
+                        "categoryname": self.data.get("model").get(
                             "category_options"
                         ),
                         "categoryid": self.data.get("category").get("category_ids"),

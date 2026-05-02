@@ -2,7 +2,6 @@ from django.urls import path
 
 from .views import (FilteredBrandTableView,
                     BrandUpdateView,
-                    BrandBulkUpdateView,
                     BrandCreateView,
                     BrandDetailView,
                     BrandDeleteView,
@@ -14,6 +13,7 @@ from .views import (FilteredBrandTableView,
                     ModelDetailView,
                     ExistingModelListView,
                     FilteredCategoryTableView,
+                    CategoryDetailView,
                     CategoryUpdateView,
                     CategoryCreateView,
                     CategoryDeleteView,
@@ -29,7 +29,6 @@ app_name = "model_information"
 urlpatterns = [
     path("brandlist/",FilteredBrandTableView.as_view(),name='brandlist'),
     path("update_brand/<int:pk>",BrandUpdateView.as_view(),name='update_brand'),
-    #path("bulk_brand_update",BrandBulkUpdateView.as_view(),name='bulk_update_brands'),
     path("create_brand/",BrandCreateView.as_view(),name='create_brand'),
     path("brand/<int:pk>/",BrandDetailView.as_view(),name='brand_detail'),
 
@@ -46,6 +45,7 @@ urlpatterns = [
 
 
     path("categorylist/",FilteredCategoryTableView.as_view(),name='categorylist'),
+    path("category/<int:pk>/",CategoryDetailView.as_view(),name='category_detail'),
     path("update_category/<int:pk>",CategoryUpdateView.as_view(),name='update_category'),
     path("create_category/",CategoryCreateView.as_view(),name='create_category'),
     path("delete_category/<int:pk>",CategoryDeleteView.as_view(),name='delete_category'),

@@ -15,6 +15,8 @@ from django.views.generic import (
     DetailView,
 )
 
+from documents.services.gs1_parser import temp_group_resolver
+
 # import django-tables2
 from django_tables2 import tables, SingleTableMixin, columns
 
@@ -33,6 +35,69 @@ from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMix
 
 
 from utils.generic_views import FilteredTableView
+
+
+class CreateWithPayloadView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    success_url_app_view = None  # override in child class
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        processed_payload = json.loads(self.request.GET.get("payload", "{}"))
+
+        if processed_payload is not None:
+            context["payload"] = self.request.GET.get("payload", "{}")
+            context["processed_payload"] = processed_payload
+
+            brandid_list = processed_payload.get("brandid", None)
+            if brandid_list is not None:
+                context["existing_brands"] = Tblbrands.objects.filter(
+                    pk__in=brandid_list
+                )
+            categoryid_list = processed_payload.get("categoryid", None)
+            if categoryid_list is not None:
+                context["existing_categories"] = Tblcategories.objects.filter(
+                    pk__in=categoryid_list
+                )
+
+            temp_group = processed_payload.get("temp_group_pk", None)
+            context["temp_group"] = TempUploadGroup.objects.filter(
+                pk=temp_group
+            ).first()
+        return context
+
+    def form_valid(self, form):
+        try:
+            with transaction.atomic():
+                response = super().form_valid(form)
+                self.temp_group_pk = self.request.POST.get("temp_group_pk", None)
+                if self.temp_group_pk:
+                    temp_group_resolver(self.temp_group_pk)
+
+                return response
+        except IntegrityError as e:
+            form.add_error(None, e)
+            return super.form_invalid(form)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        # update initial based on direct query params matching form fields
+        initial.update(self.request.GET.items())
+
+        # update initial based on specifid payload in query params
+        payload = json.loads(self.request.GET.get("payload", "{}"))
+        for key, value in payload.items():
+            if isinstance(value, list) and value:
+                initial[key] = value[0]
+            else:
+                initial[key] = value
+        return initial
+
+    def get_success_url(self):
+        temp_group_pk = self.request.POST.get("temp_group_pk", None)
+        if temp_group_pk:
+            return reverse("documents:temp_group", kwargs={"pk": temp_group_pk})
+
+        return reverse(self.success_url_app_view, kwargs={"pk": self.object.pk})
 
 
 # brand views
@@ -84,19 +149,12 @@ class BrandBulkUpdateView(BulkUpdateView):
     success_url = reverse_lazy("model_information:brandlist")
 
 
-class BrandCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+class BrandCreateView(CreateWithPayloadView):
     model = Tblbrands
     fields = "__all__"
     template_name = "model_information/partials/brand_create.html"
     permission_required = "assets.add_tblbrands"
-
-    def get_initial(self):
-        initial = super().get_initial()
-        initial.update(self.request.GET.items())
-        return initial
-
-    def get_success_url(self):
-        return reverse("model_information:brand_detail", kwargs={"pk": self.object.pk})
+    success_url_app_view = "model_information:brand_detail"
 
 
 class BrandDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
@@ -181,60 +239,12 @@ class ModelBulkUpdateView(BulkUpdateView):
     success_url = reverse_lazy("model_information:modellist")
 
 
-class ModelCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+class ModelCreateView(CreateWithPayloadView):
     model = Tblmodel
     form_class = ModelQuickCreateForm
     template_name = "model_information/partials/model_create.html"
     permission_required = "assets.add_tblmodel"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        payload = json.loads(self.request.GET.get("payload", None))
-
-        if payload is not None:
-            payload["existing_brands"] = Tblbrands.objects.filter(
-                pk__in=payload["brandid"]
-            )
-            payload["existing_categories"] = Tblcategories.objects.filter(
-                pk__in=payload["categoryid"]
-            )
-            context["temp_group"] = TempUploadGroup.objects.filter(
-                pk=payload["temp_group_pk"]
-            ).first()
-            context["payload"] = payload
-        return context
-
-    def form_valid(self, form):
-        try:
-            with transaction.atomic():
-                response = super().form_valid(form)
-                self.temp_group_pk = self.request.POST.get("temp_group_pk", None)
-                if self.temp_group_pk:
-                    pass
-
-                return response
-        except IntegrityError as e:
-            form.add_error(None, e)
-            return super.form_invalid(form)
-
-    def get_initial(self):
-        initial = super().get_initial()
-        # Add query parameters to initial
-        payload = json.loads(self.request.GET.get("payload", None))
-
-        for key, value in payload.items():
-            if isinstance(value, list) and value:
-                initial[key] = value[0]
-            else:
-                initial[key] = value
-        return initial
-
-    def get_success_url(self):
-        temp_group_pk = self.request.POST.get("temp_group_pk", None)
-        if temp_group_pk:
-            return reverse("documents:temp_group", kwargs={"pk": temp_group_pk})
-
-        return reverse("model_information:model_view", kwargs={"pk": self.object.pk})
+    success_url_app_view = "model_information:model_view"
 
 
 class ExistingModelListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
@@ -310,7 +320,11 @@ class FilteredCategoryTableView(
     permission_required = "assets.view_tblcategories"
     template_name = "model_information/categorylist.html"
     universal_search_fields = ["categoryname__icontains"]
-    template_columns = {"actions": "model_information/tables/categorylist_buttons.html"}
+    template_columns = {
+        "actions": "model_information/tables/categorylist_buttons.html",
+        "open": "model_information/tables/category_open.html",
+    }
+    default_columns = ["categoryid", "categoryname"]
 
 
 class CategoryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
@@ -335,34 +349,19 @@ class CategoryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         return context
 
 
-class CategoryCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+class CategoryCreateView(CreateWithPayloadView):
     model = Tblcategories
     fields = "__all__"
-    template_name = "model_information/partials/modal.html"
+    template_name = "model_information/partials/create_category.html"
     success_url = reverse_lazy("model_information:categorylist")
-    permission_required = "assets.add_tblcategories"
+    success_url_app_view = "model_information:category_detail"
 
-    def get_initial(self):
-        initial = super().get_initial()
-        initial.update(self.request.GET.items())
-        return initial
 
-    def form_valid(self, form):
-        self.object = form.save()
-        response = HttpResponse("")
-        # Optional: prevent swapping any content
-        response["HX-Trigger"] = "closeModal"
-        return response
-
-    def form_invalid(self, form):
-        # Return form with errors so HTMX swaps it into the modal
-        return self.render_to_response(self.get_context_data(form=form))
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["title"] = "Create New Category"
-        context["view_type"] = "create"
-        return context
+class CategoryDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
+    model = Tblcategories
+    template_name = "model_information/partials/category_detail.html"
+    context_object_name = "category"
+    permission_required = "assets.view_tblcategories"
 
 
 class CategoryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):

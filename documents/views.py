@@ -2,6 +2,7 @@ from io import BytesIO
 from urllib.parse import urlencode
 from django.apps import apps
 from django.views.generic.edit import FormMixin
+from django.db.models.query import QuerySet
 from django.shortcuts import redirect, render
 from django.http import FileResponse, HttpResponse, HttpResponseRedirect, Http404
 from django.contrib import messages
@@ -12,8 +13,9 @@ from .services.documents import (
     save_temp_files,
     delete_link_document,
 )
+import json
 from documents.services.ai_reader import extract_information_with_ai
-from documents.services.gs1_parser import ActionResolver
+from documents.services.gs1_parser import ActionResolver, temp_group_resolver
 
 # import models
 from .models import (
@@ -44,6 +46,7 @@ from .forms import (
     BulkLinkDocument,
     EmptyForm,
     TempUploadGroupUpdateForm,
+    AssetDataUpdate
 )
 
 # import generic filter table view
@@ -479,6 +482,41 @@ class TempUploadGroupUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateV
 
     def get_success_url(self):
         return reverse('documents:temp_group', kwargs={'pk':self.object.pk})
+
+
+class TempUploadMergedDataUpdate(LoginRequiredMixin, PermissionRequiredMixin, FormView):
+    permission_required = "documents.change_tbl_temporaryupload"
+    form_class = AssetDataUpdate
+    template_name = 'documents/temp_group_data_update.html'
+
+    def get_success_url(self):
+        group_pk = self.kwargs.get('pk')
+        return reverse('documents:temp_group', kwargs={'pk':group_pk})
+
+
+    def get_initial(self):
+        initial = super().get_initial()
+        group_pk = self.kwargs.get('pk')
+        group = TempUploadGroup.objects.get(pk=group_pk)
+        data = group.extracted_json.get('merged_gs1_ai')
+        for key, value in data.items():
+            initial[key] = value
+        return initial
+
+    def form_valid(self, form):
+        group_pk = self.kwargs.get('pk')
+        group = TempUploadGroup.objects.get(pk=group_pk)
+        data = group.extracted_json.get('merged_gs1_ai')
+        for key, value in form.cleaned_data.items():
+            if isinstance(value, QuerySet):
+                value = value.values_list("pk", flat=True)
+            else:
+                data[key] = value
+        group.save(update_fields=['extracted_json'])
+
+        temp_group_resolver(group.pk)
+
+        return super().form_valid(form)
 
 
 class TempUploadListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
