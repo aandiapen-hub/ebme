@@ -22,7 +22,7 @@
                       height="{{ barcode.h_pct}}%"
                       style="fill:green;opacity:0.3;stroke:green;stroke-width:2" />
           {% endfor %}
-            {% for item in file.ocr_boxes.ocr_boxes %}
+            {% for item in file.ocr_boxes %}
                 <rect x="{{ item.x_pct}}%"
                       y="{{ item.y_pct}}%"
                       width="{{ item.w_pct}}%"

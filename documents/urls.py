@@ -24,6 +24,7 @@ from .views import (
     BulkDeleteLink,
     ExtractTextFromImages,
     TempUploadMergedDataUpdate,
+    LogServiceReportView
 )
 
 from assets.views import UNIVERSAL_SEARCH_FIELDS as ASSET_UNIVERSAL_SEARCH_FIELDS
@@ -139,4 +140,5 @@ urlpatterns = [
         TempUploadMergedDataUpdate.as_view(),
         name="update_group_data",
     ),
+    path("jobs/log_report/<uuid:pk>/", LogServiceReportView.as_view(), name="log_service_report"),
 ]

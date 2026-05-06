@@ -7,13 +7,20 @@ from dataclasses import dataclass
 from collections import defaultdict
 import json
 
-from assets.models import AssetView, Tblmodel, JobView, Tblbrands, Tblcategories
+from assets.models import (
+    AssetView,
+    Tblassets,
+    Tblmodel,
+    JobView,
+    Tblbrands,
+    Tblcategories,
+)
 
 from parts.models import Tblpartslist
-from documents.models import TempUploadGroup
+from documents.models import TempUploadGroup, DocumentTypes
 
 
-def data_builder(
+def asset_data_builder(
     gtin=None,
     add_gtin=False,
     asset_id=None,
@@ -71,6 +78,62 @@ def data_builder(
         "category": {
             "category_options": category_name_options or [],
             "category_ids": category_ids,
+        },
+    }
+
+
+def job_data_builder(
+    gtin=None,
+    add_gtin=False,
+    asset_id=None,
+    assets=None,
+    serial=None,
+    asset_no=None,
+    create_asset=False,
+    jobs=None,
+    model_id=None,
+    model_name_options=None,
+    brand_name_options=None,
+    brand_ids=None,
+    job_ref=None,
+    start_date=None,
+    end_date=None,
+    cal_date=None,
+    workdone=None,
+    jobtypeid=None,
+    jobstatusid=None,
+    create_job=False,
+):
+    return {
+        "gtin": {
+            "value": gtin,
+            "add_gtin": add_gtin,
+        },
+        "asset": {
+            "asset_id": asset_id,
+            "serial": serial,
+            "asset_no": asset_no,
+            "assets": assets or [],
+            "create_asset": create_asset,
+        },
+        "job": {
+            "assetid": asset_id,
+            "jobs": jobs or [],
+            "job_ref": job_ref,
+            "jobstartdate": start_date,
+            "jobenddate": end_date,
+            "workdone": workdone,
+            "jobtypeid": jobtypeid,
+            "jobstatusid": jobstatusid,
+            "create_job": create_job,
+        },
+        "model": {
+            "model_id": model_id,
+            "name_options": model_name_options or [],
+        },
+        "brand": {
+            "brand_options": brand_name_options or [],
+            "brand_ids": brand_ids,
         },
     }
 
@@ -142,6 +205,86 @@ def match_options(qs, fieldname, options):
     return list(qs_ids), options
 
 
+def find_asset_by_asset_no(asset_no):
+    if not asset_no:
+        return None
+
+    return AssetView.objects.filter(
+        assetid=asset_no
+    ).prefetch_related("jobs").first()
+
+
+def find_asset_by_serial_and_model(serial, model):
+    if not (serial and model):
+        return None
+
+    return AssetView.objects.filter(
+        serialnumber=serial, modelid=model
+    ).prefetch_related("jobs") .first()
+
+
+def resolve_gtin(gtin):
+    if not gtin:
+        return None, None, None
+
+    model = Tblmodel.objects.filter(gtin=gtin).first()
+    part = Tblpartslist.objects.filter(gtin=gtin).first()
+
+    add_gtin = not (model or part)
+
+    return model, part, add_gtin
+
+
+def find_partial_asset_matches(serial):
+    if not serial:
+        return {
+            "assets": [],
+            "too_many_assets": False,
+            "models_with_gtin": [],
+            "models_without_gtin": [],
+            "jobs": [],
+        }
+
+    assets_qs = AssetView.objects.filter(serialnumber__icontains=serial)
+
+    assets = list(assets_qs.values_list("pk", flat=True))
+    too_many_assets = len(assets) > 10
+
+    if not assets:
+        return {
+            "assets": [],
+            "too_many_assets": False,
+            "models_with_gtin": [],
+            "models_without_gtin": [],
+        }
+
+    model_ids = list(assets_qs.values_list("modelid", flat=True))
+
+    models_with_gtin = list(
+        Tblmodel.objects.filter(
+            modelid__in=model_ids,
+            gtin__isnull=False
+        ).values_list("pk", flat=True)
+    )
+
+    models_without_gtin = list(
+        Tblmodel.objects.filter(
+            modelid__in=model_ids,
+            gtin__isnull=True
+        ).values_list("pk", flat=True)
+    )
+
+    jobs = JobView.objects.filter(assetid__in=assets).values_list('pk', flat=True)
+
+    return {
+        "assets": assets,
+        "too_many_assets": too_many_assets,
+        "models_with_gtin": models_with_gtin,
+        "models_without_gtin": models_without_gtin,
+        'jobs': jobs,
+    }
+
+
 def gs1_resolver(parsed_data):
     asset_no = parsed_data.get("ASSET_NO")
     gtin = parsed_data.get("GTIN")
@@ -168,85 +311,50 @@ def gs1_resolver(parsed_data):
     # -------------------------
     # 1. Asset lookup (strongest)
     # -------------------------
-    if asset_no:
-        asset = (
-            AssetView.objects.filter(assetid=asset_no).prefetch_related("jobs").first()
-        )
-
+    asset = find_asset_by_asset_no(asset_no)
+    if asset:
         if asset:
-            asset_id = asset.id
             jobs = list(asset.jobs.values_list("id", flat=True))
-            return data_builder(
-                parsed_data=parsed_data,
+            return asset_data_builder(
                 gtin=gtin,
-                asset_id=asset_id,
+                asset_id=asset.pk,
                 jobs=jobs,
             )
-        else:
-            create_asset = True
+    create_asset = bool(asset)
 
     # -------------------------
     # 2. GTIN lookup
     # -------------------------
-    if gtin:
-        known_model = Tblmodel.objects.filter(gtin=gtin).first()
-        known_part = Tblpartslist.objects.filter(gtin=gtin).first()
-
-        if known_model:
-            model_id = known_model.pk
-
-        if known_part:
-            part_id = known_part.pk
-
-        if not known_model and not known_part:
-            add_gtin = True
+    known_model, known_part, add_gtin = resolve_gtin(gtin)
+    model_id = known_model.pk if known_model else None
+    part_id = known_part.pk if known_part else None
 
     # -------------------------
     # 3. Exact asset match
     # -------------------------
-    if serial and known_model:
-        asset = (
-            AssetView.objects.filter(serialnumber=serial, modelid=known_model)
-            .prefetch_related("jobs")
-            .first()
-        )
 
-        if asset:
-            asset_id = asset.id
-            jobs = list(asset.jobs.values_list("pk", flat=True))
-            return data_builder(
-                parsed_data=parsed_data,
-                gtin=gtin,
-                asset_id=asset_id,
-                model_id=model_id,
-                jobs=jobs,
-            )
-        else:
-            create_asset = True
+    asset = find_asset_by_serial_and_model(serial, known_model)
+    if asset:
+        jobs = list(asset.jobs.values_list("pk", flat=True))
+        return asset_data_builder(
+            gtin=gtin,
+            asset_id=asset.pk,
+            model_id=model_id,
+            jobs=jobs,
+        )
+    create_asset = not bool(asset) or bool(serial and known_model)
 
     # -------------------------
     # 4. Partial match
     # -------------------------
     if serial and not known_model:
-        assets_qs = AssetView.objects.filter(serialnumber__icontains=serial)
+        result = find_partial_asset_matches(serial)
 
-        assets = list(assets_qs.values_list("pk", flat=True))
-        too_many_assets = len(assets) > 5
-
-        if assets:
-            model_ids = list(assets_qs.values_list("modelid", flat=True))
-
-            models_with_gtin = list(
-                Tblmodel.objects.filter(
-                    modelid__in=model_ids, gtin__isnull=False
-                ).values_list("id", flat=True)
-            )
-
-            models_without_gtin = list(
-                Tblmodel.objects.filter(
-                    modelid__in=model_ids, gtin__isnull=True
-                ).values_list("id", flat=True)
-            )
+        assets = result["assets"]
+        too_many_assets = result["too_many_assets"]
+        models_with_gtin = result["models_with_gtin"]
+        models_without_gtin = result["models_without_gtin"]
+        jobs += result['jobs']
 
         create_asset = True
 
@@ -267,6 +375,7 @@ def gs1_resolver(parsed_data):
             fieldname="brandname",
             options=brand_name_options,
         )
+    brand_ids += parsed_data.get("brand_id", [])
 
     # -------------------------
     # 7. Category
@@ -283,7 +392,7 @@ def gs1_resolver(parsed_data):
     # -------------------------
     # FINAL OUTPUT
     # -------------------------
-    return data_builder(
+    return asset_data_builder(
         gtin=gtin,
         add_gtin=add_gtin,
         asset_id=asset_id,
@@ -306,11 +415,138 @@ def gs1_resolver(parsed_data):
     )
 
 
+def job_resolver(parsed_data):
+    asset_no = parsed_data.get("ASSET_NO")
+    gtin = parsed_data.get("GTIN")
+    serial = parsed_data.get("SERIAL")
+
+    asset_id = None
+    assets = []
+    jobs = []
+
+    model_id = None
+
+    add_gtin = False
+
+    cal_date = parsed_data.get("cal_date", None)
+    end_date = parsed_data.get("end_date", None)
+    start_date = parsed_data.get("start_date", None)
+    workdone = parsed_data.get("workdone", None)
+    jobtypeid = parsed_data.get("jobtypeid", None)
+    jobstatusid = parsed_data.get("jobstatusid", None)
+    # -------------------------
+    # 1. Asset lookup (strongest)
+    # -------------------------
+    asset = find_asset_by_asset_no(asset_no)
+    if asset:
+        if asset:
+            jobs = list(asset.jobs.values_list("id", flat=True))
+            return asset_data_builder(
+                gtin=gtin,
+                asset_id=asset.pk,
+                jobs=jobs,
+            )
+    create_asset = bool(asset)
+
+    # -------------------------
+    # 2. GTIN lookup
+    # -------------------------
+    known_model, known_part, add_gtin = resolve_gtin(gtin)
+    model_id = known_model.pk if known_model else None
+
+    # -------------------------
+    # 3. Exact asset match
+    # -------------------------
+
+    asset = find_asset_by_serial_and_model(serial, known_model)
+    if asset:
+        jobs = list(asset.jobs.values_list("pk", flat=True))
+        return job_data_builder(
+            gtin=gtin,
+            asset_id=asset.pk,
+            model_id=model_id,
+            jobs=jobs,
+        )
+    create_asset = not bool(asset) or bool(serial and known_model)
+
+    # -------------------------
+    # 4. Partial match
+    # -------------------------
+    if serial and not known_model:
+        result = find_partial_asset_matches(serial)
+        assets = result["assets"]
+        create_asset = True
+
+        if asset_id is None:
+            asset_id = assets[0]
+        jobs = list(JobView.objects.filter(assetid__in=assets).values_list("pk", flat=True))
+
+    # -------------------------
+    # 5. Model
+    # -------------------------
+    model_name_options = parsed_data.get("model_name_options", [])
+
+    # -------------------------
+    # 6. Brand
+    # -------------------------
+
+    brand_name_options = parsed_data.get("brand_name_options", None)
+    brand_ids = []
+    if brand_name_options is not None:
+        brand_ids, brand_name_options = match_options(
+            qs=Tblbrands.objects.all(),
+            fieldname="brandname",
+            options=brand_name_options,
+        )
+    brand_ids += parsed_data.get("brand_id", [])
+
+    # -------------------------
+    # 6. Job
+    # -------------------------
+    create_job = any([
+        parsed_data.get("cal_date", None),
+        parsed_data.get("end_date", None),
+        parsed_data.get("start_date", None),
+        parsed_data.get("workdone", None),
+        parsed_data.get("jobtypeid", None),
+        parsed_data.get("jobstatusid", None),
+    ])
+    # -------------------------
+    # FINAL OUTPUT
+    # -------------------------
+    return job_data_builder(
+        gtin=gtin,
+        add_gtin=add_gtin,
+        asset_id=asset_id,
+        assets=assets,
+        asset_no=asset_no,
+        serial=serial,
+        create_asset=create_asset,
+        jobs=jobs,
+        model_id=model_id,
+        model_name_options=model_name_options,
+        brand_name_options=brand_name_options,
+        brand_ids=brand_ids,
+        create_job=create_job,
+        start_date=start_date,
+        end_date=end_date,
+        cal_date=cal_date,
+        workdone=workdone,
+        jobtypeid=jobtypeid,
+        jobstatusid=jobstatusid,
+    )
+
+RESOLVER_MAP = {
+    DocumentTypes.ASSET_DATA.value: gs1_resolver,
+    DocumentTypes.SERVICE_REPORT.value: job_resolver,
+}
+
 def temp_group_resolver(group_id):
     group = TempUploadGroup.objects.get(pk=group_id)
     merged_parsed_data = group.extracted_json.get("merged_gs1_ai", None)
-    if merged_parsed_data is not None:
-        group.extracted_json.update({"resolved": gs1_resolver(merged_parsed_data)})
+    resolver = RESOLVER_MAP.get(group.document_type_id, None)
+    if merged_parsed_data and resolver:
+        group.extracted_json.update({"resolved": resolver(merged_parsed_data)})
         group.save(update_fields=["extracted_json"])
 
 
@@ -363,6 +599,7 @@ class Action:
     label: str
     enabled: Tblmodel
     route_name: str
+    pk: str | None = None
     payload: dict | None = None
 
 
@@ -377,6 +614,7 @@ class ActionResolver:
         self.gtin_actions()
         self.model_actions()
         self.asset_actions()
+        self.service_report_actions()
 
         for action_list in self.actions.values():
             for action in action_list:
@@ -437,10 +675,10 @@ class ActionResolver:
                         label=f"Update {model}",
                         enabled=True,
                         route_name="model_information:update_model",
+                        pk=model,
                         payload={
                             "temp_group_pk": self.temp_group_pk,
                             "gtin": self.data.get("gtin").get("value"),
-                            "pk": model,
                         },
                     )
                 )
@@ -454,9 +692,9 @@ class ActionResolver:
                         label=f"Update {model}",
                         enabled=True,
                         route_name="model_information:update_model",
+                        pk=model,
                         payload={
                             "temp_group_pk": self.temp_group_pk,
-                            "pk": model,
                         },
                     )
                 )
@@ -475,9 +713,28 @@ class ActionResolver:
                     label="Open Asset",
                     enabled=True,
                     route_name="assets:view_asset",
+                    pk=asset_id,
                     payload={
                         "temp_group_pk": self.temp_group_pk,
                         "pk": asset_id,
+                    },
+                )
+            )
+
+        # Open partially matched Asset
+        asset_ids = self.data.get("asset", {}).get("assets")
+        if asset_id:
+            asset_ids.remove(asset_id)
+        for asset in asset_ids:
+            self.actions["asset"].append(
+                Action(
+                    key="open_partially_matched_assets",
+                    label=f"{repr(asset)}",
+                    enabled=True,
+                    route_name="assets:view_asset",
+                    pk=asset,
+                    payload={
+                        "temp_group_pk": self.temp_group_pk,
                     },
                 )
             )
@@ -502,3 +759,27 @@ class ActionResolver:
                     },
                 )
             )
+
+    # -------------
+    # Service Report Actions
+    # -------------
+    def service_report_actions(self):
+        # Log Service Report
+        if self.data.get('job', {}).get("create_job", None):
+            self.actions["job"].append(
+                Action(
+                    key="log_service_report",
+                    label="Log Report",
+                    enabled=True,
+                    route_name="documents:log_service_report",
+                    pk=self.temp_group_pk,
+                    payload={
+                    },
+                )
+            )
+
+
+def get_assets_from_resolved_data(data):
+    asset_ids = data.get('asset', {}).get('assets', [])
+    return Tblassets.objects.filter(pk__in=asset_ids)
+

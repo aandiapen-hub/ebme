@@ -204,3 +204,20 @@ def delete_link_document(link):
         other_document_links = TblDocumentLinks.objects.filter(documentid=documentid)
         if not other_document_links.exists():
             TblDocuments.objects.get(document_id=documentid).delete()
+
+
+def delete_linked_documents(obj):
+    if not hasattr(obj, 'document_links'):
+        return
+    linked_documents = obj.document_links.all()
+    document_ids = list(
+        linked_documents.values_list('pk', flat=True)
+    )
+    linked_documents.delete()
+
+    orphaned_documents = TblDocuments.objects.filter(
+        pk__in=document_ids, links__isnull=True
+    )
+    orphaned_documents.delete()
+
+

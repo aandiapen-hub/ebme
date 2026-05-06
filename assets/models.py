@@ -456,7 +456,7 @@ class Tbljob(models.Model):
         "Tbltechnicianlist", models.PROTECT, db_column="TechnicianID"
     )  # Field name made lowercase.
     assetid = models.ForeignKey(
-        Tblassets, models.PROTECT, db_column="AssetID"
+        Tblassets, models.PROTECT, db_column="AssetID", related_name='jobs'
     )  # Field name made lowercase.
     jobtypeid = models.ForeignKey("Tbljobtypes", models.PROTECT, db_column="jobtypeid")
     creationdate = models.DateField(blank=True, null=True, default=now)

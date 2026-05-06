@@ -1,11 +1,9 @@
 from utils.generic_views import FilteredTableView
+import json
 import datetime
-from documents.models import DocumentTypes
-from django.forms import model_to_dict
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
-from django.views import View
 from django.views.generic import (
     CreateView,
     UpdateView,
@@ -31,9 +29,9 @@ from assets.models import (
 
 from django_filters.views import FilterView
 
+from documents.services.documents import delete_linked_documents
+from documents.models import TempUploadGroup
 
-from documents.models import TblDocumentLinks, TemporaryUpload
-from documents.services.documents import save_temp_files
 
 from utils.generic_views import BulkUpdateView, get_visible_columns
 
@@ -54,7 +52,7 @@ from .reports.job_list import generate_jobs_list
 from utils.generic_filters import dynamic_filterset_generator
 
 # import permissions
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from .mixins import (
     CustomerJobPermissionMixin,
     CustomerJobChildPermissionMixin,
@@ -150,6 +148,21 @@ class JobUpdateView(
         self.object = form.save()
         return HttpResponseRedirect(self.get_success_url())
 
+    def get_initial(self):
+        """Set a default value for the 'assetid' field using a query parameter"""
+        initial = super().get_initial()
+        initial.update(self.request.GET.items())
+
+        # update initial based on specifid payload in query params
+        payload = json.loads(self.request.GET.get("payload", "{}"))
+        for key, value in payload.items():
+            print('key, value from payload', key, value)
+            if isinstance(value, list) and value:
+                initial[key] = value[0]
+            else:
+                initial[key] = value
+        return initial
+
 
 class JobBulkUpdateView(BulkUpdateView, CustomerJobPermissionMixin):
     model = JobView
@@ -191,7 +204,16 @@ class JobCreateView(
     def get_initial(self):
         """Set a default value for the 'assetid' field using a query parameter"""
         initial = super().get_initial()
-        initial["assetid"] = self.request.GET.get("assetid")  # Set default
+        initial.update(self.request.GET.items())
+
+        # update initial based on specifid payload in query params
+        payload = json.loads(self.request.GET.get("payload", "{}"))
+        for key, value in payload.items():
+            print('key, value from payload', key, value)
+            if isinstance(value, list) and value:
+                initial[key] = value[0]
+            else:
+                initial[key] = value
 
         # quick ppm job
         quickjob = self.request.GET.get("quickjob", "")
@@ -235,7 +257,7 @@ class JobDeleteView(
         self.object = self.get_object()
         try:
             with transaction.atomic():
-                TblDocumentLinks.delete_link_documents(self.object)
+                delete_linked_documents(self.object)
                 self.object.delete()
             # Return an empty 204 response so HTMX knows it's successful
             return HttpResponse(status=204)

@@ -30,7 +30,9 @@ class DocumentTypes(models.IntegerChoices):
 
 
 PROCESSABLE_DOCUMENTS = [
-    DocumentTypes.ASSET_DATA
+    DocumentTypes.ASSET_DATA,
+    DocumentTypes.SERVICE_REPORT,
+    DocumentTypes.DELIVERY_NOTE,
 ]
 
 
@@ -202,6 +204,8 @@ class TblDocTableRef(models.Model):
 
 
 class TblDocumentLinks(models.Model):
+    #  use document link services to handle deletions
+    
     document_link_id = models.BigAutoField(primary_key=True, editable=False)
     documentid = models.ForeignKey(
         TblDocuments,

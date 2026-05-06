@@ -1,10 +1,11 @@
 from io import BytesIO
+import json
 from urllib.parse import urlencode
 from django.apps import apps
 from django.views.generic.edit import FormMixin
 from django.db.models.query import QuerySet
 from django.shortcuts import redirect, render
-from django.http import FileResponse, HttpResponse, HttpResponseRedirect, Http404
+from django.http import FileResponse, HttpResponse, HttpResponseRedirect
 from django.contrib import messages
 from django.urls import reverse, reverse_lazy
 from django.core.exceptions import ValidationError
@@ -13,9 +14,12 @@ from .services.documents import (
     save_temp_files,
     delete_link_document,
 )
-import json
-from documents.services.ai_reader import extract_information_with_ai
-from documents.services.gs1_parser import ActionResolver, temp_group_resolver
+from documents.services.document_parser import (
+    ActionResolver,
+    temp_group_resolver,
+    get_assets_from_resolved_data
+)
+from documents.services.process_document import extract_information_from_temp_group
 
 # import models
 from .models import (
@@ -24,6 +28,7 @@ from .models import (
     TempUploadGroup,
     TemporaryUpload,
 )
+
 
 # import generic views
 from django.views.generic import (
@@ -388,8 +393,7 @@ class ExtractTextFromImages(LoginRequiredMixin, FormView):
         return reverse('documents:temp_group', kwargs={'pk': self.kwargs.get('pk')})
 
     def form_valid(self, form):
-        extract_information_with_ai(self.kwargs.get('pk'))
-
+        extract_information_from_temp_group(self.kwargs.get('pk'))
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -491,8 +495,7 @@ class TempUploadMergedDataUpdate(LoginRequiredMixin, PermissionRequiredMixin, Fo
 
     def get_success_url(self):
         group_pk = self.kwargs.get('pk')
-        return reverse('documents:temp_group', kwargs={'pk':group_pk})
-
+        return reverse('documents:temp_group', kwargs={'pk': group_pk})
 
     def get_initial(self):
         initial = super().get_initial()
@@ -509,13 +512,11 @@ class TempUploadMergedDataUpdate(LoginRequiredMixin, PermissionRequiredMixin, Fo
         data = group.extracted_json.get('merged_gs1_ai')
         for key, value in form.cleaned_data.items():
             if isinstance(value, QuerySet):
-                value = value.values_list("pk", flat=True)
+                data[key] = list(value.values_list("pk", flat=True))
             else:
                 data[key] = value
         group.save(update_fields=['extracted_json'])
-
         temp_group_resolver(group.pk)
-
         return super().form_valid(form)
 
 
@@ -533,7 +534,6 @@ class TempUploadListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
         context["success_url"] = self.request.GET.get("success_url")
         context["target"] = self.request.GET.get("target")
         return context
-
 
 
 class LinkTemporaryDocumentView(TempUploadListView, PermissionRequiredMixin, FormMixin):
@@ -588,7 +588,7 @@ class QuickScanner(LoginRequiredMixin, FormView):
         file = self.request.FILES.get("file")
         scanned_code = form.cleaned_data["scanned_code"]
 
-        from .services.gs1_parser import process_barcode
+        from .services.document_parser import process_barcode
 
         decoded_info = None
         try:
@@ -654,3 +654,22 @@ class BulkDeleteLink(BulkUpdateView):
     operation = "delete"
     form_class = EmptyForm
 
+
+class LogServiceReportView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    DetailView
+):
+    model = TempUploadGroup
+    template_name = "jobs/log_service_report.html"
+    permission_required = "assets.add_tbljob"
+    context_object_name = 'temp_group'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        resolved_data = self.object.extracted_json.get('resolved')
+        context['payload'] = json.dumps(resolved_data.get('job', {}))
+        context['assets'] = get_assets_from_resolved_data(
+            resolved_data
+        )
+        return context

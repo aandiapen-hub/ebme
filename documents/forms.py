@@ -1,7 +1,14 @@
 from django import forms
 from django.contrib.contenttypes.models import ContentType
 
-from .models import TblDocuments, TblDocumentLinks, TemporaryUpload, DocumentTypes, TempUploadGroup
+from .models import (
+    TblDocuments,
+    TblDocumentLinks,
+    TemporaryUpload,
+    DocumentTypes,
+    TempUploadGroup,
+    PROCESSABLE_DOCUMENTS,
+)
 from django_select2.forms import (
     ModelSelect2Widget,
     ModelSelect2MultipleWidget,
@@ -212,6 +219,10 @@ class EmptyForm(forms.Form):
 
 
 class TempUploadGroupUpdateForm(forms.ModelForm):
+    document_type_id = forms.ChoiceField(
+        choices=[t for t in DocumentTypes.choices if t[0] in PROCESSABLE_DOCUMENTS]
+    )
+
     class Meta:
         model = TempUploadGroup
         fields = (
@@ -228,9 +239,10 @@ class AssetDataUpdate(forms.Form):
     brand_id = forms.ModelMultipleChoiceField(
         queryset=Tblbrands.objects.all(),
         required=False,
+        label='Brand',
         widget=ModelSelect2MultipleWidget(
             model=Tblbrands,
-            search_fields=['brandname'],
+            search_fields=['brandname__icontains'],
         )
     )
 

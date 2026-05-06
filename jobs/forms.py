@@ -1,4 +1,6 @@
 from django_select2.forms import ModelSelect2Widget
+from django.utils.dateparse import parse_date, parse_datetime
+from datetime import datetime, date
 
 from django.core.exceptions import ValidationError
 from django import forms
@@ -18,6 +20,7 @@ class DateInput(forms.DateInput):
             kwargs.setdefault('format', '%Y-%m-%d')  # HTML5 format
             super().__init__(*args, **kwargs)
             
+
 class JobUpdateForm(forms.ModelForm):
     jobid = forms.IntegerField(widget=forms.TextInput(
         attrs={'readonly': True }),
@@ -40,17 +43,31 @@ class JobUpdateForm(forms.ModelForm):
             "jobenddate": "End Date",
             "workdone": "Work Done",
         }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field_name, field in self.fields.items():
-            if isinstance(field.widget, forms.Select):
-                field.widget.attrs.update({'class': 'form-select'})
-            else:
-                field.widget.attrs.update({'class': 'form-control'})
+        self.original = {}
+        if self.instance and self.instance.pk:
+            for field_name in self.fields:
+                if hasattr(self.instance, f'{field_name}_id'):
+                    original = getattr(self.instance, f'{field_name}_id', None)
+                else:
+                    original = getattr(self.instance, field_name)
+
+                new = self.initial.get(field_name)
+                # normalise date values
+                if isinstance(original, date):
+                    if isinstance(original, datetime):
+                        new_parsed = parse_datetime(new) if isinstance(new, str) else new
+                    else:
+                        new_parsed = parse_date(new) if isinstance(new, str) else new
+                else:
+                    new_parsed = new
+                if new_parsed != original:
+                    self.original[field_name] = getattr(self.instance, field_name)
 
 
-class AddTestEquipmentToJobForm(forms.ModelForm):    
+class AddTestEquipmentToJobForm(forms.ModelForm):
 
     class Meta:
         model = Tbltesteqused

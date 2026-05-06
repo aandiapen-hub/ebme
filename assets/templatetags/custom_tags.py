@@ -41,3 +41,9 @@ def display_filter_value(value):
             stop = value.stop
         return f"{start} - {stop}"
     return str(value)
+
+
+@register.filter
+def get_original(value, name):
+    output = value.get(name, "")
+    return output

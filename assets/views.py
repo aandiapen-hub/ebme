@@ -15,7 +15,7 @@ from django.views.generic import (
     DetailView,
 )
 from datetime import datetime
-from documents.models import TblDocumentLinks, TemporaryUpload
+from documents.models import TblDocumentLinks
 from model_information.views import BrandCreateView, CategoryCreateView, ModelUpdateView
 
 from .models import (
@@ -24,10 +24,7 @@ from .models import (
     JobView,
 )
 
-from .forms import AssetUpdateForm, AssetBulkUpdateForm, AssetCreateFromFileForm
-
-from documents.services.gs1_parser import process_barcode
-
+from .forms import AssetUpdateForm, AssetBulkUpdateForm
 
 from utils.generic_views import BulkUpdateView
 

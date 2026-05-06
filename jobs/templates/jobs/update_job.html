@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+{% load django_bootstrap5 %}
+{% load custom_tags %}
 {% block content %}
 
 <div id='job_details' class='container mb-3'>
@@ -30,10 +31,18 @@
             hx-trigger="click from:#submit_button">
                 {{form.media}}
                 {% csrf_token %}
-                {{form|crispy}}
+      {% for field in form %}
+        {% bootstrap_field field %}
+      {% with original=form.original|get_original:field.html_name %}
+        {% if original %}
+            <p class='text-danger text-small'>Original value: {{ original }}</p>
+        {% endif %}
+      {% endwith %}
+      {% endfor %}
             </form>
         </div>
     </div>
+
     
 
 

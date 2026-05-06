@@ -1,15 +1,15 @@
 from PIL import Image
 import zxingcpp
-from documents.services.gs1_parser import parse_gs1code
+from documents.services.document_parser import parse_gs1code
+from pdf2image import convert_from_bytes
 
 
-def extract_barcode(file):
-    with file.file.open('rb') as f:
-        image = Image.open(f).convert('L').copy()
+def extract_barcode(opened_image):
+    image = opened_image.convert('L').copy()
     barcodes = zxingcpp.read_barcodes(image, text_mode=zxingcpp.Plain)
 
     if len(barcodes) == 0:
-        return None
+        return [] 
 
     decoded_barcodes = []
 
@@ -46,8 +46,41 @@ def extract_barcode(file):
             "h_pct": round((h / height) * 100, 4),
         }
         decoded_barcodes.append(result)
+    return decoded_barcodes
 
-    file.barcode_data = decoded_barcodes
+def extract_barcode_from_pdf(file):
+    print("extracting barcode from pdf", repr(file))
+
+    with file.file.open('rb') as f:
+        pdf_bytes = f.read()
+
+    # convert pdf to list of PIL images
+    pages = convert_from_bytes(pdf_bytes, dpi=300)
+
+    output = []
+
+    for page_num, img in enumerate(pages):
+        img = img.convert('L')  # grayscale
+        output += extract_barcode(img)
+
+    return output
+
+
+def extract_barcode_from_image(file):
+    with file.file.open('rb') as f:
+        image = Image.open(f)
+        return extract_barcode(image)
+
+
+def extract_barcode_from_file(file):
+    if file.mime_type == "image/jpeg":
+        barcode_data = extract_barcode_from_image(file)
+    elif file.mime_type == "application/pdf":
+        barcode_data = extract_barcode_from_pdf(file)
+    else:
+        pass
+
+    file.barcode_data = barcode_data
     file.save(update_fields=['barcode_data'])
 
 

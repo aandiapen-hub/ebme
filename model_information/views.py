@@ -15,7 +15,7 @@ from django.views.generic import (
     DetailView,
 )
 
-from documents.services.gs1_parser import temp_group_resolver
+from documents.services.document_parser import temp_group_resolver
 
 # import django-tables2
 from django_tables2 import tables, SingleTableMixin, columns

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+  {% include 'documents/partials/temp_file_group_mini.html' %}
+  {% include 'documents/partials/temp_group_actions.html' with actions=actions %}
+  <table class="table">
+  <thead>
+    <tr>
+      <th scope="col"> Asset</th>
+      <th scope="col">Model</th>
+      <th scope="col">SN</th>
+      <th scope="col">Status</th>
+      <th scope="col">Create Job</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for asset in assets %}
+    <tr>
+      <td class='text text-primary'
+        _='on click
+        toggle *display of #table_{{asset.assetid}}
+        '>
+        {{ asset.assetid }} <i class="bi bi-list-nested"></i>
+      </td>
+      <td>{{ asset.modelid }}</td>
+      <td>{{ asset.serialnumber }}</td>
+      <td>{{ asset.asset_status_id }}</td>
+      <td>
+      <a href='{% url "jobs:job_create" %}?payload={{payload}}'>
+          + job
+      </a>
+      </td>
+    </tr>
+    <tr id='table_{{asset.assetid}}'>
+        <td colspan='5'>
+        <table class="table">
+          <thead>
+            <tr >
+              <th scope="col">Job</th>
+              <th scope="col">Start Date</th>
+              <th scope="col">End Date</th>
+              <th scope="col">Type</th>
+              <th scope="col">Status</th>
+              <th scope='col'>Update Job</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for job in asset.jobs.all %}
+            <tr>
+              <th>{{ job.jobid }}</th>
+              <td>{{ job.jobstartdate }}</td>
+              <td>{{ job.jobenddate }}</td>
+              <td>{{ job.jobtypeid }}</td>
+              <td>{{ job.jobstatusid }}</td>
+              <td>
+              <a href='{% url "jobs:job_update" pk=job.pk %}?payload={{payload}}'>
+                  update
+              </a>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+  
+{% endblock content %}

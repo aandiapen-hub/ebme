@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     "django_tables2",
     "django_select2",
     "django_filters",
-    "template_partials",
     "django_bootstrap5",
     "django_htmx",
     "jobs",

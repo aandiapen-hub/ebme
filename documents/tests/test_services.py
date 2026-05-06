@@ -1,4 +1,4 @@
-from documents.services.gs1_parser import parse_gs1code
+from documents.services.document_parser import parse_gs1code
 from pathlib import Path
 import pytest
 
