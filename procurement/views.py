@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.contrib import messages
+import json
 from django.db.models.deletion import ProtectedError
 
 from django.shortcuts import render
@@ -238,19 +239,16 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
 
     def get_initial(self):
         initial = super().get_initial()
-        initial["delivery_date"] = now().date().isoformat()
+        initial.update(self.request.GET.items())
 
-        # get po_id from get kwargs
-        po_id = self.request.GET.get("po_id")
-        if po_id:
-            po = TblPurchaseOrder.objects.get(po_id=po_id)
-            initial["po"] = po
-
-        # get delivery_note_number from get kwargs
-        delivery_note_number = self.request.GET.get("delivery_note_number")
-
-        if delivery_note_number:
-            initial["delivery_note_number"] = delivery_note_number
+        # update initial based on specifid payload in query params
+        payload = json.loads(self.request.GET.get("payload", "{}"))
+        for key, value in payload.items():
+            print('key, value from payload', key, value)
+            if isinstance(value, list) and value:
+                initial[key] = value[0]
+            else:
+                initial[key] = value
         return initial
 
     def get_context_data(self, **kwargs):
@@ -261,7 +259,7 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
                 self.request.POST, instance=self.object
             )
         else:
-            po_id = self.request.GET.get("po_id")
+            po_id = self.request.GET.get("po")
             outstanding_items = Outstandngdeliveriesview.objects.filter(po_id=po_id)
             context["temp_file_group"] = self.request.GET.get("temp_file_group")
             initial = []

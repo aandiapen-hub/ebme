@@ -56,6 +56,7 @@
               <div class="card card-body">
                   {% for key, value in group.extracted_json.resolved.items %}
                       <p>{{key}}</p>
+
                         <ul>
                           {% for k, v in value.items %}
                           <li>{{k}} : {{v}}</li>

@@ -46,6 +46,19 @@ class JobData(BaseModel):
     jobstatusid: Optional[int] = None
 
 
+class DeliveryItems(BaseModel):
+    part_number: str
+    quantity: int
+
+
+class DeliveryData(BaseModel):
+    delivery_note_number: str = None
+    delivery_note_number_options: list[str] = Field(default_factory=list)
+    purchase_order: list[int] = Field(default_factory=list)
+    delivery_date: Optional[date] = None
+    delivery_items: list[DeliveryItems] = Field(default_factory=list)
+
+
 def jobtypeid_options():
     return list(Tbljobtypes.objects.all().values('pk', 'jobtypename'))
 
@@ -82,6 +95,11 @@ PROMPT_CONTENT = {
         "system_prompt": service_report_system_prompt,
         "response_format": JobData,
     },
+    DocumentTypes.DELIVERY_NOTE.value:{
+        "user_prompt": "Get delivery information from the delivery note",
+        "system_prompt": "You are a receit and distribution admin expert at logging paperworks",
+        "response_format": DeliveryData,
+    }
 }
 
 
@@ -127,7 +145,7 @@ def extract_group_info_with_ai(group):
                 "content": content,
             },
         ],
-        text_format=JobData,
+        text_format=PROMPT_CONTENT[document_type]["response_format"],
     )
     return response.output_parsed.model_dump(mode="json")
 

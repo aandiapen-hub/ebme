@@ -3,7 +3,6 @@ from PIL import Image
 import zxingcpp
 from django.core.exceptions import ValidationError
 from django.db.models import Q
-from dataclasses import dataclass
 from collections import defaultdict
 import json
 
@@ -18,7 +17,11 @@ from assets.models import (
 
 from parts.models import Tblpartslist
 from documents.models import TempUploadGroup, DocumentTypes
+from procurement.models import TblPurchaseOrder, TblDeliveries
 
+from .action_resolvers.asset_actions import AssetActionResolver 
+from .action_resolvers.service_report_actions import ServiceReportActionResolver 
+from .action_resolvers.delivery_note_actions import DeliveryNoteActionResolver
 
 def asset_data_builder(
     gtin=None,
@@ -138,6 +141,26 @@ def job_data_builder(
     }
 
 
+def delivery_data_builder(
+    delivery_note_number=None,
+    delivery_ids=None,
+    create_delivery=False,
+    po_id=None,
+    delivery_date=None,
+    items=None,
+):
+    return {
+        "delivery": {
+            "delivery_note_number": delivery_note_number,
+            "delivery_ids": delivery_ids,
+            "create_delivery": create_delivery,
+            "po": po_id,
+            "delivery_date": delivery_date,
+            "items_list": items
+        }
+    }
+
+
 def quick_scan_barcode(image):
     img = Image.open(image)
     barcodes = zxingcpp.read_barcodes(img, text_mode=zxingcpp.Plain)
@@ -158,6 +181,7 @@ def parse_gs1code(file=None, scanned_code=None):
         print("code to be parsed from text given", gs1_codes)
 
     output = {}
+    non_gs1_codes = []
 
     for code in gs1_codes:
         # ignore internal codes
@@ -166,7 +190,8 @@ def parse_gs1code(file=None, scanned_code=None):
         parsed_gs1 = biip.parse(code)
 
         if parsed_gs1.gs1_message is None:
-            raise ValidationError({"__all__": "Invalid gs1 code"})
+            output['non_gs1_code'] = non_gs1_codes.append(code)
+            return output
 
         for es in parsed_gs1.gs1_message.element_strings:
             if es.ai.data_title not in output:
@@ -536,10 +561,47 @@ def job_resolver(parsed_data):
         jobstatusid=jobstatusid,
     )
 
+
+def delivery_resolver(parsed_data):
+    print('resolving delivery note')
+    po_number = parsed_data.get('purchase_order', None)
+    delivery_note_number_options = parsed_data.get('delivery_note_number_options', None)
+    delivery_date = parsed_data.get('delivery_date', None)
+    delivery_items = parsed_data.get('delivery_items', None)
+
+    po_id = None
+    existing_deliveries = None
+    create_delivery=False
+
+    if po_number:
+        po_id = TblPurchaseOrder.objects.filter(po_id__in=po_number).first().pk
+
+    if po_id and delivery_note_number_options:
+        create_delivery = True
+
+    if delivery_note_number_options:
+        existing_deliveries = list(
+                TblDeliveries.objects.filter(
+                    delivery_note_number__in=delivery_note_number_options
+                ).values_list('pk', flat=True)
+        )
+
+    return delivery_data_builder(
+        delivery_note_number=delivery_note_number_options,
+        delivery_ids=existing_deliveries,
+        create_delivery=create_delivery,
+        po_id=po_id,
+        delivery_date=delivery_date,
+        items=delivery_items
+    )
+
+
 RESOLVER_MAP = {
     DocumentTypes.ASSET_DATA.value: gs1_resolver,
     DocumentTypes.SERVICE_REPORT.value: job_resolver,
+    DocumentTypes.DELIVERY_NOTE.value: delivery_resolver,
 }
+
 
 def temp_group_resolver(group_id):
     group = TempUploadGroup.objects.get(pk=group_id)
@@ -593,193 +655,29 @@ def process_barcode(file=None, scanned_code=None):
         return output
 
 
-@dataclass
-class Action:
-    key: str
-    label: str
-    enabled: Tblmodel
-    route_name: str
-    pk: str | None = None
-    payload: dict | None = None
+action_resolver_map = {
+    DocumentTypes.ASSET_DATA: AssetActionResolver,
+    DocumentTypes.SERVICE_REPORT: ServiceReportActionResolver,
+    DocumentTypes.DELIVERY_NOTE: DeliveryNoteActionResolver,
+}
 
 
-class ActionResolver:
-    def __init__(self,temp_group_pk, data):
-        self.actions = defaultdict(list)
-        self.temp_group_pk = str(temp_group_pk)
-        self.data = data
-        print(self.data)
-
-    def resolve(self):
-        self.gtin_actions()
-        self.model_actions()
-        self.asset_actions()
-        self.service_report_actions()
-
-        for action_list in self.actions.values():
-            for action in action_list:
-                action.payload_json = json.dumps(action.payload)
-        return dict(self.actions)
-
-    # -------------
-    # GTIN Actions
-    # -------------
-
-    def gtin_actions(self):
-        if self.data.get("gtin", {}).get("add_gtin"):
-            # create model
-            self.actions["gtin"].append(
-                Action(
-                    key="create_model",
-                    label="Create Model",
-                    enabled=True,
-                    route_name="model_information:create_model",
-                    payload={
-                        "temp_group_pk": self.temp_group_pk,
-                        "gtin": self.data.get("gtin").get("value"),
-                        "modelname": self.data.get("model").get("name_options"),
-                        "brandname": self.data.get("brand").get("brand_options"),
-                        "brandid": self.data.get("brand").get("brand_ids"),
-                        "categoryname": self.data.get("model").get(
-                            "category_options"
-                        ),
-                        "categoryid": self.data.get("category").get("category_ids"),
-                    },
-                )
-            )
-            # create spare parts
-            self.actions["gtin"].append(
-                Action(
-                    key="create_spare_part",
-                    label="Create Spare Part",
-                    enabled=True,
-                    route_name="parts:create_part",
-                    payload={
-                        "temp_group_pk": self.temp_group_pk,
-                        "gtin": self.data.get("gtin").get("value")
-                    },
-                )
-            )
-
-    # -------------
-    # Model Actions
-    # -------------
-    def model_actions(self):
-        # update existing model
-        models_without_gtin = self.data.get("model", {}).get("models_without_gtin", {})
-        if models_without_gtin is None:
-            for model in models_without_gtin:
-                self.actions["model"].append(
-                    Action(
-                        key=f"update_model_{model}",
-                        label=f"Update {model}",
-                        enabled=True,
-                        route_name="model_information:update_model",
-                        pk=model,
-                        payload={
-                            "temp_group_pk": self.temp_group_pk,
-                            "gtin": self.data.get("gtin").get("value"),
-                        },
-                    )
-                )
-
-        models_with_gtin = self.data.get("model", {}).get("models_with_gtin", {})
-        if models_with_gtin is None:
-            for model in models_with_gtin:
-                self.actions["model"].append(
-                    Action(
-                        key=f"update_model_{model}",
-                        label=f"Update {model}",
-                        enabled=True,
-                        route_name="model_information:update_model",
-                        pk=model,
-                        payload={
-                            "temp_group_pk": self.temp_group_pk,
-                        },
-                    )
-                )
-
-    # -------------
-    # Asset Actions
-    # -------------
-
-    def asset_actions(self):
-        # Open Asset
-        asset_id = self.data.get("asset", {}).get("asset_id")
-        if asset_id is not None:
-            self.actions["asset"].append(
-                Action(
-                    key="open_asset",
-                    label="Open Asset",
-                    enabled=True,
-                    route_name="assets:view_asset",
-                    pk=asset_id,
-                    payload={
-                        "temp_group_pk": self.temp_group_pk,
-                        "pk": asset_id,
-                    },
-                )
-            )
-
-        # Open partially matched Asset
-        asset_ids = self.data.get("asset", {}).get("assets")
-        if asset_id:
-            asset_ids.remove(asset_id)
-        for asset in asset_ids:
-            self.actions["asset"].append(
-                Action(
-                    key="open_partially_matched_assets",
-                    label=f"{repr(asset)}",
-                    enabled=True,
-                    route_name="assets:view_asset",
-                    pk=asset,
-                    payload={
-                        "temp_group_pk": self.temp_group_pk,
-                    },
-                )
-            )
-
-        # Create Asset
-        if self.data.get("asset", {}).get("create_asset"):
-            self.actions["asset"].append(
-                Action(
-                    key="create_asset",
-                    label="Create Asset",
-                    enabled=True,
-                    route_name="assets:create_asset",
-                    payload={
-                        "temp_group_pk": self.temp_group_pk,
-                        "gtin": self.data.get("gtin", {}).get("value"),
-                        "modelid": self.data.get("model", {}).get("model_id"),
-                        "serialnumber": self.data.get("asset", {}).get("serial"),
-                        "customerassetnumber": self.data.get("asset", {}).get(
-                            "asset_no"
-                        ),
-                        "prod_date": self.data.get("asset", {}).get("prod_date"),
-                    },
-                )
-            )
-
-    # -------------
-    # Service Report Actions
-    # -------------
-    def service_report_actions(self):
-        # Log Service Report
-        if self.data.get('job', {}).get("create_job", None):
-            self.actions["job"].append(
-                Action(
-                    key="log_service_report",
-                    label="Log Report",
-                    enabled=True,
-                    route_name="documents:log_service_report",
-                    pk=self.temp_group_pk,
-                    payload={
-                    },
-                )
-            )
+def ActionResolver(temp_group, data):
+    resolver = action_resolver_map.get(temp_group.document_type_id, None)
+    print(resolver, 'resolver')
+    if resolver is not None:
+        return resolver(temp_group.pk, data)
+    return None
 
 
 def get_assets_from_resolved_data(data):
     asset_ids = data.get('asset', {}).get('assets', [])
     return Tblassets.objects.filter(pk__in=asset_ids)
+
+
+def get_purchase_order_from_resolved_data(data):
+    po_id = data.get('delivery', {}).get('po')
+    if po_id:
+        return TblPurchaseOrder.objects.get(pk=po_id)
+    return None
 

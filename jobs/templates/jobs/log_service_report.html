@@ -2,6 +2,7 @@
 
 
 {% block content %}
+  <div class='container'>
   {% include 'documents/partials/temp_file_group_mini.html' %}
   {% include 'documents/partials/temp_group_actions.html' with actions=actions %}
   <table class="table">
@@ -67,5 +68,8 @@
     {% endfor %}
   </tbody>
 </table>
-  
+
+
+
+</div>
 {% endblock content %}

@@ -17,7 +17,8 @@ from .services.documents import (
 from documents.services.document_parser import (
     ActionResolver,
     temp_group_resolver,
-    get_assets_from_resolved_data
+    get_assets_from_resolved_data,
+    get_purchase_order_from_resolved_data
 )
 from documents.services.process_document import extract_information_from_temp_group
 
@@ -27,6 +28,7 @@ from .models import (
     TblDocumentLinks,
     TempUploadGroup,
     TemporaryUpload,
+    DocumentTypes,
 )
 
 
@@ -470,7 +472,7 @@ class TempUploadGroupView(LoginRequiredMixin, PermissionRequiredMixin, DetailVie
         resolved_data = self.object.extracted_json.get('resolved', None)
         if resolved_data is not None:
             context['actions'] = ActionResolver(
-                temp_group_pk=self.object.pk, data=resolved_data
+                temp_group=self.object, data=resolved_data
             ).resolve()
         return context
 
@@ -668,8 +670,15 @@ class LogServiceReportView(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         resolved_data = self.object.extracted_json.get('resolved')
-        context['payload'] = json.dumps(resolved_data.get('job', {}))
-        context['assets'] = get_assets_from_resolved_data(
-            resolved_data
-        )
+        if self.object.document_type_id == DocumentTypes.SERVICE_REPORT:
+            context['payload'] = json.dumps(resolved_data.get('job', {}))
+            context['assets'] = get_assets_from_resolved_data(
+                resolved_data
+            )
+        if self.object.document_type_id == DocumentTypes.DELIVERY_NOTE:
+            context['payload'] = json.dumps(resolved_data.get('delivery', {}))
+            context['purchase_order'] = get_purchase_order_from_resolved_data(
+                resolved_data
+            )
+            
         return context
