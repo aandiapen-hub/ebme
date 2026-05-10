@@ -1,6 +1,6 @@
 import hashlib
 from django.db import transaction, IntegrityError
-from documents.models import TblDocuments, TblDocumentLinks, TemporaryUpload
+from documents.models import TblDocuments, TblDocumentLinks, TempUploadGroup
 from django.core.exceptions import ValidationError
 from PIL import Image
 import uuid
@@ -36,16 +36,16 @@ def create_document_from_file(
     *,
     document=None,
     uploaded_file=None,
+    content=None,
+    mime_type=None,
     document_type_id,
     temp_file=None,
     document_name=None,
     content_object=None,
     document_description=None,
 ):
-    if document is None and uploaded_file is None and temp_file is None:
+    if document is None and uploaded_file is None and temp_file is None and content is None:
         raise ValidationError("No file found!")
-
-    content = None
 
     if uploaded_file:
         content = uploaded_file.read()
@@ -103,6 +103,7 @@ def create_document_from_file(
             # ------------------------------------------------
 
             # first check if document exists by hash
+            print('creating new document11111111111111d')
             document = TblDocuments.objects.filter(document_hash=file_hash).first()
             if document is None:
                 document = TblDocuments(
@@ -118,12 +119,11 @@ def create_document_from_file(
             raise ValidationError("This file already exists.")
 
         if content_object:
+            print('linking objects to new file', document, content_object)
             link_document_to_object(
                 document=document, content_object=content_object, customer=customer
             )
 
-        if temp_file:
-            temp_file.delete()
     return document
 
 
@@ -158,16 +158,18 @@ def convert_images_to_pdf(image_files):
     return pdf_bytes
 
 
-def save_temp_files(group, user, content_object, document_type=None, file_name=None):
+def save_temp_files(group, content_object, file_name=None):
     """
     Save all files permanently and link them to the row/table.
     """
 
-    temp_files_list = TemporaryUpload.objects.filter(user=user, group=group)
-    image_files = [file for file in temp_files_list if "image/" in file.mime_type]
+    temp_group = TempUploadGroup.objects.filter(pk=group).first()
+    temp_files = temp_group.temp_uploads.all()
+
+    image_files = [file for file in temp_files if "image/" in file.mime_type]
 
     non_image_files = [
-        file for file in temp_files_list if "image/" not in file.mime_type
+        file for file in temp_files if "image/" not in file.mime_type
     ]
 
     with transaction.atomic():
@@ -176,25 +178,19 @@ def save_temp_files(group, user, content_object, document_type=None, file_name=N
             # Open all images
             create_document_from_file(
                 document_name=f"{uuid.uuid4()}" + ".pdf",
-                mime_type="application/pdf",
+                mime_type='application/pdf',
                 content=images_pdf,
-                file_size=len(images_pdf),
-                document_type_id=document_type,
+                document_type_id=temp_group.document_type_id,
                 content_object=content_object,
             )
-            for image in image_files:
-                image.delete()
 
         if non_image_files:
             for file in non_image_files:
                 create_document_from_file(
                     temp_file=file,
-                    document_type_id=document_type,
+                    document_type_id=temp_group.document_type_id,
                     content_object=content_object,
                 )
-
-            for file in non_image_files:
-                file.delete()
 
 
 def delete_link_document(link):

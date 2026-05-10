@@ -1,5 +1,4 @@
 from io import BytesIO
-import json
 from urllib.parse import urlencode
 from django.apps import apps
 from django.views.generic.edit import FormMixin
@@ -17,10 +16,9 @@ from .services.documents import (
 from documents.services.document_parser import (
     ActionResolver,
     temp_group_resolver,
-    get_assets_from_resolved_data,
-    get_purchase_order_from_resolved_data
 )
 from documents.services.process_document import extract_information_from_temp_group
+from documents.services.context.registry import build_document_context
 
 # import models
 from .models import (
@@ -28,7 +26,6 @@ from .models import (
     TblDocumentLinks,
     TempUploadGroup,
     TemporaryUpload,
-    DocumentTypes,
 )
 
 
@@ -473,7 +470,7 @@ class TempUploadGroupView(LoginRequiredMixin, PermissionRequiredMixin, DetailVie
         if resolved_data is not None:
             context['actions'] = ActionResolver(
                 temp_group=self.object, data=resolved_data
-            ).resolve()
+            )
         return context
 
 
@@ -663,22 +660,11 @@ class LogServiceReportView(
     DetailView
 ):
     model = TempUploadGroup
-    template_name = "jobs/log_service_report.html"
+    template_name = "documents/log_document.html"
     permission_required = "assets.add_tbljob"
     context_object_name = 'temp_group'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        resolved_data = self.object.extracted_json.get('resolved')
-        if self.object.document_type_id == DocumentTypes.SERVICE_REPORT:
-            context['payload'] = json.dumps(resolved_data.get('job', {}))
-            context['assets'] = get_assets_from_resolved_data(
-                resolved_data
-            )
-        if self.object.document_type_id == DocumentTypes.DELIVERY_NOTE:
-            context['payload'] = json.dumps(resolved_data.get('delivery', {}))
-            context['purchase_order'] = get_purchase_order_from_resolved_data(
-                resolved_data
-            )
-            
+        context.update(**build_document_context(self.object))
         return context

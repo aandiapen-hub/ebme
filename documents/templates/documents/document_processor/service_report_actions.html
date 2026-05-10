@@ -1,10 +1,4 @@
-{% extends 'base.html' %}
 
-
-{% block content %}
-  <div class='container'>
-  {% include 'documents/partials/temp_file_group_mini.html' %}
-  {% include 'documents/partials/temp_group_actions.html' with actions=actions %}
   <table class="table">
   <thead>
     <tr>
@@ -28,7 +22,7 @@
       <td>{{ asset.serialnumber }}</td>
       <td>{{ asset.asset_status_id }}</td>
       <td>
-      <a href='{% url "jobs:job_create" %}?payload={{payload}}'>
+          <a href='{{asset.create_job_url}}'>
           + job
       </a>
       </td>
@@ -55,8 +49,8 @@
               <td>{{ job.jobtypeid }}</td>
               <td>{{ job.jobstatusid }}</td>
               <td>
-              <a href='{% url "jobs:job_update" pk=job.pk %}?payload={{payload}}'>
-                  update
+                  <a href='{{ job.update_url}}'>
+                  Update
               </a>
               </td>
             </tr>
@@ -68,8 +62,3 @@
     {% endfor %}
   </tbody>
 </table>
-
-
-
-</div>
-{% endblock content %}

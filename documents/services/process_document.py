@@ -56,18 +56,15 @@ def extract_information_from_temp_group(group_id):
     group = TempUploadGroup.objects.get(pk=group_id)
 
     # extract text and barcode data from images
-    print('extracting data with ocr and barcode scanner')
     extract_data(group)
 
     # process group documents with ai
-    print('extracting data with ai')
     ai_data = group.extracted_json.get('ai', None)
     if ai_data is None:
         ai_data = extract_group_info_with_ai(group)
         group.extracted_json.update(
             {"ai": ai_data, }
         )
-    print('merging ocr and barcode data with ai output')
     merged_gs1_ai_data = merge_gs1_ai_data(group, ai_data)
 
     # merge ai and barcode data

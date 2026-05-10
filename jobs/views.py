@@ -30,7 +30,8 @@ from assets.models import (
 from django_filters.views import FilterView
 
 from documents.services.documents import delete_linked_documents
-from documents.models import TempUploadGroup
+
+from documents.services.payloads import apply_payload_to_initial
 
 
 from utils.generic_views import BulkUpdateView, get_visible_columns
@@ -153,14 +154,10 @@ class JobUpdateView(
         initial = super().get_initial()
         initial.update(self.request.GET.items())
 
-        # update initial based on specifid payload in query params
-        payload = json.loads(self.request.GET.get("payload", "{}"))
-        for key, value in payload.items():
-            print('key, value from payload', key, value)
-            if isinstance(value, list) and value:
-                initial[key] = value[0]
-            else:
-                initial[key] = value
+        initial = apply_payload_to_initial(
+            self.request.GET.get('temp_group_id', None),
+            initial=initial
+        )
         return initial
 
 
@@ -206,14 +203,11 @@ class JobCreateView(
         initial = super().get_initial()
         initial.update(self.request.GET.items())
 
-        # update initial based on specifid payload in query params
-        payload = json.loads(self.request.GET.get("payload", "{}"))
-        for key, value in payload.items():
-            print('key, value from payload', key, value)
-            if isinstance(value, list) and value:
-                initial[key] = value[0]
-            else:
-                initial[key] = value
+        initial = apply_payload_to_initial(
+            self.request.GET.get('temp_group_id', None),
+            initial=initial
+        )
+
 
         # quick ppm job
         quickjob = self.request.GET.get("quickjob", "")

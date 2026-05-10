@@ -3,7 +3,7 @@
 <p><small class="text-muted">Documents</small></p>
 <div class='container'>
     <button id="create_doc_button"
-    hx-get="{% url 'documents:create_document_link'%}?object_id={{object}}&content_type={{content_type}}"
+    hx-get="{% url 'documents:create_document_link'%}?object_id={{object_id}}&content_type={{content_type}}"
         hx-target="#modals-here"
         hx-trigger="click"
         data-bs-toggle="modal"
@@ -14,17 +14,17 @@
 
     <!-- Button trigger modal -->
 
-<button class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasDocuments" aria-controls="offcanvasDocuments"> <i class="bi bi-files-alt"></i> </button>
+<button class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasDocuments_{{object_id}}_{{content_type}}" aria-controls="offcanvasDocuments_{{object_id}}_{{content_type}}"> <i class="bi bi-files-alt"></i> </button>
 
-<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasDocuments" aria-labelledby="offcanvasDocumentsLabel">
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasDocuments_{{object_id}}_{{content_type}}" aria-labelledby="offcanvasDocumentsLabel">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title" id="offcanvasDocumentsLabel">Documents</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      <button id='open_canvas' type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
   </div>
   <div class="offcanvas-body">
 {% include 'partials/messages.html' %}
         <div
-        hx-get="{% url 'documents:list_documents' %}?object_id={{object}}&content_type={{content_type}}"
+        hx-get="{% url 'documents:list_documents' %}?object_id={{object_id}}&content_type={{content_type}}"
         hx-trigger="intersect, documentUpdated from:body"
         hx-target="this"
         hx-swap='innerHTML'>

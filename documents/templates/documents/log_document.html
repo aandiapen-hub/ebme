@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+  <div class='container'>
+  {% include 'documents/partials/temp_file_group_mini.html' %}
+  {% include 'documents/partials/temp_group_actions.html' with actions=actions %}
+  
+  {% include template_name %}
+
+</div>
+{% endblock content %}

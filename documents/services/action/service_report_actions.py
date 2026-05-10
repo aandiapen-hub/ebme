@@ -18,6 +18,5 @@ class ServiceReportActionResolver(
                     enabled=True,
                     route_name="documents:log_service_report",
                     pk=self.temp_group_pk,
-                    payload=self.data,
                 )
             )

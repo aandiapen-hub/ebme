@@ -36,7 +36,7 @@
               class="btn text-primary">EDIT
             </button>
 
-            <a href="{% url 'procurement:deliveries_create' %}?po_id={{object.po_id}}"
+            <a href="{% url 'procurement:deliveries_create' po_id=object.pk %}"
             class='btn text-primary text-end'>CREATE DELIVERY</a>
 
             <button

@@ -96,8 +96,8 @@ PROMPT_CONTENT = {
         "response_format": JobData,
     },
     DocumentTypes.DELIVERY_NOTE.value:{
-        "user_prompt": "Get delivery information from the delivery note",
-        "system_prompt": "You are a receit and distribution admin expert at logging paperworks",
+        "user_prompt": "Get delivery information from the delivery note including a list of items delivered. Do not guess",
+        "system_prompt": "You are a receit and distribution admin expert at logging delivery paperworks",
         "response_format": DeliveryData,
     }
 }

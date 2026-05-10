@@ -1,16 +1,23 @@
 from django.db import transaction
 from django.contrib import messages
-import json
 from django.db.models.deletion import ProtectedError
+
+from documents.services.payloads import (
+    get_formset_initial,
+)
+from documents.mixins import TempUploadMixin
+
+from .services.delivery_note import delivery_items_formset_get_context
 
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from django.utils.timezone import now
-from django.views import View
 
-from documents.models import TblDocumentLinks, DocumentTypes, TemporaryUpload
-from documents.views import save_temp_files
+from documents.models import TblDocumentLinks, DocumentTypes
+from documents.services.documents import (
+    delete_linked_documents,
+)
 
 # import Models
 from .models import (
@@ -30,24 +37,22 @@ from django.views.generic import (
     DeleteView,
     ListView,
     DetailView,
-    TemplateView,
 )
 
 
-from .forms import PoCreateForm, PoLineFormset, DeliveryLineFormset, InvoiceCreateForm
-
+from .forms import (
+    PoCreateForm,
+    PoLineFormset,
+    DeliveryLineFormset,
+    InvoiceCreateForm,
+    DeliveryCreateForm,
+)
 
 # import permission and login mixins
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 
 # import generic filter table view
 from utils.generic_views import FilteredTableView
-
-
-# import miscellaneous tools
-from functools import reduce
-import operator
-import ast
 
 from .reports.purchase_order import print_po
 
@@ -147,7 +152,7 @@ class PoDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
                 TblDocumentLinks.delete_link_documents(self.object)
                 self.object.delete()
             response = HttpResponse()
-            messages.warning(request, f"PO deleted")
+            messages.warning(request, "PO deleted")
 
             response["HX-Redirect"] = self.success_url
             return response
@@ -228,10 +233,10 @@ class OutstandingItemsListView(LoginRequiredMixin, PermissionRequiredMixin, List
         return queryset
 
 
-class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, TempUploadMixin, CreateView):
     model = TblDeliveries
-    template_name = "procurement/po_delivery.html"
-    fields = "__all__"
+    template_name = "procurement/delivery_create.html"
+    form_class = DeliveryCreateForm
     permission_required = "procurement.add_tbldeliveries"
 
     def get_success_url(self):
@@ -239,16 +244,9 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
 
     def get_initial(self):
         initial = super().get_initial()
-        initial.update(self.request.GET.items())
+        initial = self.apply_temp_payload_to_initial(initial)
 
-        # update initial based on specifid payload in query params
-        payload = json.loads(self.request.GET.get("payload", "{}"))
-        for key, value in payload.items():
-            print('key, value from payload', key, value)
-            if isinstance(value, list) and value:
-                initial[key] = value[0]
-            else:
-                initial[key] = value
+        initial['po'] = self.kwargs.get("po_id")
         return initial
 
     def get_context_data(self, **kwargs):
@@ -259,32 +257,14 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
                 self.request.POST, instance=self.object
             )
         else:
-            po_id = self.request.GET.get("po")
-            outstanding_items = Outstandngdeliveriesview.objects.filter(po_id=po_id)
-            context["temp_file_group"] = self.request.GET.get("temp_file_group")
-            initial = []
-            delivered_items = self.request.GET.get("items", None)
-            if delivered_items:
-                delivered_items = ast.literal_eval(delivered_items)
 
-            for item in outstanding_items:
-                delivered_item = {}
-                delivered_item["item"] = item.item_id
-                try:
-                    delivered_item["qty"] = int(
-                        [
-                            d.get("qty")
-                            for d in delivered_items
-                            if d["item"] == item.part_number
-                        ][0]
-                    )
-                except:
-                    delivered_item["qty"] = item.outstanding
-                initial.append(delivered_item)
-
-            context["formset"] = DeliveryLineFormset(
-                instance=self.object, initial=initial, extra=len(initial) + 2
+            formset_data = delivery_items_formset_get_context(
+                    po_id=self.kwargs.get("po_id", None),
+                    instance=self.object,
+                    formset_class=DeliveryLineFormset,
+                    delivered_items=get_formset_initial(self.get_temp_group_id())
             )
+            context.update(**formset_data)
 
         return context
 
@@ -303,17 +283,7 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
             formset.instance = self.object
             formset.save()
 
-            temp_file_group = self.request.POST.get("temp_file_group", None)
-
-            if self.temp_file_group is not None:
-                save_temp_files(
-                    group=temp_file_group,
-                    user=self.request.user,
-                    content_object=self.object,
-                    document_type=DocumentTypes.DELIVERY_NOTE,
-                    file_name=f"delivery_note_{self.object.pk}",
-                )
-            messages.success(self.request, "Delivery note created successfully.")
+            self.save_temp_files(form, self.object)
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -367,7 +337,6 @@ class DeliveryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         return self.render_to_response(context)
 
 
-    # utils
 class DeliveryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = TblDeliveries
     permission_required = "procurement.delete_tbldeliveries"
@@ -380,7 +349,7 @@ class DeliveryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
         self.object = self.get_object()
         try:
             with transaction.atomic():
-                TblDocumentLinks.delete_link_documents(self.object)
+                delete_linked_documents(self.object)
                 self.object.delete()
             messages.success(self.request, "Delivery deleted successfully")
             if self.request.htmx:
@@ -435,15 +404,6 @@ class InvoicesCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
-            temp_file_group = self.request.POST.get("temp_file_group", None)
-            if temp_file_group is not None:
-                save_temp_files(
-                    group=temp_file_group,
-                    user=self.request.user,
-                    content_object=self.object,
-                    document_type=DocumentTypes.INVOICE,
-                    file_name=f"invoice_'+{self.object.pk}",
-                )
 
         return HttpResponseRedirect(self.get_success_url())
 

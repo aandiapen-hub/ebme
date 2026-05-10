@@ -3,8 +3,6 @@ from PIL import Image
 import zxingcpp
 from django.core.exceptions import ValidationError
 from django.db.models import Q
-from collections import defaultdict
-import json
 
 from assets.models import (
     AssetView,
@@ -19,9 +17,10 @@ from parts.models import Tblpartslist
 from documents.models import TempUploadGroup, DocumentTypes
 from procurement.models import TblPurchaseOrder, TblDeliveries
 
-from .action_resolvers.asset_actions import AssetActionResolver 
-from .action_resolvers.service_report_actions import ServiceReportActionResolver 
-from .action_resolvers.delivery_note_actions import DeliveryNoteActionResolver
+from .action.asset_actions import AssetActionResolver
+from .action.service_report_actions import ServiceReportActionResolver
+from .action.delivery_note_actions import DeliveryNoteActionResolver
+
 
 def asset_data_builder(
     gtin=None,
@@ -586,6 +585,8 @@ def delivery_resolver(parsed_data):
                 ).values_list('pk', flat=True)
         )
 
+    delivery_items = {item['part_number']: item['quantity'] for item in delivery_items}
+
     return delivery_data_builder(
         delivery_note_number=delivery_note_number_options,
         delivery_ids=existing_deliveries,
@@ -666,18 +667,6 @@ def ActionResolver(temp_group, data):
     resolver = action_resolver_map.get(temp_group.document_type_id, None)
     print(resolver, 'resolver')
     if resolver is not None:
-        return resolver(temp_group.pk, data)
-    return None
-
-
-def get_assets_from_resolved_data(data):
-    asset_ids = data.get('asset', {}).get('assets', [])
-    return Tblassets.objects.filter(pk__in=asset_ids)
-
-
-def get_purchase_order_from_resolved_data(data):
-    po_id = data.get('delivery', {}).get('po')
-    if po_id:
-        return TblPurchaseOrder.objects.get(pk=po_id)
+        return resolver(temp_group.pk, data).resolve()
     return None
 

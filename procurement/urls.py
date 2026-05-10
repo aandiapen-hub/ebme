@@ -37,7 +37,7 @@ urlpatterns = [
     # del lines
     path("deliveries/", DeliveriesListView.as_view(), name="deliveries"),
     path("delivery_lines/", DeliveryLinesListView.as_view(), name="del_lines"),
-    path("deliveries/create/", DeliveryCreateView.as_view(), name="deliveries_create"),
+    path("deliveries/create/<int:po_id>/", DeliveryCreateView.as_view(), name="deliveries_create"),
     path(
         "deliveries/<int:pk>/update/",
         DeliveryUpdateView.as_view(),
