@@ -193,16 +193,17 @@ def save_temp_files(group, content_object, file_name=None):
                 )
 
 
-def delete_link_document(link):
+def delete_document_link(link):
     with transaction.atomic():
         documentid = link.documentid.pk
         link.delete()
-        other_document_links = TblDocumentLinks.objects.filter(documentid=documentid)
-        if not other_document_links.exists():
-            TblDocuments.objects.get(document_id=documentid).delete()
+        orphaned_documents = TblDocuments.objects.filter(
+            pk=documentid, links__isnull=True
+        )
+        orphaned_documents.delete()
 
 
-def delete_linked_documents(obj):
+def delete_object_document_links(obj):
     if not hasattr(obj, 'document_links'):
         return
     linked_documents = obj.document_links.all()

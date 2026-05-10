@@ -74,7 +74,28 @@
     {% include "modal_div_base.html" %}
     {% endblock modal %}
   
+<div class="toast-container position-fixed bottom-0 end-0 p-3"
+_="on show_message from body 
+    set msg to event.detail.message
+    set level to event.detail.level or 'success'
+    
+    make a <div.toast/> called toast
+    add .fade to toast
+    add .show to toast
 
+    put `<div class='d-flex'>
+            <div class='toast-body'>${msg}</div>
+            <button type='button'
+            class='btn-close btn-close me-2 m-auto'
+            data-bs-dismiss='toast'></button>
+          </div>` into toast 
+
+    put toast into me
+    wait 4s
+    remove toast
+    ">
+</div>
 
 </body>
 </html>
+

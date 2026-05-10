@@ -29,7 +29,7 @@ from assets.models import (
 
 from django_filters.views import FilterView
 
-from documents.services.documents import delete_linked_documents
+from documents.services.documents import delete_object_document_links
 
 from documents.services.payloads import apply_payload_to_initial
 
@@ -52,8 +52,9 @@ from .reports.service_reports import generate_service_report
 from .reports.job_list import generate_jobs_list
 from utils.generic_filters import dynamic_filterset_generator
 
+
 # import permissions
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from .mixins import (
     CustomerJobPermissionMixin,
     CustomerJobChildPermissionMixin,
@@ -155,8 +156,7 @@ class JobUpdateView(
         initial.update(self.request.GET.items())
 
         initial = apply_payload_to_initial(
-            self.request.GET.get('temp_group_id', None),
-            initial=initial
+            self.request.GET.get("temp_group_id", None), initial=initial
         )
         return initial
 
@@ -204,10 +204,8 @@ class JobCreateView(
         initial.update(self.request.GET.items())
 
         initial = apply_payload_to_initial(
-            self.request.GET.get('temp_group_id', None),
-            initial=initial
+            self.request.GET.get("temp_group_id", None), initial=initial
         )
-
 
         # quick ppm job
         quickjob = self.request.GET.get("quickjob", "")
@@ -251,7 +249,7 @@ class JobDeleteView(
         self.object = self.get_object()
         try:
             with transaction.atomic():
-                delete_linked_documents(self.object)
+                delete_object_document_links(self.object)
                 self.object.delete()
             # Return an empty 204 response so HTMX knows it's successful
             return HttpResponse(status=204)

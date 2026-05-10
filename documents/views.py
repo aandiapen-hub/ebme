@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError
 from .services.documents import (
     create_document_from_file,
     save_temp_files,
-    delete_link_document,
+    delete_document_link,
 )
 from documents.services.document_parser import (
     ActionResolver,
@@ -134,7 +134,7 @@ class DocumentLinkDeleteView(
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        delete_link_document(self.object)
+        delete_document_link(self.object)
         if self.request.htmx:
             # Return an empty 204 response so HTMX knows it's successful
             response = HttpResponse(status=204)

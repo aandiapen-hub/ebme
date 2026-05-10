@@ -1,4 +1,5 @@
 from django.db import transaction
+import json
 from django.contrib import messages
 from django.db.models.deletion import ProtectedError
 
@@ -14,9 +15,9 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from django.utils.timezone import now
 
-from documents.models import TblDocumentLinks, DocumentTypes
+from documents.models import TblDocumentLinks
 from documents.services.documents import (
-    delete_linked_documents,
+    delete_object_document_links,
 )
 
 # import Models
@@ -47,6 +48,7 @@ from .forms import (
     InvoiceCreateForm,
     DeliveryCreateForm,
 )
+from django.http.response import Http404
 
 # import permission and login mixins
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -149,7 +151,7 @@ class PoDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
         self.object = self.get_object()
         try:
             with transaction.atomic():
-                TblDocumentLinks.delete_link_documents(self.object)
+                delete_object_document_links(self.object)
                 self.object.delete()
             response = HttpResponse()
             messages.warning(request, "PO deleted")
@@ -244,8 +246,6 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, TempUpload
 
     def get_initial(self):
         initial = super().get_initial()
-        initial = self.apply_temp_payload_to_initial(initial)
-
         initial['po'] = self.kwargs.get("po_id")
         return initial
 
@@ -349,24 +349,26 @@ class DeliveryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
         self.object = self.get_object()
         try:
             with transaction.atomic():
-                delete_linked_documents(self.object)
+                delete_object_document_links(self.object)
                 self.object.delete()
             messages.success(self.request, "Delivery deleted successfully")
             if self.request.htmx:
-                return render(
-                    self.request, "partials/messages.html", status=200
-                )  # HTMX expects 200 OK even if empty
+                response = HttpResponse(status=200)
+                response['HX-Trigger'] = json.dumps({
+                        'deliveries_updated': True,
+                        'show_message': {
+                            'message': 'Delivery deleted',
+                            'level': 'warning',
+                        },
+                })
+                return response
 
             # Fallback redirect if not HTMX
             return HttpResponseRedirect(self.get_success_url())
 
-        except ProtectedError:
-            messages.warning(
-                self.request,
-                "This item cannot be deleted because it is linked to other records.",
-            )
-            context = self.get_context_data(object=self.object)
-            return self.render_to_response(context)
+        except ProtectedError as e:
+            form.add_error(None, e)
+            return self.form_invalid(form)
 
 
 # invoices
@@ -464,5 +466,4 @@ class InvoicesListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
 
         if po:
             return qs.filter(po=po)
-        return qs
 

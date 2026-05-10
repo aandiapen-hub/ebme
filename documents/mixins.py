@@ -87,10 +87,8 @@ class TempUploadMixin:
         content_object,
         file_name=None,
     ):
-        print("*********8saving tempfile")
         temp_group_id = self.get_temp_group_id()
 
-        print('temp group id', temp_group_id)
         if not temp_group_id:
             return
 
@@ -100,6 +98,8 @@ class TempUploadMixin:
                 content_object=content_object,
                 file_name=file_name
             )
+        if form.cleaned_data.get('delete_temp_files_after_save', False):
+            TempUploadGroup.objects.get(pk=temp_group_id).delete()
 
     def has_temp_group(self):
         return self.get_temp_group_id() is not None
@@ -113,6 +113,11 @@ class TempUploadMixin:
                 required=False,
                 initial=False,
                 label='Save and Attach uploaded documents'
+            )
+            form.fields['delete_temp_files_after_save'] = BooleanField(
+                required=False,
+                initial=False,
+                label='Delete Temporary files after safe'
             )
             form.fields['temp_group_id'] = UUIDField(
                 required=True,
