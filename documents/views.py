@@ -14,7 +14,6 @@ from .services.documents import (
     delete_document_link,
 )
 from documents.services.document_parser import (
-    ActionResolver,
     temp_group_resolver,
 )
 from documents.services.process_document import extract_information_from_temp_group
@@ -468,9 +467,7 @@ class TempUploadGroupView(LoginRequiredMixin, PermissionRequiredMixin, DetailVie
         context = super().get_context_data(*args, **kwargs)
         resolved_data = self.object.extracted_json.get('resolved', None)
         if resolved_data is not None:
-            context['actions'] = ActionResolver(
-                temp_group=self.object, data=resolved_data
-            )
+            context.update(**build_document_context(self.object))
         return context
 
 
@@ -654,17 +651,3 @@ class BulkDeleteLink(BulkUpdateView):
     form_class = EmptyForm
 
 
-class LogServiceReportView(
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
-    DetailView
-):
-    model = TempUploadGroup
-    template_name = "documents/log_document.html"
-    permission_required = "assets.add_tbljob"
-    context_object_name = 'temp_group'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update(**build_document_context(self.object))
-        return context

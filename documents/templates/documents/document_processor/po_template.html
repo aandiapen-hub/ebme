@@ -1,0 +1,14 @@
+{% extends 'documents/document_processor/action_card_template.html' %}
+
+{% block header %} {{action.label}} {% endblock header %}
+{% block title %}
+  PO: <a href="{{action.obj.get_absolute_url }}" class="btn btn-primary">{{action.obj}}</a>
+{% endblock title %}
+{% block text %}
+  Supplier: {{action.obj.supplier}}<br>
+  Date Raised: {{action.obj.date_raised}}<br>
+  Status: {{action.obj.order_status}}
+{% endblock text %}
+{% block footer %}
+  <a href="{{action.action_url}}" class="btn btn-primary">Create Delivery</a>
+{% endblock footer %}

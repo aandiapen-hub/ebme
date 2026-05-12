@@ -2,6 +2,7 @@ from django.db import models
 from parts.models import Tblpartsprice
 from django.utils.timezone import now
 from django.contrib.contenttypes.fields import GenericRelation
+from django.urls import reverse
 
 
 # Create your models here.
@@ -106,7 +107,7 @@ class TblPoLines(models.Model):
         "parts.Tblpartslist", models.PROTECT, db_column="item_id", blank=True, null=True
     )
     unit_price = models.DecimalField(
-        max_digits=12, decimal_places=4, blank=True, null=True
+        max_digits=12, decimal_places=4
     )
     qty_ordered = models.BigIntegerField(default=1)
     line_price = models.DecimalField(
@@ -166,6 +167,8 @@ class TblPurchaseOrder(models.Model):
     def __str__(self):
         return f"{self.po_id}"
 
+    def get_absolute_url(self):
+        return reverse('procurement:po_detail', kwargs={'pk': self.po_id})
 
 class PoView(models.Model):
     po_id = models.BigIntegerField(primary_key=True)

@@ -1,28 +1,14 @@
-<div class="card" style="width: 18rem;">
-  <div class="card-body">
-    <h5 class="card-title">PO: {{purchase_order}}</h5>
-    <p class="card-text">
-    Supplier: {{purchase_order.supplier}}<br>
-    Date Raised: {{purchase_order.date_raised}}<br>
-    Status: {{purchase_order.order_status}}
-    </p>
-    <a href="{{purchase_order.create_delivery_url}}" class="btn btn-primary">Add Delivery</a>
-    <a href="{{purchase_order.url}}" class="btn btn-primary">Go To PO</a>
-  </div>
-</div>
+
+<H5>Matching Purchase Orders</H5>
+{% for action in purchase_order %}
+ {% include 'documents/document_processor/po_template.html' %}
+{% empty %}
+<p>No matching purchase order found</p>
+{% endfor %}
 
 <H5>Matching deliveries</H5>
 {% for delivery in existing_deliveries %}
-<div class="card" style="width: 18rem;">
-  <div class="card-body">
-    <h5 class="card-title">{{delivery}}</h5>
-    <p class="card-text">
-    Supplier: {{delivery.po.supplier}}<br>
-    Date Raised: {{delivery.po.date_raised}}<br>
-    Order Status: {{delivery.po.order_status}}
-    </p>
-    <a href="{{purchase_order.create_delivery_url}}" class="btn btn-primary">Add Delivery</a>
-    <a href="{{purchase_order.url}}" class="btn btn-primary">Go To PO</a>
-  </div>
-</div>
+ {% include 'documents/document_processor/delivery_template.html' %}
+{% empty %}
+<p>No matching delivery found</p>
 {% endfor %}

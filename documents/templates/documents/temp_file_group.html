@@ -93,8 +93,9 @@
 <div class='container'>
   <div class='row'>
     {% partial temp_group %}
-    {% include 'documents/partials/temp_group_actions.html' with actions=actions %}
   </div>
+
+    {% include template_name %}
   <!-- view temp file modal -->
   {% include "documents/partials/temp_file_view_modal.html" %}
 </div>

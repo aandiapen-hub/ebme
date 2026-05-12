@@ -1,11 +1,10 @@
-from django.db import transaction, IntegrityError
+from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
-import json
+from documents.mixins import TempUploadMixin
 
 # import models
 from assets.models import Tblbrands, Tblmodel, Tblcategories, Tblcheckslists
-from documents.models import TempUploadGroup
 
 from django.views.generic import (
     UpdateView,
@@ -15,7 +14,6 @@ from django.views.generic import (
     DetailView,
 )
 
-from documents.services.document_parser import temp_group_resolver
 
 # import django-tables2
 from django_tables2 import tables, SingleTableMixin, columns
@@ -36,68 +34,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMix
 
 from utils.generic_views import FilteredTableView
 
-
-class CreateWithPayloadView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
-    success_url_app_view = None  # override in child class
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        processed_payload = json.loads(self.request.GET.get("payload", "{}"))
-
-        if processed_payload is not None:
-            context["payload"] = self.request.GET.get("payload", "{}")
-            context["processed_payload"] = processed_payload
-
-            brandid_list = processed_payload.get("brandid", None)
-            if brandid_list is not None:
-                context["existing_brands"] = Tblbrands.objects.filter(
-                    pk__in=brandid_list
-                )
-            categoryid_list = processed_payload.get("categoryid", None)
-            if categoryid_list is not None:
-                context["existing_categories"] = Tblcategories.objects.filter(
-                    pk__in=categoryid_list
-                )
-
-            temp_group = processed_payload.get("temp_group_pk", None)
-            context["temp_group"] = TempUploadGroup.objects.filter(
-                pk=temp_group
-            ).first()
-        return context
-
-    def form_valid(self, form):
-        try:
-            with transaction.atomic():
-                response = super().form_valid(form)
-                self.temp_group_pk = self.request.POST.get("temp_group_pk", None)
-                if self.temp_group_pk:
-                    temp_group_resolver(self.temp_group_pk)
-
-                return response
-        except IntegrityError as e:
-            form.add_error(None, e)
-            return super.form_invalid(form)
-
-    def get_initial(self):
-        initial = super().get_initial()
-        # update initial based on direct query params matching form fields
-        initial.update(self.request.GET.items())
-
-        # update initial based on specifid payload in query params
-        payload = json.loads(self.request.GET.get("payload", "{}"))
-        for key, value in payload.items():
-            if isinstance(value, list) and value:
-                initial[key] = value[0]
-            else:
-                initial[key] = value
-        return initial
-
-    def get_success_url(self):
-        temp_group_pk = self.request.POST.get("temp_group_pk", None)
-        if temp_group_pk:
-            return reverse("documents:temp_group", kwargs={"pk": temp_group_pk})
-
-        return reverse(self.success_url_app_view, kwargs={"pk": self.object.pk})
 
 
 # brand views
@@ -149,7 +85,7 @@ class BrandBulkUpdateView(BulkUpdateView):
     success_url = reverse_lazy("model_information:brandlist")
 
 
-class BrandCreateView(CreateWithPayloadView):
+class BrandCreateView(CreateView):
     model = Tblbrands
     fields = "__all__"
     template_name = "model_information/partials/brand_create.html"
@@ -239,12 +175,26 @@ class ModelBulkUpdateView(BulkUpdateView):
     success_url = reverse_lazy("model_information:modellist")
 
 
-class ModelCreateView(CreateWithPayloadView):
+class ModelCreateView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TempUploadMixin,
+    CreateView,
+):
     model = Tblmodel
     form_class = ModelQuickCreateForm
     template_name = "model_information/partials/model_create.html"
     permission_required = "assets.add_tblmodel"
-    success_url_app_view = "model_information:model_view"
+
+    def get_success_url(self):
+        return reverse("model_information:model_view", kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        with transaction.atomic():
+            self.object = form.save()
+            self.save_temp_files(form, self.object)
+
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class ExistingModelListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
@@ -349,7 +299,7 @@ class CategoryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         return context
 
 
-class CategoryCreateView(CreateWithPayloadView):
+class CategoryCreateView(CreateView):
     model = Tblcategories
     fields = "__all__"
     template_name = "model_information/partials/create_category.html"

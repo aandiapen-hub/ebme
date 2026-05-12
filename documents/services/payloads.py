@@ -1,5 +1,6 @@
 from documents.services.context import delivery_note
 from documents.models import TempUploadGroup, DocumentTypes
+from datetime import datetime
 
 
 def map_service_report_data_to_job(resolved_data):
@@ -12,9 +13,31 @@ def map_delivery_note(resolved_data):
     return resolved_data.get('delivery', None)
 
 
+def map_asset_data(resolved_data):
+    payload = resolved_data.get('asset', None)
+    for field, value in payload.items():
+        if field == "prod_date":
+            value = datetime.strptime(value, "%y%m%d").date()
+    return payload
+
+
+def map_model_data(resolved_data):
+    payload={
+        "gtin": resolved_data.get("gtin").get("value"),
+        "modelname": resolved_data.get("model").get("name_options"),
+        "brandname": resolved_data.get("brand").get("brand_options"),
+        "brandid": resolved_data.get("brand").get("brand_ids"),
+        "categoryname": resolved_data.get("model").get(
+            "category_options"
+        ),
+        "categoryid": resolved_data.get("category").get("category_ids"),
+    },
+
+
 INITIAL_PAYLOAD_MAP = {
     DocumentTypes.SERVICE_REPORT: map_service_report_data_to_job,
     DocumentTypes.DELIVERY_NOTE: map_delivery_note,
+    DocumentTypes.ASSET_DATA: map_asset_data,
 }
 
 
@@ -41,6 +64,7 @@ def apply_payload_to_initial(
     if payload:
         # update initial based on specifid payload in query params
         for key, value in payload.items():
+            print('payload key value', key, value)
             if isinstance(value, list) and value:
                 initial[key] = value[0]
             else:
@@ -54,6 +78,7 @@ def delivery_note_items_mapper(resolved_data):
         return None
 
     return data.get('items_list', None)
+
 
 
 CONTEXT_PAYLOAD_MAP = {
@@ -79,5 +104,3 @@ def get_formset_initial(
         return None
 
     return mapper(resolved_data)
-
-

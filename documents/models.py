@@ -191,6 +191,7 @@ def delete_uploaded_file(sender, instance, **kwargs):
     if TemporaryUpload.objects.filter(group=instance.group.pk).count() == 0:
         TempUploadGroup.objects.get(pk=instance.group.pk).delete()
 
+
 class TblDocTableRef(models.Model):
     table_id = models.BigIntegerField(primary_key=True)
     table_name = models.CharField(unique=True)
@@ -205,7 +206,7 @@ class TblDocTableRef(models.Model):
 
 class TblDocumentLinks(models.Model):
     #  use document link services to handle deletions
-    
+
     document_link_id = models.BigAutoField(primary_key=True, editable=False)
     documentid = models.ForeignKey(
         TblDocuments,

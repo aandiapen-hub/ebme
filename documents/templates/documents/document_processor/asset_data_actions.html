@@ -1,0 +1,11 @@
+<div class="row">
+    {% for action in gtin_actions %}
+        <div class="col-auto">
+        {% include 'documents/document_processor/model_template.html' %}
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <p>No further model actions required</p>
+        </div>
+    {% endfor %}
+</div>

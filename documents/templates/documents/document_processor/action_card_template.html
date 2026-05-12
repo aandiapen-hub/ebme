@@ -1,0 +1,11 @@
+
+<div class="card">
+  <div class="card-header"> {% block header %} {% endblock header %} </div>
+  <div class="card-body">
+    <h5 class="card-title">{% block title %} {% endblock title %}</h5>
+    {% block text %} {% endblock text %}
+    <p class="card-text">
+    {% block footer %} {% endblock footer %}
+    </p>
+  </div>
+</div>

@@ -4,8 +4,9 @@ from django.db.models import Q
 from django.forms import BooleanField, HiddenInput, UUIDField
 
 from documents.models import TempUploadGroup
-from documents.views import save_temp_files
+from documents.services.documents import save_temp_files
 from documents.services.payloads import apply_payload_to_initial
+
 
 class DocumentLinkPermissionMixin(PermissionRequiredMixin):
     def check_object_permissions(self, obj):

@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.db import transaction
+from documents.mixins import TempUploadMixin
 from django.http import HttpResponse, HttpResponseRedirect
 import json
 
@@ -143,7 +144,9 @@ class AssetDeleteView(
             return self.render_to_response(self.get_context_data())
 
 
-class AssetCreateView(LoginRequiredMixin, CustomerAssetPermissionMixin, CreateView):
+class AssetCreateView(
+    LoginRequiredMixin, CustomerAssetPermissionMixin, TempUploadMixin, CreateView
+):
     model = Tblassets
     form_class = AssetUpdateForm
     template_name = "assets/create_form.html"
@@ -176,17 +179,6 @@ class AssetCreateView(LoginRequiredMixin, CustomerAssetPermissionMixin, CreateVi
 
         context = self.get_context_data(form=form)
         return self.render_to_response(context)
-
-    def get_initial(self):
-        initial = super().get_initial()
-        payload = json.loads(self.request.GET.get("payload", None))
-        if payload is not None:
-            for field, value in payload.items():
-                if field == "prod_date":
-                    initial[field] = datetime.strptime(value, "%y%m%d").date()
-                else:
-                    initial[field] = value
-        return initial
 
 
 class AssetJobsListView(

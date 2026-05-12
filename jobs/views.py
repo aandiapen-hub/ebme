@@ -1,5 +1,6 @@
+from documents.models import TempUploadGroup
 from utils.generic_views import FilteredTableView
-import json
+from documents.mixins import TempUploadMixin
 import datetime
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
@@ -30,9 +31,6 @@ from assets.models import (
 from django_filters.views import FilterView
 
 from documents.services.documents import delete_object_document_links
-
-from documents.services.payloads import apply_payload_to_initial
-
 
 from utils.generic_views import BulkUpdateView, get_visible_columns
 
@@ -136,6 +134,7 @@ class GenerateReportView(
 class JobUpdateView(
     LoginRequiredMixin,
     CustomerJobPermissionMixin,
+    TempUploadMixin,
     UpdateView,
 ):
     model = Tbljob
@@ -147,18 +146,10 @@ class JobUpdateView(
         return reverse_lazy("jobs:job_summary", kwargs={"pk": self.object.jobid})
 
     def form_valid(self, form):
-        self.object = form.save()
+        with transaction.atomic():
+            self.object = form.save()
+            self.save_temp_files(form, self.object)
         return HttpResponseRedirect(self.get_success_url())
-
-    def get_initial(self):
-        """Set a default value for the 'assetid' field using a query parameter"""
-        initial = super().get_initial()
-        initial.update(self.request.GET.items())
-
-        initial = apply_payload_to_initial(
-            self.request.GET.get("temp_group_id", None), initial=initial
-        )
-        return initial
 
 
 class JobBulkUpdateView(BulkUpdateView, CustomerJobPermissionMixin):
@@ -186,6 +177,7 @@ class JobDetailView(
 class JobCreateView(
     LoginRequiredMixin,
     CustomerJobPermissionMixin,
+    TempUploadMixin,
     CreateView,
 ):
     model = Tbljob
@@ -193,19 +185,9 @@ class JobCreateView(
     template_name = "jobs/create_job.html"
     permission_required = "assets.add_tbljob"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["assetid"] = self.request.GET.get("assetid")
-        return context
-
     def get_initial(self):
         """Set a default value for the 'assetid' field using a query parameter"""
         initial = super().get_initial()
-        initial.update(self.request.GET.items())
-
-        initial = apply_payload_to_initial(
-            self.request.GET.get("temp_group_id", None), initial=initial
-        )
 
         # quick ppm job
         quickjob = self.request.GET.get("quickjob", "")
@@ -220,9 +202,15 @@ class JobCreateView(
 
         return initial
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["assetid"] = self.request.GET.get("assetid", None)
+        return context
+
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
+            self.save_temp_files(form, self.object)
 
         return HttpResponseRedirect(self.get_success_url())
 

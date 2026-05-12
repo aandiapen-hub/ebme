@@ -4,12 +4,12 @@
   <div class='d-inline-flex gap-2'>
     {% for action in action_list %}
       {% if action.pk %}
-        <a href='{% url action.route_name action.pk %}?payload={{action.payload_json|urlencode}}'
+  <a href='{% url action.route_name action.pk %}?{{ action.qp|urlencode}}&payload={{action.payload_json|urlencode}}'
         class='btn btn-sm btn-outline-primary' >
           {{action.label}}
         </a>
       {% else %}
-        <a href='{% url action.route_name %}?payload={{action.payload_json|urlencode}}'
+        <a href='{% url action.route_name %}?{{ action.qp }}&payload={{action.payload_json|urlencode}}'
         class='btn btn-sm btn-outline-primary' >
           {{action.label}}
         </a>

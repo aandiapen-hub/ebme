@@ -17,10 +17,6 @@ from parts.models import Tblpartslist
 from documents.models import TempUploadGroup, DocumentTypes
 from procurement.models import TblPurchaseOrder, TblDeliveries
 
-from .action.asset_actions import AssetActionResolver
-from .action.service_report_actions import ServiceReportActionResolver
-from .action.delivery_note_actions import DeliveryNoteActionResolver
-
 
 def asset_data_builder(
     gtin=None,
@@ -52,11 +48,12 @@ def asset_data_builder(
         },
         "asset": {
             "asset_id": asset_id,
-            "serial": serial,
-            "asset_no": asset_no,
+            "serialnumber": serial,
+            "customerassetnumber": asset_no,
+            "modelid": model_id,
             "assets": assets or [],
-            "create_asset": create_asset,
             "prod_date": prod_date,
+            "create_asset": create_asset,
             "too_many_assets": too_many_assets,
         },
         "job": {
@@ -280,6 +277,7 @@ def find_partial_asset_matches(serial):
             "too_many_assets": False,
             "models_with_gtin": [],
             "models_without_gtin": [],
+            "jobs": []
         }
 
     model_ids = list(assets_qs.values_list("modelid", flat=True))
@@ -373,6 +371,7 @@ def gs1_resolver(parsed_data):
     # -------------------------
     if serial and not known_model:
         result = find_partial_asset_matches(serial)
+        print('result!!!!!!!',serial, result)
 
         assets = result["assets"]
         too_many_assets = result["too_many_assets"]
@@ -655,18 +654,4 @@ def process_barcode(file=None, scanned_code=None):
         )
         return output
 
-
-action_resolver_map = {
-    DocumentTypes.ASSET_DATA: AssetActionResolver,
-    DocumentTypes.SERVICE_REPORT: ServiceReportActionResolver,
-    DocumentTypes.DELIVERY_NOTE: DeliveryNoteActionResolver,
-}
-
-
-def ActionResolver(temp_group, data):
-    resolver = action_resolver_map.get(temp_group.document_type_id, None)
-    print(resolver, 'resolver')
-    if resolver is not None:
-        return resolver(temp_group.pk, data).resolve()
-    return None
 
