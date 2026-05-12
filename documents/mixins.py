@@ -5,7 +5,10 @@ from django.forms import BooleanField, HiddenInput, UUIDField
 
 from documents.models import TempUploadGroup
 from documents.services.documents import save_temp_files
-from documents.services.payloads import apply_payload_to_initial
+from documents.services.payloads import(
+    apply_payload_to_initial,
+    apply_payload_to_context,
+)
 
 
 class DocumentLinkPermissionMixin(PermissionRequiredMixin):
@@ -39,12 +42,16 @@ class DocumentLinkPermissionMixin(PermissionRequiredMixin):
 
 
 class TempUploadMixin:
+    initial_mapper = None
 
     def get_temp_group_id(self):
         return (
             self.request.POST.get("temp_group_id")
             or self.request.GET.get("temp_group_id")
         )
+
+    def get_initial_mapper(self):
+        return self.initial_mapper
 
     def get_temp_group(self):
         temp_group_id = self.get_temp_group()
@@ -67,9 +74,16 @@ class TempUploadMixin:
     def apply_temp_payload_to_initial(self, initial):
         return apply_payload_to_initial(
             self.get_temp_group_id(),
-            initial=initial
+            initial=initial,
+            initial_mapper=self.get_initial_mapper()
         )
-        return initial
+
+    def apply_temp_payload_to_context(self, context):
+        return apply_payload_to_context(
+            self.get_temp_group_id(),
+            context=context,
+            context_mapper=self.get_initial_mapper()
+        )
 
     def get_initial(self):
         initial = super().get_initial()
@@ -127,4 +141,11 @@ class TempUploadMixin:
             )
         return form
 
+    def get_context_data(self):
+        context = super().get_context_data()
+
+        # populate from payload
+        context = self.apply_temp_payload_to_context(context=context)
+
+        return context
 

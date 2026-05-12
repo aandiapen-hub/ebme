@@ -107,7 +107,7 @@ class TblPoLines(models.Model):
         "parts.Tblpartslist", models.PROTECT, db_column="item_id", blank=True, null=True
     )
     unit_price = models.DecimalField(
-        max_digits=12, decimal_places=4
+        max_digits=12, decimal_places=4, blank=True, null=True
     )
     qty_ordered = models.BigIntegerField(default=1)
     line_price = models.DecimalField(

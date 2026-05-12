@@ -185,6 +185,7 @@ class ModelCreateView(
     form_class = ModelQuickCreateForm
     template_name = "model_information/partials/model_create.html"
     permission_required = "assets.add_tblmodel"
+    initial_mapper = 'create_model'
 
     def get_success_url(self):
         return reverse("model_information:model_view", kwargs={'pk': self.object.pk})

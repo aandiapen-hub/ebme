@@ -61,10 +61,15 @@ def asset_data_builder(
             "too_many_jobs": too_many_jobs,
         },
         "model": {
+            "gtin": gtin,
+            "modelname": model_name_options or [],
+            "brandname": brand_name_options or [],
+            "brand_ids": brand_ids or [],
+            "categoryname": category_name_options or [],
+            "category_ids": category_ids,
             "model_id": model_id,
             "models_with_gtin": models_with_gtin or [],
             "models_without_gtin": models_without_gtin or [],
-            "name_options": model_name_options or [],
         },
         "part": {
             "part_id": part_id,

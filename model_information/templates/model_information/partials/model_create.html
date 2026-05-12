@@ -26,7 +26,7 @@
                 <div class="col">
                   <h5>Name Options</h5>
                   <ul>
-                    {% for name in processed_payload.modelname %}
+                    {% for name in modelname %}
                       <button class='btn btn-sm btn-outline-secondary'
                         _='on click set value of #id_modelname to my innerText'>
                         {{name}}
@@ -52,15 +52,25 @@
                   <ul>
                     {% for category in existing_categories %}
                       <button class='btn btn-sm btn-outline-secondary'
-                        _='on click set value of #id_modelname to my innerText'>
+                        _='on click
+                          set name to "{{category.categoryname}}"
+                          set pk to "{{category.pk}}"
+                          set value of #id_categoryid to "" 
+                          log value of #id_categoryid
+                        
+                          js(name, pk)
+                            $("#id_categoryid").empty().trigger("change");
+                            var newOption = new Option(name, pk, false, false);
+                            $("#id_categoryid").append(newOption).trigger("change");
+                          end
+                            '>
                         {{category}}
                       </button>
                     {% endfor %}
                   </ul>
                   <p>Suggested New</p>
                   <ul>
-                    {% for category_name in payload.cagetoryname %}
-                        <a href='{% url "model_information:create_category" %}?payload={{payload}}'
+                    {% for category_name in cagetoryname %}
                         class='btn btn-sm btn-outline-secondary'>
                           {{category_name}}
                         </a>
@@ -85,14 +95,25 @@
                   <ul>
                     {% for brand in existing_brands %}
                       <button class='btn btn-sm btn-outline-secondary'
-                        _='on click set value of #id_modelname to my innerText'>
+                        _='on click
+                          set name to "{{brand.brandname}}"
+                          set pk to "{{brand.pk}}"
+                          set value of #id_brandid to "" 
+                          log value of #id_brandid
+                        
+                          js(name, pk)
+                            $("#id_brandid").empty().trigger("change");
+                            var newOption = new Option(name, pk, false, false);
+                            $("#id_brandid").append(newOption).trigger("change");
+                          end
+                            '>
                         {{brand}}
                       </button>
                     {% endfor %}
                   </ul>
                   <p>Suggested New</p>
                   <ul>
-                    {% for brand_name in processed_payload.brandname %}
+                    {% for brand_name in brandname %}
         <a href='{% url "model_information:create_brand" %}?payload={{payload}}'
                         class='btn btn-sm btn-outline-secondary'>
                           {{brand_name}}
