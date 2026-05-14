@@ -132,12 +132,10 @@ def apply_payload_to_context(temp_group_id, context, context_mapper=None):
     if context_mapper:
         mapper = CONTEXT_PAYLOAD_MAP.get(context_mapper)
     else:
-        mapper = CONTEXT_PAYLOAD_MAP.get(object.document_type_id)
+        mapper = CONTEXT_PAYLOAD_MAP.get(temp_group.document_type_id)
 
     if not mapper:
         return context
-    additional_context = map_model_data_to_context(resolved_data)
-    print("additioanl context", additional_context)
-    context.update(**additional_context)
-    print(context)
+
+    context.update(**map_model_data_to_context(resolved_data))
     return context

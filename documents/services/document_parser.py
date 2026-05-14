@@ -403,6 +403,7 @@ def gs1_resolver(parsed_data):
             fieldname="brandname",
             options=brand_name_options,
         )
+        print('brand_ids', brand_ids, 'brand_name_options',  brand_name_options)
     brand_ids += parsed_data.get("brand_id", [])
 
     # -------------------------

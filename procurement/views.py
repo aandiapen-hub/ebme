@@ -10,7 +10,6 @@ from documents.mixins import TempUploadMixin
 
 from .services.delivery_note import delivery_items_formset_get_context
 
-from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from django.utils.timezone import now
@@ -48,7 +47,6 @@ from .forms import (
     InvoiceCreateForm,
     DeliveryCreateForm,
 )
-from django.http.response import Http404
 
 # import permission and login mixins
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -240,9 +238,7 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, TempUpload
     template_name = "procurement/delivery_create.html"
     form_class = DeliveryCreateForm
     permission_required = "procurement.add_tbldeliveries"
-
-    def get_success_url(self):
-        return reverse("procurement:po_detail", kwargs={"pk": self.object.po_id})
+    success_url_app_view = "procurement:po_detail"
 
     def get_initial(self):
         initial = super().get_initial()
@@ -284,6 +280,7 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, TempUpload
             formset.save()
 
             self.save_temp_files(form, self.object)
+            self.after_save(form)
 
         return HttpResponseRedirect(self.get_success_url())
 

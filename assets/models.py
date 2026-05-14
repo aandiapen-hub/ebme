@@ -548,6 +548,9 @@ class Tblmodel(models.Model):
     def __str__(self):
         return f"{self.modelname}"
 
+    def get_absolute_url(self):
+        return reverse('model_information:model_view', kwargs={'pk':self.pk})
+
 
 class Tblpartsused(models.Model):
     jobid = models.ForeignKey(

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<div class='container'>
+<H3>Add Category</H3>
+  <form method='POST' action=''> 
+    {% csrf_token %}
+    {% bootstrap_form form %}
+      {% bootstrap_button button_type="submit" content="Save" %}
+    <a href="{% url 'model_information:categorylist' %}"
+      class='btn btn-secondary'>Cancel</a>
+  </form>
+</div>
+{% endblock content %}

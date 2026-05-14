@@ -3,6 +3,8 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from documents.mixins import TempUploadMixin
 
+from django.forms import BooleanField, HiddenInput, UUIDField
+
 # import models
 from assets.models import Tblbrands, Tblmodel, Tblcategories, Tblcheckslists
 
@@ -85,13 +87,24 @@ class BrandBulkUpdateView(BulkUpdateView):
     success_url = reverse_lazy("model_information:brandlist")
 
 
-class BrandCreateView(CreateView):
+class BrandCreateView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TempUploadMixin,
+    CreateView):
+
     model = Tblbrands
     fields = "__all__"
-    template_name = "model_information/partials/brand_create.html"
+    template_name = "model_information/brand_create.html"
     permission_required = "assets.add_tblbrands"
     success_url_app_view = "model_information:brand_detail"
 
+    def form_valid(self, form):
+        with transaction.atomic():
+            self.object = form.save()
+            self.after_save(form)
+
+        return HttpResponseRedirect(self.get_success_url())
 
 class BrandDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = Tblbrands
@@ -187,13 +200,10 @@ class ModelCreateView(
     permission_required = "assets.add_tblmodel"
     initial_mapper = 'create_model'
 
-    def get_success_url(self):
-        return reverse("model_information:model_view", kwargs={'pk': self.object.pk})
-
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
-            self.save_temp_files(form, self.object)
+            self.after_save(form)
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -278,7 +288,11 @@ class FilteredCategoryTableView(
     default_columns = ["categoryid", "categoryname"]
 
 
-class CategoryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+class CategoryUpdateView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    UpdateView
+):
     model = Tblcategories
     fields = "__all__"
     template_name = "model_information/partials/modal.html"
@@ -300,12 +314,24 @@ class CategoryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         return context
 
 
-class CategoryCreateView(CreateView):
+class CategoryCreateView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TempUploadMixin,
+    CreateView
+):
     model = Tblcategories
     fields = "__all__"
-    template_name = "model_information/partials/create_category.html"
+    template_name = "model_information/category_create.html"
     success_url = reverse_lazy("model_information:categorylist")
     success_url_app_view = "model_information:category_detail"
+
+    def form_valid(self, form):
+        with transaction.atomic():
+            self.object = form.save()
+            self.after_save(form)
+
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class CategoryDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
@@ -313,6 +339,7 @@ class CategoryDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
     template_name = "model_information/partials/category_detail.html"
     context_object_name = "category"
     permission_required = "assets.view_tblcategories"
+
 
 
 class CategoryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):

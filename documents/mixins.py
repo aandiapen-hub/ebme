@@ -2,10 +2,12 @@ from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.forms import BooleanField, HiddenInput, UUIDField
+from django.urls import reverse
 
+from documents.services.document_parser import temp_group_resolver
 from documents.models import TempUploadGroup
 from documents.services.documents import save_temp_files
-from documents.services.payloads import(
+from documents.services.payloads import (
     apply_payload_to_initial,
     apply_payload_to_context,
 )
@@ -54,7 +56,7 @@ class TempUploadMixin:
         return self.initial_mapper
 
     def get_temp_group(self):
-        temp_group_id = self.get_temp_group()
+        temp_group_id = self.get_temp_group_id()
 
         if not temp_group_id:
             return None
@@ -146,6 +148,18 @@ class TempUploadMixin:
 
         # populate from payload
         context = self.apply_temp_payload_to_context(context=context)
+        context['temp_group'] = self.get_temp_group()
 
         return context
+
+    def get_success_url(self):
+        temp_id = self.get_temp_group_id()
+        if temp_id:
+            return reverse('documents:temp_group', kwargs={'pk': temp_id})
+        else:
+            return reverse(self.success_url_app_view, kwargs={'pk': self.object.pk})
+
+    def after_save(self, form):
+        self.save_temp_files(form, self.object)
+        temp_group_resolver(self.get_temp_group_id())
 

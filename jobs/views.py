@@ -1,4 +1,3 @@
-from documents.models import TempUploadGroup
 from utils.generic_views import FilteredTableView
 from documents.mixins import TempUploadMixin
 import datetime
@@ -184,6 +183,7 @@ class JobCreateView(
     form_class = JobCreateForm
     template_name = "jobs/create_job.html"
     permission_required = "assets.add_tbljob"
+    success_url_app_view = "jobs:job_update"
 
     def get_initial(self):
         """Set a default value for the 'assetid' field using a query parameter"""
@@ -210,13 +210,9 @@ class JobCreateView(
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
-            self.save_temp_files(form, self.object)
+            self.after_save(form)
 
         return HttpResponseRedirect(self.get_success_url())
-
-    def get_success_url(self):
-        return reverse_lazy("jobs:job_update", kwargs={"pk": self.object.jobid})
-
 
 class JobDeleteView(
     LoginRequiredMixin,
