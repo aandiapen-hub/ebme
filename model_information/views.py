@@ -159,24 +159,17 @@ class FilteredModelTableView(
     template_columns = {"open": "model_information/tables/model_open.html"}
 
 
-class ModelUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+class ModelUpdateView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TempUploadMixin,
+    UpdateView,
+):
     model = Tblmodel
-    fields = "__all__"
+    form_class = ModelQuickCreateForm
     template_name = "model_information/partials/model_update.html"
     permission_required = "assets.change_tblmodel"
-
-    def get_success_url(self):
-        return reverse(
-            "model_information:model_view", kwargs={"pk": self.object.modelid}
-        )
-
-    def get_initial(self):
-        initial = super().get_initial()
-        # Add query parameters to initial
-        gtin = self.request.GET.get("gtin")
-        if gtin:
-            initial["gtin"] = gtin
-        return initial
+    success_url_app_view = 'model_information:model_view'
 
 
 class ModelBulkUpdateView(BulkUpdateView):

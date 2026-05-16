@@ -6,8 +6,11 @@
 {% endblock title %}
 
 {% block text %}
+  <div class='d-flex'>
+  Brand: {{action.obj.brandid}}
+  Cat: {{action.obj.categoryid}}
+  </div>
 {% endblock text %}
 
 {% block footer %}
-  <a href="{{ action.action_url }}" class="btn btn-primary">{{action.label}}</a>
 {% endblock footer %}

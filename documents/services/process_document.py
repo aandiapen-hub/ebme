@@ -6,6 +6,7 @@ from django.db.models import Q
 from documents.models import TempUploadGroup
 from documents.services.document_parser import temp_group_resolver
 from documents.services.ai_processor import extract_group_info_with_ai
+from django.tasks import task, default_task_backend
 
 
 def extract_data(group):
@@ -52,22 +53,28 @@ def merge_gs1_ai_data(group, ai_data):
     return ai_data
 
 
+@task
 def extract_information_from_temp_group(group_id):
     group = TempUploadGroup.objects.get(pk=group_id)
 
     # extract text and barcode data from images
+    print('extracting barcode and text information')
     extract_data(group)
 
     # process group documents with ai
+    print('using ai to enhence extracted data')
     ai_data = group.extracted_json.get('ai', None)
     if ai_data is None:
         ai_data = extract_group_info_with_ai(group)
         group.extracted_json.update(
             {"ai": ai_data, }
         )
+
+    print('merging barcode/text data with ai data')
     merged_gs1_ai_data = merge_gs1_ai_data(group, ai_data)
 
     # merge ai and barcode data
+    print('saving extracted information')
     group.extracted_json.update(
         {"merged_gs1_ai": merged_gs1_ai_data}
     )

@@ -5,9 +5,11 @@
   Delivery: <a href="{{action.obj.get_absolute_url }}" class="btn btn-primary">{{action.obj}}</a>
 {% endblock title %}
 {% block text %}
-  Supplier: {{action.obj.po.supplier}}<br>
-  Date Raised: {{action.obj.po.date_raised}}<br>
-  Status: {{action.obj.po.order_status}}
+  <ul>
+  <li>Supplier: {{action.obj.po.supplier}}</li>
+  <li>Date Raised: {{action.obj.po.date_raised}}</li>
+  <li>Status: {{action.obj.po.order_status}}</li>
+  </ul>
 {% endblock text %}
 {% block footer %}
 {% endblock footer %}

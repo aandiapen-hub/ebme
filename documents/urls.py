@@ -24,6 +24,7 @@ from .views import (
     BulkDeleteLink,
     ExtractTextFromImages,
     TempUploadMergedDataUpdate,
+    GetTaskResult,
 )
 
 from assets.views import UNIVERSAL_SEARCH_FIELDS as ASSET_UNIVERSAL_SEARCH_FIELDS
@@ -138,5 +139,10 @@ urlpatterns = [
         "documents/<uuid:pk>/update_data",
         TempUploadMergedDataUpdate.as_view(),
         name="update_group_data",
+    ),
+    path(
+        "documents/<uuid:pk>/task_progress",
+        GetTaskResult.as_view(),
+        name="task_progress",
     ),
 ]

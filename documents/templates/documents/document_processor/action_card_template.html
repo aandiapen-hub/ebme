@@ -1,11 +1,16 @@
 
-<div class="card">
-  <div class="card-header"> {% block header %} {% endblock header %} </div>
+<div class="card m-2 border-2 border-{{action.color}}">
+  <div class="card-header">
+    {{action.header}}
+    {% block header %}{% endblock header %}
+  </div>
   <div class="card-body">
     <h5 class="card-title">{% block title %} {% endblock title %}</h5>
-    {% block text %} {% endblock text %}
     <p class="card-text">
+    {% block text %} {% endblock text %}
+  <div class="card-footer bg-transparent border-success">
     {% block footer %} {% endblock footer %}
-    </p>
+    {% include 'documents/document_processor/action_button.html' %}
+  </div>
   </div>
 </div>

@@ -97,6 +97,7 @@ class TempUploadGroup(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    task_result_id = models.TextField(null=True, blank=True)
 
     class Meta:
         managed = False

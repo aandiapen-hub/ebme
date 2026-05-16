@@ -20,9 +20,12 @@ def gtin_actions(temp_group_id, data):
         output.append(
             Action(
                 key="create_model",
-                label="Create Model",
+                header="Unknown GTIN",
+                label="Add as Model",
+                obj=data.get("gtin", {}).get("value"),
                 enabled=True,
                 action_url=f"{base_url}?{query_params}",
+                color='warning'
             )
         )
         # create spare parts
@@ -30,9 +33,12 @@ def gtin_actions(temp_group_id, data):
         output.append(
             Action(
                 key="create_spare_part",
-                label="Create Spare Part",
+                header="Unknown GTIN",
+                label="Add as Spare Part",
+                obj=data.get("gtin", {}).get("value"),
                 enabled=True,
                 action_url=f"{base_url}?{query_params}",
+                color='warning'
                 )
             )
 
@@ -41,20 +47,19 @@ def gtin_actions(temp_group_id, data):
 
 def get_model(temp_group_id, data):
     output = []
-    query_params = urlencode(
-        {'temp_group_id': temp_group_id}
-    )
 
     model_id = data.get("model", {}).get("model_id")
     if model_id:
         model = Tblmodel.objects.get(pk=model_id)
-        base_url = reverse('model_information:model_view', kwargs={'pk': model.pk})
         output.append(
             Action(
                 key="open_model",
-                label="Model Found",
+                header="Exact Model Found",
+                label="Open",
+                obj=model,
                 enabled=True,
-                action_url=f"{base_url}?{query_params}",
+                open_url=reverse('model_information: model_view', kwargs={'pk': model.pk}),
+                color='success',
                 )
             )
 
@@ -68,40 +73,50 @@ def get_models_without_gtin(temp_group_id, data):
     output = []
 
     model_ids_without_gtin = data.get("model", {}).get("models_without_gtin", {})
-    models_without_gtin = Tblmodel.objects.filter(pk__in=model_ids_without_gtin)
-    if models_without_gtin is None:
+    models_without_gtin = Tblmodel.objects.filter(
+        pk__in=model_ids_without_gtin,
+        gtin__isnull=True,
+    )
+    if models_without_gtin:
         for model in models_without_gtin:
             output.append(
                 Action(
                     key=f"update_model_{model}",
+                    header="Partial Model Matches",
                     label=f"Update {model}",
                     obj=model,
                     enabled=True,
                     action_url=f"{reverse('model_information:update_model', kwargs={'pk': model.pk})}?{query_params}",
                     open_url=f"{reverse('model_information:model_view', kwargs={'pk': model.pk})}?{query_params}",
+                    color='secondary'
                 )
             )
     return output
 
-def get_models_with_gtin(temp_group_id, data):
+
+def get_duplicatable_models(temp_group_id, data):
     query_params = urlencode(
         {'temp_group_id': temp_group_id}
     )
     output = []
-    models_with_gtin = data.get("model", {}).get("models_with_gtin", {})
-    if models_with_gtin is None:
-        for model in models_with_gtin:
+    duplicatable_models_id = data.get("model", {}).get("duplicatable_models", {})
+    if duplicatable_models_id:
+        duplicatable_models = Tblmodel.objects.filter(
+            pk__in=duplicatable_models_id
+        )
+        for model in duplicatable_models:
             output.append(
                 Action(
-                    key=f"update_model_{model}",
-                    label=f"Update {model}",
+                    key=f"clone_model_{model}",
+                    header="Similar model with different GTIN",
+                    label=f"Copy Model: {model} with new GTIN",
                     obj=model,
                     enabled=True,
                     action_url=f"{reverse('model_information:update_model', kwargs={'pk': model.pk})}?{query_params}",
                     open_url=f"{reverse('model_information:model_view', kwargs={'pk': model.pk})}?{query_params}",
+                    color='secondary'
                 )
             )
-
     return output
 
 
@@ -117,11 +132,13 @@ def get_fully_matched_asset(temp_group_id, data):
         output.append(
             Action(
                 key=f"open_{asset}",
+                header='Asset Found',
                 label=f"Open {asset}",
                 obj=asset,
                 enabled=True,
                 base_url=reverse("assets:view_asset"),
                 open_url=f"{reverse("assets:view_asset")}?{query_params}",
+                color='success'
             )
         )
     return output
@@ -144,10 +161,12 @@ def get_partially_matched_asset(temp_group_id, data):
         output.append(
             Action(
                 key=f"open_{asset}",
+                header='Partially Matched Asset',
                 label=f"Open {asset}",
                 obj=asset,
                 enabled=True,
-                open_url=f"{reverse("assets:view_asset")}?{query_params}",
+                open_url=f"{reverse("assets:view_asset", kwargs={'pk': asset.pk})}?{query_params}",
+                color='secondary'
             )
         )
     return output
@@ -162,9 +181,11 @@ def create_asset(temp_group_id, data):
     output.append(
         Action(
             key="create_asset",
+            header='Exact Asset not found',
             label="Create New Asset",
             enabled=True,
             action_url=f"{reverse("assets:create_asset")}?{query_params}",
+            color='warning'
         )
     )
     return output
@@ -188,7 +209,7 @@ class AssetDataContext(
                 'fully_matched_model': get_model(
                     self.temp_group.pk, self.resolved_data
                 ),
-                'models_with_gtin': get_models_with_gtin(
+                'duplicatable_models': get_duplicatable_models(
                     self.temp_group.pk, self.resolved_data
                 ),
                 'models_without_gtin': get_models_without_gtin(

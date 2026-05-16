@@ -31,7 +31,7 @@ def asset_data_builder(
     jobs=None,
     too_many_jobs=False,
     model_id=None,
-    models_with_gtin=None,
+    duplicatable_models=None,
     models_without_gtin=None,
     model_name_options=None,
     brand_name_options=None,
@@ -68,7 +68,7 @@ def asset_data_builder(
             "categoryname": category_name_options or [],
             "category_ids": category_ids,
             "model_id": model_id,
-            "models_with_gtin": models_with_gtin or [],
+            "duplicatable_models": duplicatable_models or [],
             "models_without_gtin": models_without_gtin or [],
         },
         "part": {
@@ -403,7 +403,6 @@ def gs1_resolver(parsed_data):
             fieldname="brandname",
             options=brand_name_options,
         )
-        print('brand_ids', brand_ids, 'brand_name_options',  brand_name_options)
     brand_ids += parsed_data.get("brand_id", [])
 
     # -------------------------
@@ -433,7 +432,7 @@ def gs1_resolver(parsed_data):
         too_many_assets=too_many_assets,
         jobs=jobs,
         model_id=model_id,
-        models_with_gtin=models_with_gtin,
+        duplicatable_models=models_with_gtin,
         models_without_gtin=models_without_gtin,
         model_name_options=model_name_options,
         brand_name_options=brand_name_options,

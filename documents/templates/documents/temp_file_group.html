@@ -1,14 +1,76 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% partialdef extracted_data %}
+      {% if group.extracted_json %} 
+          <a href='{% url "documents:update_group_data" pk=group.pk %}'
+            class='btn btn-outline-primary text-decoration-none'>
+              <i class="bi bi-pencil"></i>Group Data
+          </a>
+          <div class="accordion" id="accordionExample">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                Resolved
+                </button>
+              </h2>
+              <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                    {% for key, value in group.extracted_json.resolved.items %}
+                        <p>{{key}}</p>
+
+                          <ul>
+                            {% for k, v in value.items %}
+                            <li>{{k}} : {{v}}</li>
+                            {% endfor %}
+                          </ul>
+                    {% endfor %}
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                  OCR
+                </button>
+              </h2>
+              <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                        {{group.combined_ocr_text}}
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                  Combined Extracted
+                </button>
+              </h2>
+              <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                            <ul>
+                            {% for key, value in group.extracted_json.items %}
+                                <li>{{key}} : {{value}}</li>
+                            {% endfor %}
+                            </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+      {% endif %}
+
+{% endpartialdef %}
 {% partialdef temp_group %}
+    <div class='row'>
       <div class='col' id="group_{{ group.pk }}">
-            <h5>Group Type: {{ group.get_document_type_id_display }}</h5>
-            {% for file in group.temp_uploads.all %}
-            {% include "documents/partials/temp_file.html" %}
-            {% endfor %}
+            <h5>Group Type: 
+                  <a href='{% url "documents:temp_group_update" pk=group.pk %}'
+                    class='btn btn-sm btn-outline-primary text-decoration-none'>
+                     {{ group.get_document_type_id_display }}
+                  </a>
+            </h5>
 
-
+        <div class='d-inline-flex mt-1 gap-1'>
                 <form id='add_image_{{ group.pk }}' enctype="multipart/form-data" method="post"
                   hx-post="{% url 'documents:create_temp_file' %}?group={{ group.pk }}"
                   hx-target="#group_{{ group.pk }}"
@@ -16,87 +78,88 @@
                   hx-trigger='change'
                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
                   {% include "documents/partials/temp_file_input.html" %}
+                
                 </form>
-                <div class='d-inline-flex mt-1 gap-1'>
                   <a href='{% url "documents:temp_group" pk=group.pk %}'
                     class='text-decoration-none btn btn-outline-primary'>
                     Open
                   </a>
 
-                  <a href='{% url "documents:temp_group_update" pk=group.pk %}'
-                    class='btn btn-outline-primary text-decoration-none'>
-                     <i class="bi bi-pencil"></i>Group type
-                  </a>
-                  <a href='{% url "documents:update_group_data" pk=group.pk %}'
-                    class='btn btn-outline-primary text-decoration-none'>
-                     <i class="bi bi-pencil"></i>Group Data
-                  </a>
 
                   <button class="btn btn-outline-warning btn-sm" {% if not group.processable %}disabled{% endif %}
                     hx-post="{% url "documents:extract_text" pk=group.pk %}"
                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                     hx-swap="none">
-                    <i class="bi bi-cpu"></i>
+                    Process <i class="bi bi-cpu"></i>
                   </button>
                   {% if not group.processable %}
                     <p class='text-warning'>Set document type before processing document</p>
                   {% endif %}
 
-                </div>
-        </div>
-      {% if group.extracted_json %} 
-        <p class="d-inline-flex gap-1 mt-1">
-          <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#resolved_collapse" aria-expanded="false" aria-controls="resolved_collapse">Resolved</button>
-          <button class="btn btn-sm btn-outline-primary" type='button' data-bs-toggle="collapse" data-bs-target="#ocr_collapse"  aria-expanded="false" aria-controls="ocr_collapse">Ocr</button>
-          <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#barcode_collapse" aria-expanded="false" aria-controls="barcode_collapse">Extracted Info</button>
-        </p>
-        <div class="row">
-          <div class="col">
-            <div class="collapse multi-collapse" id="resolved_collapse">
-              <div class="card card-body">
-                  {% for key, value in group.extracted_json.resolved.items %}
-                      <p>{{key}}</p>
+            <button class="btn btn-outline-info " type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_{{group.pk}}" aria-controls="offcanvas_{{group.pk}}">
+              Extracted Data <i class="bi bi-clipboard-data"></i>
+            </button>
 
-                        <ul>
-                          {% for k, v in value.items %}
-                          <li>{{k}} : {{v}}</li>
-                          {% endfor %}
-                        </ul>
-                  {% endfor %}
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvas_{{group.pk}}" aria-labelledby="offcanvasDataLabel_{{group.pk}}">
+              <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="offcanvasDataLabel_{{group.pk}}">Offcanvas right</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+              </div>
+              <div class="offcanvas-body">
+                  {% partial extracted_data %}
               </div>
             </div>
-          </div>
-          <div class="col">
-            <div class="collapse multi-collapse" id="ocr_collapse">
-              <div class="card card-body">
-              {{group.combined_ocr_text}}
-              </div>
-            </div>
-          </div>
-          <div class="col">
-            <div class="collapse multi-collapse" id="barcode_collapse">
-              <div class="card card-body">
-                  <ul>
-                  {% for key, value in group.extracted_json.items %}
-                      <li>{{key}} : {{value}}</li>
-                  {% endfor %}
-                  </ul>
-              </div>
-            </div>
-          </div>
+
         </div>
-      {% endif %}
+      </div>
+    </div>
+    <div class='row'>
+        <div class='col d-inline-flex'>
+          {% for file in group.temp_uploads.all %}
+          {% include "documents/partials/temp_file.html" %}
+          {% if forloop.counter == 1 %}
+
+          {% endif %}
+          {% endfor %}
+
+          <div id="openseadragon_{{group.pk}}" style="width: 500px; height: 300px;display:none;">
+              <button class='btn btn-secondary'
+            _='on click hide #openseadragon_{{group.pk}}'>
+              Close viewer 
+              </button>
+          </div>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/openseadragon.min.js"
+                  integrity="sha512-gPZzE+sKmE0kvcjMxW431ef5b5T5QOADV9Gij0isPw2oLATd1IZW7dmDmKh7F2e5BfwjQyAfFp3/OF0fVMOF7Q=="
+                  crossorigin="anonymous"
+                  referrerpolicy="no-referrer">
+          </script>
+          <script>
+              var viewer = OpenSeadragon({
+                id: "openseadragon_{{group.pk}}",
+                  prefixUrl:
+                    "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
+              });
+          </script>
+        </div>
+    </div>
 
 {% endpartialdef temp_group%}
 
 {% block content %}
 <div class='container'>
-  <div class='row'>
     {% partial temp_group %}
-  </div>
+
+    <div
+    hx-get='{% url "documents:task_progress" pk=group.pk %}'
+    hx-trigger='load, every 3s'
+    hx-swap='none'
+    hx-target='this'>
+      <p class='text text-secondary'> Data Processing 
+      <img id="spinner" width="24" height="24" src="{% static 'spinners/3-dots-fade.svg' %}">
+      </p>
+    </div>
 
     {% include template_name %}
-  <!-- view temp file modal -->
-  {% include "documents/partials/temp_file_view_modal.html" %}
 </div>
+
 {% endblock %}

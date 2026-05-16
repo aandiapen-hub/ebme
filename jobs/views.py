@@ -210,6 +210,7 @@ class JobCreateView(
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
+            self.save_temp_files(form, self.object)
             self.after_save(form)
 
         return HttpResponseRedirect(self.get_success_url())

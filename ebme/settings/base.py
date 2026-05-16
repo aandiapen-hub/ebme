@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "django_filters",
     "django_bootstrap5",
     "django_htmx",
+    "django_tasks_db",
     "jobs",
     "assets",
     "dashboard",
@@ -168,3 +169,11 @@ AUTH_USER_MODEL = 'users.CustomUser'
 
 LOGIN_URL = '/users/login/'  # Or just 'login' if using reverse()
 LOGIN_REDIRECT_URL = 'users:landing'  # Or another view name
+
+
+TASKS = {
+    "default": {
+        "BACKEND": "django_tasks_db.DatabaseBackend",
+        "QUEUES": ["default"]
+    }
+}

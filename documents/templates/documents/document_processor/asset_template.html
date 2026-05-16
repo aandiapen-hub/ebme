@@ -6,8 +6,14 @@
 {% endblock title %}
 
 {% block text %}
-{% endblock text %}
+  {% if action.obj %}
+  <ul>
+    <li>{{action.obj.modelid}} {{action.obj.serialnumber}}</li>
+    <li>{{action.obj.modelid.categoryid}}</li>
+    <li>{{action.obj.asset_status_id}}</li>
+  </ul>
+  {% endif %}
+  {% endblock text %}
 
 {% block footer %}
-  <a href="{{ action.action_url }}" class="btn btn-primary">{{action.label}}</a>
 {% endblock footer %}

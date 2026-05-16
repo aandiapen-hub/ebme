@@ -18,6 +18,7 @@ from documents.services.document_parser import (
 )
 from documents.services.process_document import extract_information_from_temp_group
 from documents.services.context.registry import build_document_context
+from django.tasks import default_task_backend
 
 # import models
 from .models import (
@@ -346,7 +347,7 @@ class DocumentPreView(LoginRequiredMixin, DetailView):
             buffer.seek(0)
 
             return FileResponse(buffer, content_type="image/png")
-        return FileResponse(temp_upload.file.open("rb"), content_type=mime_type)
+        return FileResponse(temp_upload.file.open("rb"), content_type='image/jpeg')
 
 
 class TempFilesDeleteAllView(LoginRequiredMixin, FormView):
@@ -391,11 +392,45 @@ class ExtractTextFromImages(LoginRequiredMixin, FormView):
         return reverse('documents:temp_group', kwargs={'pk': self.kwargs.get('pk')})
 
     def form_valid(self, form):
-        extract_information_from_temp_group(self.kwargs.get('pk'))
+        task = extract_information_from_temp_group.enqueue(group_id=str(self.kwargs.get('pk')))
+        print('newly created task', task)
+
+        group = TempUploadGroup.objects.get(pk=self.kwargs.get('pk'))
+        group.task_result_id = str(task.id)
+        group.save()
+
         return HttpResponseRedirect(self.get_success_url())
 
 
+class GetTaskResult(LoginRequiredMixin, DetailView):
+    model = TempUploadGroup
+    context_object_name = 'group'
+    permission_required = "documents.view_tbl_tempuploadgroup"
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        print('group task id', self.object.task_result_id)
+        if self.request.htmx and self.object.task_result_id:
+            task_result = default_task_backend.get_result(
+                self.object.task_result_id
+            )
+            print('task status', task_result.status)
+            if task_result.status not in ['SUCCESSFUL', 'FAILED']:
+                response = HttpResponse(status=200)
+                return response
+
+        context = self.get_context_data(object=self.object)
+
+        if self.object.task_result_id:
+            context['task_result'] = task_result
+        response = self.render_to_response(context)
+        response['HX-Reswap'] = 'outerHTML'
+        return response
+
+    def get_template_names(self):
+        return ['documents/partials/task_progress.html']
+
+   
 class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     template_name = "documents/partials/temp_upload_create.html"
     form_class = TempFileUploadForm
