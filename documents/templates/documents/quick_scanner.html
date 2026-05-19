@@ -33,11 +33,7 @@
 
   <div id='results' class='container m-3 p-3 border'>
     <div class='row'>
-      {% include 'documents/partials/quick_scan/gtin_no_match.html' %}
-      {% include 'documents/partials/quick_scan/asset_exact_match.html' %}
-      {% include 'documents/partials/quick_scan/model_exact_match.html' %}
-      {% include 'documents/partials/quick_scan/asset_create.html' %}
-      {% include 'documents/partials/quick_scan/partial_matches.html' %}
+      {% include template_name %}
     </div>
 </div>
 {% endblock content %}

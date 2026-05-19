@@ -5,7 +5,6 @@ from pdf2image import convert_from_bytes
 
 
 def extract_text_from_image(file, min_conf=50):
-    print('extracting ocr for file:', repr(file))
     with file.file.open('rb') as f:
         img = Image.open(f).convert('L').copy()
     return ocr(img)
@@ -81,7 +80,7 @@ def extract_text_from_pdf(file):
         img = img.convert('L')  # grayscale
 
         data = ocr(img)
-        all_words.append(data['ocr_boxes']) 
+        all_words.append(data['ocr_boxes'])
         all_text += data['ocr_text']
 
     output = {}
@@ -89,13 +88,14 @@ def extract_text_from_pdf(file):
     output['ocr_boxes'] = all_words
     return output
 
+
 def extract_text_from_file(file):
     if 'image' in file.mime_type:
         extracted_data = extract_text_from_image(file)
     elif 'pdf' in file.mime_type:
         extracted_data = extract_text_from_pdf(file)
     else:
-        pass
+       return
 
     file.ocr_text = extracted_data['ocr_text']
     file.ocr_boxes = extracted_data['ocr_boxes']

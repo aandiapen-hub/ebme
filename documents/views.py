@@ -1,5 +1,5 @@
 from io import BytesIO
-from urllib.parse import urlencode
+import json
 from django.apps import apps
 from django.views.generic.edit import FormMixin
 from django.db.models.query import QuerySet
@@ -12,6 +12,7 @@ from .services.documents import (
     create_document_from_file,
     save_temp_files,
     delete_document_link,
+    save_temp_document,
 )
 from documents.services.document_parser import (
     temp_group_resolver,
@@ -19,6 +20,7 @@ from documents.services.document_parser import (
 from documents.services.process_document import extract_information_from_temp_group
 from documents.services.context.registry import build_document_context
 from django.tasks import default_task_backend
+from urllib.parse import urlencode
 
 # import models
 from .models import (
@@ -339,6 +341,9 @@ class DocumentPreView(LoginRequiredMixin, DetailView):
     def get(self, request, *args, **kwargs):
         temp_upload = self.get_object()
         mime_type = temp_upload.mime_type
+        if mime_type in [None, '']:
+            return HttpResponse(status=200)
+
         if mime_type == "application/pdf":
             page = convert_from_path(temp_upload.file.path, first_page=1, last_page=1)
             image = page[0]
@@ -378,6 +383,7 @@ class TempFilesDeleteView(LoginRequiredMixin, DeleteView):
             if not TemporaryUpload.objects.filter(
                 group=self.object.group
             ).exists():
+                print('this is the last objec')
                 response["HX-Retarget"] = f"#group_{self.object.group.pk}"
 
             return response  # No Content
@@ -393,13 +399,14 @@ class ExtractTextFromImages(LoginRequiredMixin, FormView):
 
     def form_valid(self, form):
         task = extract_information_from_temp_group.enqueue(group_id=str(self.kwargs.get('pk')))
-        print('newly created task', task)
 
         group = TempUploadGroup.objects.get(pk=self.kwargs.get('pk'))
         group.task_result_id = str(task.id)
         group.save()
 
-        return HttpResponseRedirect(self.get_success_url())
+        response = HttpResponse()
+        response['HX-Redirect'] = self.get_success_url() 
+        return response
 
 
 class GetTaskResult(LoginRequiredMixin, DetailView):
@@ -409,12 +416,10 @@ class GetTaskResult(LoginRequiredMixin, DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        print('group task id', self.object.task_result_id)
         if self.request.htmx and self.object.task_result_id:
             task_result = default_task_backend.get_result(
                 self.object.task_result_id
             )
-            print('task status', task_result.status)
             if task_result.status not in ['SUCCESSFUL', 'FAILED']:
                 response = HttpResponse(status=200)
                 return response
@@ -425,12 +430,14 @@ class GetTaskResult(LoginRequiredMixin, DetailView):
             context['task_result'] = task_result
         response = self.render_to_response(context)
         response['HX-Reswap'] = 'outerHTML'
+        response['HX-Trigger'] = json.dumps({'data_resolved': True})
+
         return response
 
     def get_template_names(self):
         return ['documents/partials/task_progress.html']
 
-   
+
 class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     template_name = "documents/partials/temp_upload_create.html"
     form_class = TempFileUploadForm
@@ -443,33 +450,25 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
         file = self.request.FILES.get("files")
         group_id = self.request.GET.get("group", None)
 
-        if group_id is not None:
-            self.group = TempUploadGroup.objects.filter(pk=group_id).first()
-            if self.group.user != self.request.user:
-                raise ValidationError("Group belongs to another user")
-        else:
-            self.group = TempUploadGroup.objects.create(
-                user=self.request.user,
-            )
-
-        object = TemporaryUpload.from_uploaded_file(
+        self.object = save_temp_document(
+            user=self.request.user,
+            group_id=group_id,
             file=file,
-            group=self.group,
         )
 
         if self.request.htmx:
             group_document_count = TemporaryUpload.objects.filter(
-                group=object.group
+                group=self.object.group
             ).count()
             if group_document_count == 1:
-                context = {"group": object.group, "temp_files": [object]}
+                context = {"group": self.object.group, "temp_files": [self.object]}
                 return render(
                     self.request,
                     "documents/temp_file_group.html#temp_group",
                     context=context,
                 )
             else:
-                context = {"file": object}
+                context = {"file": self.object}
                 return render(
                     self.request, "documents/partials/temp_file.html", context
                 )
@@ -480,7 +479,7 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
     def form_invalid(self, form):
         response = self.render_to_response(self.get_context_data(form=form))
         response["HX-Retarget"] = "this"
-        response["HX-Reswap"] = "beforeend"
+        response["HX-Reswap"] = "afterend"
         return response
 
 
@@ -493,16 +492,11 @@ class TempUploadGroupView(LoginRequiredMixin, PermissionRequiredMixin, DetailVie
         return super().get_queryset().filter(user=self.request.user)
 
     def get_template_names(self):
-        if self.request.htmx:
-            return ["documents/temp_file_group.html#temp_group"]
-        else:
-            return ["documents/temp_file_group.html"]
+        return ["documents/temp_file_group.html"]
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        resolved_data = self.object.extracted_json.get('resolved', None)
-        if resolved_data is not None:
-            context.update(**build_document_context(self.object))
+        context.update(**build_document_context(temp_group=self.object))
         return context
 
 
@@ -614,16 +608,19 @@ class LinkTemporaryDocumentView(TempUploadListView, PermissionRequiredMixin, For
 class QuickScanner(LoginRequiredMixin, FormView):
     form_class = QuickScannerForm
     template_name = "documents/quick_scanner.html"
+    temp_group = None
 
     def form_valid(self, form):
         file = self.request.FILES.get("file")
         scanned_code = form.cleaned_data["scanned_code"]
 
-        from .services.document_parser import process_barcode
-
-        decoded_info = None
         try:
-            decoded_info = process_barcode(file=file, scanned_code=scanned_code)
+            self.object = save_temp_document(
+                user=self.request.user,
+                file=file,
+                scanned_code=scanned_code
+            )
+
         except ValidationError as e:
             if hasattr(e, "message_dict"):
                 for field, errors in e.message_dict.items():
@@ -633,33 +630,20 @@ class QuickScanner(LoginRequiredMixin, FormView):
                 messages.warning(self.request, str(e))
                 form.add_error(None, e.message)
 
-        if not self.request.user.is_staff:
-            return self.redirect_non_staff(decoded_info.get("search_term"))
+        return HttpResponseRedirect(self.get_success_url())
 
-        return self.render_to_response(
-            self.get_context_data(form=form, result=decoded_info)
-        )
-
-    def redirect_non_staff(self, search_term):
-        base_url = reverse("assets:assets_list")
-        qp = urlencode({"universal_search": search_term})
-        return HttpResponseRedirect(f"{base_url}?{qp}")
+    def get_success_url(self):
+        if isinstance(self.object, TemporaryUpload):
+            return reverse('documents:temp_group', kwargs={'pk': self.object.group.pk})
+        else:
+            url = reverse('assets:assets_list')
+            query_params = urlencode({
+                'universal_search': self.object
+            })
+            return f"{url}?{query_params}"
 
     def form_invalid(self, form):
         return render(self.request, self.template_name, context={"form": form})
-
-    def get_context_data(self, result=None, *args, **kwargs):
-        ctx = super().get_context_data(*args, **kwargs)
-        ctx["result"] = result
-        return ctx
-
-
-URL_MAP = {
-    "device_id": "assets:barcode_output",
-    "service_report": "jobs:report_reader_output",
-    "invoice": "procurement:invoices_reader_output",
-    "delivery_note": "procurement:delivery_note_reader_output",
-}
 
 
 class BulkLinkDocument(BulkUpdateView):

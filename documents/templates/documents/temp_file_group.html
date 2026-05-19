@@ -2,12 +2,16 @@
 {% load static %}
 
 {% partialdef extracted_data %}
-      {% if group.extracted_json %} 
           <a href='{% url "documents:update_group_data" pk=group.pk %}'
             class='btn btn-outline-primary text-decoration-none'>
               <i class="bi bi-pencil"></i>Group Data
           </a>
-          <div class="accordion" id="accordionExample">
+          <div class="accordion" id="accordionExample" 
+          hx-get='{% url "documents:temp_group" pk=group.pk %}'
+          hx-trigger='data_resolved from:body'
+          hx-swap='outerHTML'
+          hx-target='this'
+          hx-select='#accordionExample'>
             <div class="accordion-item">
               <h2 class="accordion-header">
                 <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
@@ -57,89 +61,90 @@
               </div>
             </div>
           </div>
-      {% endif %}
 
 {% endpartialdef %}
 {% partialdef temp_group %}
-    <div class='row'>
-      <div class='col' id="group_{{ group.pk }}">
-            <h5>Group Type: 
-                  <a href='{% url "documents:temp_group_update" pk=group.pk %}'
-                    class='btn btn-sm btn-outline-primary text-decoration-none'>
-                     {{ group.get_document_type_id_display }}
-                  </a>
-            </h5>
+    <div class='container'  id="group_{{ group.pk }}">
+        <div class='row'">
+          <div class='col'>
+                <h5>Group Type: 
+                      <a href='{% url "documents:temp_group_update" pk=group.pk %}'
+                        class='btn btn-sm btn-outline-primary text-decoration-none'>
+                        {{ group.get_document_type_id_display }}
+                      </a>
+                </h5>
 
-        <div class='d-inline-flex mt-1 gap-1'>
-                <form id='add_image_{{ group.pk }}' enctype="multipart/form-data" method="post"
-                  hx-post="{% url 'documents:create_temp_file' %}?group={{ group.pk }}"
-                  hx-target="#group_{{ group.pk }}"
-                  hx-swap="afterbegin"
-                  hx-trigger='change'
-                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-                  {% include "documents/partials/temp_file_input.html" %}
-                
-                </form>
-                  <a href='{% url "documents:temp_group" pk=group.pk %}'
-                    class='text-decoration-none btn btn-outline-primary'>
-                    Open
-                  </a>
+            <div class='d-inline-flex mt-1 gap-1'>
+                    <form id='add_image_{{ group.pk }}' enctype="multipart/form-data" method="post"
+                      hx-post="{% url 'documents:create_temp_file' %}?group={{ group.pk }}"
+                      hx-target="#group_{{ group.pk }}"
+                      hx-swap="afterbegin"
+                      hx-trigger='change'
+                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                      {% include "documents/partials/temp_file_input.html" %}
+                    
+                    </form>
+                      <a href='{% url "documents:temp_group" pk=group.pk %}'
+                        class='text-decoration-none btn btn-outline-primary'>
+                        Open
+                      </a>
 
 
-                  <button class="btn btn-outline-warning btn-sm" {% if not group.processable %}disabled{% endif %}
-                    hx-post="{% url "documents:extract_text" pk=group.pk %}"
-                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                    hx-swap="none">
-                    Process <i class="bi bi-cpu"></i>
-                  </button>
-                  {% if not group.processable %}
-                    <p class='text-warning'>Set document type before processing document</p>
-                  {% endif %}
+                      <button class="btn btn-outline-warning btn-sm" {% if not group.processable %}disabled{% endif %}
+                        hx-post="{% url "documents:extract_text" pk=group.pk %}"
+                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                        hx-swap="none">
+                        Process <i class="bi bi-cpu"></i>
+                      </button>
+                      {% if not group.processable %}
+                        <p class='text-warning'>Set document type before processing document</p>
+                      {% endif %}
 
-            <button class="btn btn-outline-info " type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_{{group.pk}}" aria-controls="offcanvas_{{group.pk}}">
-              Extracted Data <i class="bi bi-clipboard-data"></i>
-            </button>
+                <button class="btn btn-outline-info " type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_{{group.pk}}" aria-controls="offcanvas_{{group.pk}}">
+                  Extracted Data <i class="bi bi-clipboard-data"></i>
+                </button>
 
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvas_{{group.pk}}" aria-labelledby="offcanvasDataLabel_{{group.pk}}">
-              <div class="offcanvas-header">
-                <h5 class="offcanvas-title" id="offcanvasDataLabel_{{group.pk}}">Offcanvas right</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-              </div>
-              <div class="offcanvas-body">
-                  {% partial extracted_data %}
-              </div>
+                <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvas_{{group.pk}}" aria-labelledby="offcanvasDataLabel_{{group.pk}}">
+                  <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="offcanvasDataLabel_{{group.pk}}">Offcanvas right</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                  </div>
+                  <div class="offcanvas-body">
+                      {% partial extracted_data %}
+                  </div>
+                </div>
+
             </div>
-
-        </div>
-      </div>
-    </div>
-    <div class='row'>
-        <div class='col d-inline-flex'>
-          {% for file in group.temp_uploads.all %}
-          {% include "documents/partials/temp_file.html" %}
-          {% if forloop.counter == 1 %}
-
-          {% endif %}
-          {% endfor %}
-
-          <div id="openseadragon_{{group.pk}}" style="width: 500px; height: 300px;display:none;">
-              <button class='btn btn-secondary'
-            _='on click hide #openseadragon_{{group.pk}}'>
-              Close viewer 
-              </button>
           </div>
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/openseadragon.min.js"
-                  integrity="sha512-gPZzE+sKmE0kvcjMxW431ef5b5T5QOADV9Gij0isPw2oLATd1IZW7dmDmKh7F2e5BfwjQyAfFp3/OF0fVMOF7Q=="
-                  crossorigin="anonymous"
-                  referrerpolicy="no-referrer">
-          </script>
-          <script>
-              var viewer = OpenSeadragon({
-                id: "openseadragon_{{group.pk}}",
-                  prefixUrl:
-                    "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
-              });
-          </script>
+        </div>
+        <div class='row'>
+            <div class='col d-inline-flex'>
+              {% for file in group.temp_uploads.all %}
+              {% include "documents/partials/temp_file.html" %}
+              {% if forloop.counter == 1 %}
+
+              {% endif %}
+              {% endfor %}
+
+              <div id="openseadragon_{{group.pk}}" style="width: 500px; height: 300px;display:none;">
+                  <button class='btn btn-secondary'
+                _='on click hide #openseadragon_{{group.pk}}'>
+                  Close viewer 
+                  </button>
+              </div>
+              <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/openseadragon.min.js"
+                      integrity="sha512-gPZzE+sKmE0kvcjMxW431ef5b5T5QOADV9Gij0isPw2oLATd1IZW7dmDmKh7F2e5BfwjQyAfFp3/OF0fVMOF7Q=="
+                      crossorigin="anonymous"
+                      referrerpolicy="no-referrer">
+              </script>
+              <script>
+                  var viewer = OpenSeadragon({
+                    id: "openseadragon_{{group.pk}}",
+                      prefixUrl:
+                        "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
+                  });
+              </script>
+            </div>
         </div>
     </div>
 
@@ -159,7 +164,15 @@
       </p>
     </div>
 
-    {% include template_name %}
+    <div id='additional_context'
+    hx-get='{% url "documents:temp_group" pk=group.pk %}'
+    hx-trigger='data_resolved from:body'
+    hx-swap='outerHTML'
+    hx-target='this'
+    hx-select='#additional_context'
+    >
+      {% include template_name %}
+    </div>
 </div>
 
 {% endblock %}

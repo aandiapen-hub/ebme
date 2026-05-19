@@ -3,7 +3,6 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from documents.mixins import TempUploadMixin
 
-from django.forms import BooleanField, HiddenInput, UUIDField
 
 # import models
 from assets.models import Tblbrands, Tblmodel, Tblcategories, Tblcheckslists
@@ -36,9 +35,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMix
 
 from utils.generic_views import FilteredTableView
 
-
-
 # brand views
+
+
 class FilteredBrandTableView(
     LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
 ):
@@ -170,6 +169,8 @@ class ModelUpdateView(
     template_name = "model_information/partials/model_update.html"
     permission_required = "assets.change_tblmodel"
     success_url_app_view = 'model_information:model_view'
+    initial_mapper = 'create_model'
+
 
 
 class ModelBulkUpdateView(BulkUpdateView):

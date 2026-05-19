@@ -1,12 +1,13 @@
 import hashlib
 from django.db import transaction, IntegrityError
-from documents.models import TblDocuments, TblDocumentLinks, TempUploadGroup
+from documents.models import TblDocuments, TblDocumentLinks, TempUploadGroup, TemporaryUpload
 from django.core.exceptions import ValidationError
+from documents.services.process_document import quick_group_processor
 from PIL import Image
 import uuid
 import io
 from django.contrib.contenttypes.models import ContentType
-
+from documents.services.document_parser import parse_gs1code
 
 def resolve_customer(content_object):
     if not content_object:
@@ -218,3 +219,47 @@ def delete_object_document_links(obj):
     orphaned_documents.delete()
 
 
+def save_temp_document(user, group_id=None, file=None, scanned_code=None):
+
+    # non staff users can only have 1 scan group
+    if not user.is_staff:
+        TempUploadGroup.objects.all().delete()
+
+    if file and scanned_code:
+        raise ValidationError(
+            {'_all_': 'Please upload either a file or a barcode!'}
+        )
+    if group_id is not None:
+        group = TempUploadGroup.objects.filter(pk=group_id).first()
+        if group.user != user:
+            raise ValidationError("Group belongs to another user")
+    else:
+        group = TempUploadGroup.objects.create(
+            user=user,
+        )
+
+    if file:
+        scanned = TemporaryUpload.from_uploaded_file(
+            file=file,
+            group=group,
+        )
+
+    if scanned_code:
+        gs1_data = parse_gs1code(
+            scanned_code=scanned_code.replace('(', '').replace(')', '')
+        )
+        print('gs1', gs1_data)
+        if set(gs1_data.keys()) == {'non_gs1_codes'}:
+            # return list of non gs1 codes if no gs1 data found
+            return ' '.join(gs1_data['non_gs1_codes'])
+
+        barcode_data = [{
+            'text': scanned_code,
+            'parsed': gs1_data,
+        }]
+        scanned = TemporaryUpload.objects.create(
+            group=group,
+            barcode_data=barcode_data,
+        )
+        quick_group_processor(scanned)
+        return scanned

@@ -109,7 +109,7 @@ class TempUploadGroup(models.Model):
 
 
 class TemporaryUpload(models.Model):
-    file = models.FileField(upload_to="", storage=temp_storage)
+    file = models.FileField(upload_to="", storage=temp_storage, null=True, blank=True)
     group = models.ForeignKey(
         TempUploadGroup,
         on_delete=models.CASCADE,
@@ -119,7 +119,7 @@ class TemporaryUpload(models.Model):
     mime_type = models.CharField(max_length=100)
     original_name = models.CharField(max_length=100)
     page_number = models.IntegerField(null=True, blank=True)
-    file_size = models.BigIntegerField()
+    file_size = models.BigIntegerField(null=True, blank=True)
     ocr_text = models.TextField(blank=True)
     ocr_boxes = models.JSONField(default=dict, blank=True)
     barcode_data = models.JSONField(default=dict, blank=True)

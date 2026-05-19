@@ -6,22 +6,28 @@ from .context_action import Action
 from procurement.models import TblPurchaseOrder, TblDeliveries
 
 
-def get_purchase_order_from_resolved_data(temp_group_id, data):
+def temp_group_params(temp_group_id):
+    if not temp_group_id:
+        return {}
+    return urlencode({'temp_group_id': temp_group_id})
+
+
+def get_purchase_order_from_resolved_data(data, temp_group_id=None):
     po_id = data.get('delivery', {}).get('po')
     output = []
     if po_id:
         po_qs = TblPurchaseOrder.objects.filter(pk=po_id)
-        base_url = reverse('procurement:deliveries_create', kwargs={'po_id': po_id})
-        query_params = urlencode(
-            {'temp_group_id': temp_group_id}
-        )
+        query_params = temp_group_params(temp_group_id)
 
         for po in po_qs:
             output.append(Action(
                 key='create_delivery',
-                label='Matched PO',
+                header='Matched PO',
+                label='Open PO',
                 obj=po,
-                action_url=f"{base_url}?{query_params}"
+                enabled=True,
+                action_url=f"{reverse('procurement:deliveries_create', kwargs={'po_id': po_id})}?{query_params}",
+                color='success'
                 )
             )
         return output
@@ -38,9 +44,12 @@ def get_existing_matching_deliveries(data):
             output.append(
                 Action(
                     key='matched_delivery',
-                    label='Existing Deliveries',
+                    header='Existing Deliveries',
+                    label='Open',
                     obj=delivery,
+                    enabled=True,
                     open_url=reverse('procurement:po_detail', kwargs={'pk': delivery.po}),
+                    color='primary',
                 )
             )
 
@@ -60,7 +69,7 @@ class DeliveryNoteContext(
     def get_extra_context(self):
         return {
                 'purchase_order': get_purchase_order_from_resolved_data(
-                    self.temp_group.pk, self.resolved_data
+                    self.resolved_data, self.get_temp_group_id()
                 ),
                 'existing_deliveries': get_existing_matching_deliveries(
                     self.resolved_data

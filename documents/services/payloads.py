@@ -31,6 +31,7 @@ INITIAL_PAYLOAD_MAP = {
     DocumentTypes.DELIVERY_NOTE: map_delivery_note,
     DocumentTypes.ASSET_DATA: map_asset_data,
     "create_model": map_model_data,
+    DocumentTypes.UNKNOWN: map_asset_data,
 }
 
 
@@ -61,11 +62,14 @@ def apply_payload_to_initial(
     if payload:
         # update initial based on specifid payload in query params
         for key, value in payload.items():
-            print("payload key value", key, value)
-            if isinstance(value, list) and value:
-                initial[key] = value[0]
-            else:
-                initial[key] = value
+            print(key, ':', value)
+            v = initial.get(key, None)
+            if v in [None, '']:
+                if isinstance(value, list):
+                    if len(value) > 0:
+                        initial[key] = value[0]
+                else:
+                    initial[key] = value
     return initial
 
 
@@ -137,5 +141,6 @@ def apply_payload_to_context(temp_group_id, context, context_mapper=None):
     if not mapper:
         return context
 
-    context.update(**map_model_data_to_context(resolved_data))
+    context.update(**mapper(resolved_data))
+    
     return context

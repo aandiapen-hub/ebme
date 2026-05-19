@@ -1,22 +1,47 @@
-
+{% load static %}
 <div id="file_div_{{file.pk}}"  class="d-inline-block m-2" >
-    <div class="position-relative" style="max-width: 100px" >
+    <div class="position-relative" style="width: 100px" >
+          <!-- Spinner -->
+          <div
+              id="spinner-{{ file.pk }}"
+              class="position-absolute top-50 start-50 translate-middle" >
+              <div class="spinner-border spinner-border-sm" role="status"></div>
+          </div>
+
         <img src='{% url "documents:load_image" pk=file.pk %}' 
             class="img-fluid"
             _="on click
-                show #openseadragon_{{group.pk}}
-                set file_pk to file.pk
-                set url to `{% url 'documents:load_image' pk=file.pk %}`
-                
-                js(url) 
-                  viewer.open({
-                          type: 'image',
-                          url: url ,
-                          buildPyramid: false
-                  })
+                if my.src contains '/static/'  then halt
+      
+                else
+                  show #openseadragon_{{group.pk}}
+                  set file_pk to file.pk
+                  set url to `{% url 'documents:load_image' pk=file.pk %}`
+                  
+                  js(url) 
+                    viewer.open({
+                            type: 'image',
+                            url: url ,
+                            buildPyramid: false
+                    })
                   end
+                end
+                on load from me hide #spinner-{{file.pk}}
+                end
+                on error
+                set my.src to '{% static "bootstrap-icons/upc-scan.svg" %}'
+                set my.style.width to '100%'
+                set my.style.height to '100%'
+                set my.style.objectFit to 'contain'
+                hide #spinner-{{file.pk}}
+                remove @hidden from #label-{{file.pk}}
+                end
                 ">
-
+                <small id="label-{{ file.pk }}" class="mt-1 text-muted" hidden >
+                      {% for barcode in file.barcode_data %} 
+                          {{barcode.text}}
+                      {% endfor %}
+                    </small>
               <svg class="position-absolute top-0 start-0 w-100 h-100"
                   style="pointer-events: none">
                 {% for barcode in file.barcode_data %}
@@ -41,7 +66,7 @@
             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
             hx-swap="outerHTML"
             ></i>
-        </button>
+        </small>
     </div>
 </div>
 

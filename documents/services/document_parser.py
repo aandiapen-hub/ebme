@@ -6,7 +6,6 @@ from django.db.models import Q
 
 from assets.models import (
     AssetView,
-    Tblassets,
     Tblmodel,
     JobView,
     Tblbrands,
@@ -186,16 +185,19 @@ def parse_gs1code(file=None, scanned_code=None):
 
     for code in gs1_codes:
         # ignore internal codes
-        if code.startswith("9"):
-            return None
         parsed_gs1 = biip.parse(code)
 
         if parsed_gs1.gs1_message is None:
-            output['non_gs1_code'] = non_gs1_codes.append(code)
-            return output
+            print('this is a non gs1 output')
+            non_gs1_codes.append(code)
+            print('non gs1 appended', non_gs1_codes)
+            continue
 
         for es in parsed_gs1.gs1_message.element_strings:
             if es.ai.data_title not in output:
+                if es.ai.data_title == 'INTERNAL':
+                    non_gs1_codes.append(code)
+                    continue
                 output[es.ai.data_title] = es.value
             else:
                 raise ValidationError(
@@ -205,6 +207,7 @@ def parse_gs1code(file=None, scanned_code=None):
             if es.ai.data_title == "GIAI":
                 output["ASSET_NO"] = es.value[-7:]
 
+    output['non_gs1_codes'] = non_gs1_codes
     return output
 
 
@@ -313,6 +316,7 @@ def find_partial_asset_matches(serial):
 
 
 def gs1_resolver(parsed_data):
+    print('parsed_data', parsed_data)
     asset_no = parsed_data.get("ASSET_NO")
     gtin = parsed_data.get("GTIN")
     serial = parsed_data.get("SERIAL")
@@ -397,7 +401,7 @@ def gs1_resolver(parsed_data):
     #
     brand_name_options = parsed_data.get("brand_name_options", None)
     brand_ids = []
-    if brand_name_options is not None:
+    if brand_name_options:
         brand_ids, brand_name_options = match_options(
             qs=Tblbrands.objects.all(),
             fieldname="brandname",
@@ -408,9 +412,9 @@ def gs1_resolver(parsed_data):
     # -------------------------
     # 7. Category
     # -------------------------
-    category_name_options = parsed_data.get("category_name_options", [])
+    category_name_options = parsed_data.get("category_name_options", None)
     category_ids = []
-    if category_name_options is not None:
+    if category_name_options:
         category_ids, category_name_options = match_options(
             qs=Tblcategories.objects.all(),
             fieldname="categoryname",
@@ -574,7 +578,7 @@ def delivery_resolver(parsed_data):
 
     po_id = None
     existing_deliveries = None
-    create_delivery=False
+    create_delivery = False
 
     if po_number:
         po_id = TblPurchaseOrder.objects.filter(po_id__in=po_number).first().pk
@@ -610,53 +614,14 @@ RESOLVER_MAP = {
 
 def temp_group_resolver(group_id):
     group = TempUploadGroup.objects.get(pk=group_id)
-    merged_parsed_data = group.extracted_json.get("merged_gs1_ai", None)
-    resolver = RESOLVER_MAP.get(group.document_type_id, None)
-    if merged_parsed_data and resolver:
-        group.extracted_json.update({"resolved": resolver(merged_parsed_data)})
+    data = group.extracted_json.get("merged_gs1_ai", None)
+    if data is None:
+        data = group.extracted_json.get("merged_parsed_barcode", {}).get('values',{})
+
+    resolver = RESOLVER_MAP.get(group.document_type_id, gs1_resolver)
+    if data and resolver:
+        group.extracted_json.update({"resolved": resolver(data)})
         group.save(update_fields=["extracted_json"])
 
-
-def non_gs1_result(data):
-    max_result_count = 10
-    output = {}
-    output["search_term"] = data
-    asset_filter = Q(serialnumber__icontains=data) | Q(assetid__icontains=data)
-    assets = AssetView.objects.filter(asset_filter).order_by(
-        "brandid", "modelid", "serialnumber"
-    )
-    if assets.count() <= max_result_count:
-        output["assets"] = assets
-    if assets.count() > max_result_count:
-        output["too_many_assets"] = True
-
-    job_filter = Q(jobid__icontains=data)
-    jobs = JobView.objects.filter(job_filter).order_by("enddate")
-
-    if assets.count() == 1:
-        jobs = assets.first().jobs.all()
-    if jobs.count() <= max_result_count:
-        output["jobs"] = jobs
-    if jobs.count() > max_result_count:
-        output["too_many_jobs"] = True
-
-    return output
-
-
-def process_barcode(file=None, scanned_code=None):
-    decoded_info = {}
-    try:
-        decoded_info = parse_gs1code(file=file, scanned_code=scanned_code)
-
-    except ValidationError:
-        output = non_gs1_result(scanned_code)
-        output["search_term"] = scanned_code
-        return output
-    else:
-        output = gs1_resolver(decoded_info)
-        output["search_term"] = (
-            f"{output.get('gs1').get('SERIAL', '')} {output.get('gs1').get('ASSET_NO', '')}"
-        )
-        return output
 
 

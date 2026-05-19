@@ -78,10 +78,12 @@ def extract_barcode_from_file(file):
     elif file.mime_type == "application/pdf":
         barcode_data = extract_barcode_from_pdf(file)
     else:
-        pass
+        return
 
     file.barcode_data = barcode_data
     file.save(update_fields=['barcode_data'])
+
+    return barcode_data
 
 
 def merge_barcode_parsed(barcodes):

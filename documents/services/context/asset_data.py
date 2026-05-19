@@ -8,11 +8,15 @@ from assets.models import (
 )
 
 
-def gtin_actions(temp_group_id, data):
+def temp_group_params(temp_group_id):
+    if not temp_group_id:
+        return {}
+    return urlencode({'temp_group_id': temp_group_id})
+
+
+def gtin_actions(data, temp_group_id=None):
     output = []
-    query_params = urlencode(
-        {'temp_group_id': temp_group_id}
-    )
+    query_params = temp_group_params(temp_group_id)
 
     if data.get("gtin", {}).get("add_gtin"):
         base_url = reverse("model_information:create_model")
@@ -45,7 +49,7 @@ def gtin_actions(temp_group_id, data):
         return output
 
 
-def get_model(temp_group_id, data):
+def get_model(data, temp_group_id=None):
     output = []
 
     model_id = data.get("model", {}).get("model_id")
@@ -58,7 +62,7 @@ def get_model(temp_group_id, data):
                 label="Open",
                 obj=model,
                 enabled=True,
-                open_url=reverse('model_information: model_view', kwargs={'pk': model.pk}),
+                open_url=reverse('model_information:model_view', kwargs={'pk': model.pk}),
                 color='success',
                 )
             )
@@ -66,10 +70,8 @@ def get_model(temp_group_id, data):
         return output
 
 
-def get_models_without_gtin(temp_group_id, data):
-    query_params = urlencode(
-        {'temp_group_id': temp_group_id}
-    )
+def get_models_without_gtin(data, temp_group_id=None):
+    query_params = temp_group_params(temp_group_id)
     output = []
 
     model_ids_without_gtin = data.get("model", {}).get("models_without_gtin", {})
@@ -94,10 +96,8 @@ def get_models_without_gtin(temp_group_id, data):
     return output
 
 
-def get_duplicatable_models(temp_group_id, data):
-    query_params = urlencode(
-        {'temp_group_id': temp_group_id}
-    )
+def get_duplicatable_models(data, temp_group_id=None):
+    query_params = temp_group_params(temp_group_id)
     output = []
     duplicatable_models_id = data.get("model", {}).get("duplicatable_models", {})
     if duplicatable_models_id:
@@ -120,10 +120,8 @@ def get_duplicatable_models(temp_group_id, data):
     return output
 
 
-def get_fully_matched_asset(temp_group_id, data):
-    query_params = urlencode(
-        {'temp_group_id': temp_group_id}
-    )
+def get_fully_matched_asset(data, temp_group_id=None):
+    query_params = temp_group_params(temp_group_id)
     output = []
 
     asset_id = data.get("asset", {}).get("asset_id")
@@ -144,10 +142,8 @@ def get_fully_matched_asset(temp_group_id, data):
     return output
 
 
-def get_partially_matched_asset(temp_group_id, data):
-    query_params = urlencode(
-        {'temp_group_id': temp_group_id}
-    )
+def get_partially_matched_asset(data, temp_group_id=None):
+    query_params = temp_group_params(temp_group_id)
     output = []
 
     asset_id = data.get("asset", {}).get("asset_id")
@@ -156,27 +152,26 @@ def get_partially_matched_asset(temp_group_id, data):
     if asset_id:
         asset_ids.remove(asset_id)
 
-    assets = Tblassets.objects.filter(pk__in=asset_ids)
-    for asset in assets:
-        output.append(
-            Action(
-                key=f"open_{asset}",
-                header='Partially Matched Asset',
-                label=f"Open {asset}",
-                obj=asset,
-                enabled=True,
-                open_url=f"{reverse("assets:view_asset", kwargs={'pk': asset.pk})}?{query_params}",
-                color='secondary'
+    if asset_ids:
+        assets = Tblassets.objects.filter(pk__in=asset_ids)
+        for asset in assets:
+            output.append(
+                Action(
+                    key=f"open_{asset}",
+                    header='Partially Matched Asset',
+                    label=f"Open {asset}",
+                    obj=asset,
+                    enabled=True,
+                    open_url=f"{reverse("assets:view_asset", kwargs={'pk': asset.pk})}?{query_params}",
+                    color='secondary'
+                )
             )
-        )
     return output
 
 
-def create_asset(temp_group_id, data):
-    query_params = urlencode(
-        {'temp_group_id': temp_group_id}
-    )
+def create_asset(data, temp_group_id=None):
     output = []
+    query_params = temp_group_params(temp_group_id)
 
     output.append(
         Action(
@@ -202,27 +197,28 @@ class AssetDataContext(
         return 'documents/document_processor/asset_data_actions.html'
 
     def get_extra_context(self):
+        print('getin all contexts1111111111111111')
         return {
                 'gtin_actions': gtin_actions(
-                    self.temp_group.pk, self.resolved_data
+                    self.resolved_data, self.get_temp_group_id()
                 ),
                 'fully_matched_model': get_model(
-                    self.temp_group.pk, self.resolved_data
+                    self.resolved_data,  self.get_temp_group_id()
                 ),
                 'duplicatable_models': get_duplicatable_models(
-                    self.temp_group.pk, self.resolved_data
+                    self.resolved_data,  self.get_temp_group_id()
                 ),
                 'models_without_gtin': get_models_without_gtin(
-                    self.temp_group.pk, self.resolved_data
+                    self.resolved_data,  self.get_temp_group_id()
                 ),
                 'fully_matched_asset': get_fully_matched_asset(
-                    self.temp_group.pk, self.resolved_data
+                    self.resolved_data,  self.get_temp_group_id()
                 ),
                 'partially_matched_assets': get_partially_matched_asset(
-                    self.temp_group.pk, self.resolved_data
+                    self.resolved_data,  self.get_temp_group_id()
                 ),
                 'create_asset': create_asset(
-                    self.temp_group.pk, self.resolved_data
+                    self.resolved_data,  self.get_temp_group_id()
                 ),
 
         }

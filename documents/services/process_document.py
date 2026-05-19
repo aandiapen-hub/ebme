@@ -6,7 +6,7 @@ from django.db.models import Q
 from documents.models import TempUploadGroup
 from documents.services.document_parser import temp_group_resolver
 from documents.services.ai_processor import extract_group_info_with_ai
-from django.tasks import task, default_task_backend
+from django.tasks import task
 
 
 def extract_data(group):
@@ -80,3 +80,24 @@ def extract_information_from_temp_group(group_id):
     )
     group.save(update_fields=["extracted_json"])
     temp_group_resolver(group_id)
+
+
+def quick_group_processor(temporary_upload):
+    group = temporary_upload.group
+
+    barcode_data = temporary_upload.barcode_data
+    if not barcode_data:
+        barcode_data = extract_barcode_from_file(temporary_upload)
+
+    keys = ("text", "parsed")
+    barcode_list = [
+        {key: barcode.get(key, None) for key in keys}
+        for barcode in barcode_data
+    ]
+
+    data = group.extracted_json.get("barcode", [])
+    data.append(barcode_list)
+    group.extracted_json["barcode"] = data
+    group.extracted_json['merged_parsed_barcode'] = merge_barcode_parsed(barcode_list)
+    group.save(update_fields=['extracted_json'])
+    temp_group_resolver(group.pk)

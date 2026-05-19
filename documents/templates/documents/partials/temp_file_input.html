@@ -1,4 +1,4 @@
-<input id='files_{{group.pk}}'
+<input id='files_{{group.pk|default:0}}'
     type="file"
     name="files"
     hidden
@@ -12,5 +12,6 @@ if my.files[0].size > 5*1024*1024
 
 <button
   class='btn btn-outline-primary'
-  _='on click call #files_{{group.pk}}.click()'
+  _='on click call #files_{{group.pk|default:0}}.click()'
   type='button'>Add file <i class="bi bi-file-earmark-arrow-up"></i></button>
+
