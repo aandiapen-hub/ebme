@@ -78,34 +78,11 @@ REPORT_GENERATORS = {
 
 
 class GenerateReportView(
-    LoginRequiredMixin, CustomerJobListPermissionMixin, FilterView
+    LoginRequiredMixin, CustomerJobListPermissionMixin, FilteredTableView
 ):
     permission_required = "assets.genreport_tbljob"
     model = JobView
-
-    def get_visible_columns(self):
-        # Get user's preferred columns from user_profiles.table_settings
-        return get_visible_columns(self.request, self.model)
-
-    def get_filterset_class(self):
-        active_filters = [
-            key
-            for key, value in self.request.GET.items()
-            if key
-            not in [
-                "active_filters",
-                "new_active_filter",
-                "page",
-                "csrfmiddlewaretoken",
-                "universal_search",
-                "sort",
-            ]
-        ]
-        return dynamic_filterset_generator(
-            self.model,
-            universal_search_fields=SEARCHFILEDS,
-            active_filters=active_filters,
-        )
+    universal_search_fields = SEARCHFILEDS
 
     def get(self, request, *args, **kwargs):
         if request.htmx:

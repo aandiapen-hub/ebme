@@ -1,9 +1,10 @@
 
 {% load static %}
+{% load django_bootstrap5 %}
 <div id="filter-column"  hx-swap-oob='innerHTML' >
   <div id='div_filter_fields' class='row gy-3'>
     {{ filter.form.media }}
-
+    {% bootstrap_messages %}
     {% for field in filter.form %}
       {% if 'search' in field.name %}
     <div id="div_id_{{ field.name }}" class='col'  >

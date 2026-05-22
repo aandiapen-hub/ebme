@@ -104,7 +104,6 @@ def create_document_from_file(
             # ------------------------------------------------
 
             # first check if document exists by hash
-            print('creating new document11111111111111d')
             document = TblDocuments.objects.filter(document_hash=file_hash).first()
             if document is None:
                 document = TblDocuments(
@@ -120,7 +119,6 @@ def create_document_from_file(
             raise ValidationError("This file already exists.")
 
         if content_object:
-            print('linking objects to new file', document, content_object)
             link_document_to_object(
                 document=document, content_object=content_object, customer=customer
             )
@@ -223,43 +221,55 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
 
     # non staff users can only have 1 scan group
     if not user.is_staff:
-        TempUploadGroup.objects.all().delete()
+        user.temp_upload_group.temp_uploads.all().delete()
 
     if file and scanned_code:
         raise ValidationError(
             {'_all_': 'Please upload either a file or a barcode!'}
         )
-    if group_id is not None:
-        group = TempUploadGroup.objects.filter(pk=group_id).first()
-        if group.user != user:
-            raise ValidationError("Group belongs to another user")
-    else:
-        group = TempUploadGroup.objects.create(
-            user=user,
-        )
 
     if file:
+        if group_id is not None:
+            group = TempUploadGroup.objects.filter(pk=group_id).first()
+            if group.user != user:
+                raise ValidationError("Group belongs to another user")
+        else:
+            group = TempUploadGroup.objects.create(
+                user=user,
+            )
         scanned = TemporaryUpload.from_uploaded_file(
             file=file,
             group=group,
         )
+        quick_group_processor(scanned)
+        return scanned
 
     if scanned_code:
         gs1_data = parse_gs1code(
             scanned_code=scanned_code.replace('(', '').replace(')', '')
         )
-        print('gs1', gs1_data)
         if set(gs1_data.keys()) == {'non_gs1_codes'}:
             # return list of non gs1 codes if no gs1 data found
-            return ' '.join(gs1_data['non_gs1_codes'])
-
+            search = ' '.join(gs1_data['non_gs1_codes'])
+            raise ValidationError({
+                '__all__': 'Cannot add non GS1 barcode information to group',
+                'search': search
+            })
         barcode_data = [{
             'text': scanned_code,
             'parsed': gs1_data,
         }]
+        if group_id is not None:
+            group = TempUploadGroup.objects.filter(pk=group_id).first()
+            if group.user != user:
+                raise ValidationError("Group belongs to another user")
+        else:
+            group = TempUploadGroup.objects.create(
+                user=user,
+            )
         scanned = TemporaryUpload.objects.create(
             group=group,
             barcode_data=barcode_data,
         )
         quick_group_processor(scanned)
-        return scanned
+

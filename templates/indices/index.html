@@ -1,4 +1,5 @@
 {% load static %}
+{% load django_bootstrap5 %}
 
 <nav class="navbar navbar-expand-lg bg-body-tertiary">
   <div class="container-fluid bg-primary-subtle">
@@ -10,26 +11,8 @@
         aria-controls="offcanvasWithBothOptions">
       <i class="bi bi-lg bi-list"></i>
       </H1>
-
-      <form role="search" class="d-flex"
-        id='quick_scan_form' method="post"
-        action="{% url "documents:quick_scanner" %}"
-        enctype="multipart/form-data"
-        >
-          {% csrf_token %}
-        <input type='text' class='form-control'  placeholder='Quick Search' name='scanned_code'
-        _="on load or keyup
-        if my value is not '' then
-        remove @hidden from #quick_search_submit_button
-        else add @hidden to #quick_search_submit_button"
-        > 
-        <input type='file' id='file_input' capture='environment' class='form-control' name='file' hidden
-          _="on change send submit to #quick_scan_form">
-          <label for='file_input' class="btn btn-outline-primary" type="Button" ><i class="bi bi-camera"></i></label>
-          <button id='quick_search_submit_button' class="btn btn-outline-primary" hidden  type="submit"><i class="bi bi-search"></i></button>
       
-      </form>
-
+      {% include 'documents/quick_scanner.html' %}
     </div>
 </nav>
 

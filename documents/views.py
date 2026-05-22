@@ -17,6 +17,7 @@ from .services.documents import (
 from documents.services.document_parser import (
     temp_group_resolver,
 )
+
 from documents.services.process_document import extract_information_from_temp_group
 from documents.services.context.registry import build_document_context
 from django.tasks import default_task_backend
@@ -29,6 +30,7 @@ from .models import (
     TempUploadGroup,
     TemporaryUpload,
 )
+
 
 
 # import generic views
@@ -313,7 +315,6 @@ class DocumentListView(LoginRequiredMixin, DocumentLinkPermissionMixin, ListView
         object = model.objects.get(pk=object_id)
 
         document_links = get_document_links_for_object(object)
-        print("document links count", document_links.count())
 
         return qs.filter(pk__in=document_links.values_list("pk", flat=True)).order_by(
             "documentid__document_type_id"
@@ -367,6 +368,7 @@ class TempFilesDeleteAllView(LoginRequiredMixin, FormView):
         return super().form_valid(form)
 
 
+
 class TempFilesDeleteView(LoginRequiredMixin, DeleteView):
     model = TemporaryUpload
     success_url = reverse_lazy("documents:user_temp_files")
@@ -383,7 +385,6 @@ class TempFilesDeleteView(LoginRequiredMixin, DeleteView):
             if not TemporaryUpload.objects.filter(
                 group=self.object.group
             ).exists():
-                print('this is the last objec')
                 response["HX-Retarget"] = f"#group_{self.object.group.pk}"
 
             return response  # No Content
@@ -439,7 +440,7 @@ class GetTaskResult(LoginRequiredMixin, DetailView):
 
 
 class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
-    template_name = "documents/partials/temp_upload_create.html"
+    template_name = "documents/temp_file_group.html#form"
     form_class = TempFileUploadForm
     permission_required = "documents.add_tbl_temporaryupload"
 
@@ -449,12 +450,18 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
     def form_valid(self, form):
         file = self.request.FILES.get("files")
         group_id = self.request.GET.get("group", None)
+        scanned_code = self.request.POST.get("scanned_code", None)
 
-        self.object = save_temp_document(
-            user=self.request.user,
-            group_id=group_id,
-            file=file,
-        )
+        try:
+            self.object = save_temp_document(
+                user=self.request.user,
+                group_id=group_id,
+                file=file,
+                scanned_code=scanned_code,
+            )
+        except ValidationError as e:
+            form.add_error(None, str(e.message_dict['__all__'][0]))
+            return self.form_invalid(form, str(e.message_dict['__all__']))
 
         if self.request.htmx:
             group_document_count = TemporaryUpload.objects.filter(
@@ -474,12 +481,13 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
                 )
 
         else:
-            return super.form_valid(form)
+            return super().form_valid(form)
 
-    def form_invalid(self, form):
-        response = self.render_to_response(self.get_context_data(form=form))
-        response["HX-Retarget"] = "this"
-        response["HX-Reswap"] = "afterend"
+    def form_invalid(self, form, error):
+        group = TempUploadGroup.objects.get(pk=self.request.GET.get("group"))
+        response = self.render_to_response(self.get_context_data(form=form, group=group))
+        response["HX-Reswap"] = "outerHTML"
+        response['HX-Retarget'] = 'this'
         return response
 
 
@@ -496,7 +504,7 @@ class TempUploadGroupView(LoginRequiredMixin, PermissionRequiredMixin, DetailVie
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context.update(**build_document_context(temp_group=self.object))
+        context.update(**build_document_context(user=self.request.user, temp_group=self.object))
         return context
 
 
@@ -606,14 +614,13 @@ class LinkTemporaryDocumentView(TempUploadListView, PermissionRequiredMixin, For
 
 
 class QuickScanner(LoginRequiredMixin, FormView):
-    form_class = QuickScannerForm
+    form_class = TempFileUploadForm
     template_name = "documents/quick_scanner.html"
     temp_group = None
 
     def form_valid(self, form):
-        file = self.request.FILES.get("file")
-        scanned_code = form.cleaned_data["scanned_code"]
-
+        file = self.request.FILES.get("files")
+        scanned_code = self.request.POST.get("scanned_code", None)
         try:
             self.object = save_temp_document(
                 user=self.request.user,
@@ -622,15 +629,12 @@ class QuickScanner(LoginRequiredMixin, FormView):
             )
 
         except ValidationError as e:
-            if hasattr(e, "message_dict"):
-                for field, errors in e.message_dict.items():
-                    for error in errors:
-                        form.add_error(field, error)
-            else:
-                messages.warning(self.request, str(e))
-                form.add_error(None, e.message)
+            if e.message_dict['search']:
+                # when a non gs1 code is quick searched
+                self.object = e.message_dict['search'][0]
 
-        return HttpResponseRedirect(self.get_success_url())
+        response = HttpResponseRedirect(self.get_success_url())
+        return response
 
     def get_success_url(self):
         if isinstance(self.object, TemporaryUpload):
@@ -643,6 +647,7 @@ class QuickScanner(LoginRequiredMixin, FormView):
             return f"{url}?{query_params}"
 
     def form_invalid(self, form):
+        print('invalid response')
         return render(self.request, self.template_name, context={"form": form})
 
 

@@ -1,17 +1,20 @@
-<input id='files_{{group.pk|default:0}}'
+<input id='files{{group.pk|default:0}}'
     type="file"
     name="files"
-    hidden
     class="form-control"
     accept="image/*,application/pdf"
+    hidden
     capture="environment" multiple required
 _="on change 
-if my.files[0].size > 5*1024*1024
+    if my.files[0].size > 5*1024*1024
     alert('File too large (max 5MB)')
-    set my.value to ''">
+    call my.closest('form').reset()
+    else 
+    call my.closest('form').requestSubmit() 
+    then wait 100ms then my.closest('form').reset() ">
 
 <button
-  class='btn btn-outline-primary'
-  _='on click call #files_{{group.pk|default:0}}.click()'
-  type='button'>Add file <i class="bi bi-file-earmark-arrow-up"></i></button>
+  class='btn btn-outline-primary btn-sm'
+  _='on click call #files{{group.pk|default:0}}.click()'
+  type='button'><i class="bi bi-camera"></i></button>
 

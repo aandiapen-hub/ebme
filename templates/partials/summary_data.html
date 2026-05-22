@@ -3,8 +3,14 @@
 <div id="result_count" class='text ms-auto' hx-swap-oob='true'>
         Records : {{table.rows|length}}
         <!-- data export-->
-        <a class="btn btn-sm btn-outline-primary" href="{% querystring '_export'='csv' %}">Export(csv)</a>
-
+        <button
+          class="btn btn-sm btn-outline-primary"
+          href="{% querystring '_export'='csv' %}"
+          hx-get="{% querystring '_export'='csv' %}" 
+          hx-include='#row_select_form'
+          hx-swap='none' >
+             Export(csv)
+          </button>
           <!--Bulk update button-->
           {% for action in bulk_actions %}
           {% include "buttons/bulk_update_button.html" with button_content=action.name url=action.url %}        

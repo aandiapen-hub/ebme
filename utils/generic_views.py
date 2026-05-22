@@ -1,6 +1,7 @@
 from django.urls import reverse
-from django_htmx.http import HttpResponseClientRedirect
+from django_htmx.http import  HttpResponseClientRedirect
 from django.db import IntegrityError
+from django.contrib import messages
 from django.shortcuts import render
 from django.views.generic.edit import FormMixin
 from django_filters.views import FilterView
@@ -13,14 +14,16 @@ from utils.generic_filters import (
     get_filter_fields,
     get_filter_from_field_lookup,
 )
-from django.contrib import messages
-
 from collections import Counter
 from django_tables2.export.views import ExportMixin
 from django.core.exceptions import ValidationError
 
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
+from django.http.response import HttpResponse, HttpResponseRedirect
+
+
+EXPORT_LIMIT = 3000
 
 
 # get visible columns for a model for a user
@@ -82,8 +85,8 @@ def get_dynamic_table_class(table_model, visible_columns=None, template_columns=
         }
         template_name = "tables/tables2_with_filter.html"
         if template_columns:
-            fields = (
-                (["open"] if template_columns.get("open", []) else [])
+            fields = (['selected']
+                +(["open"] if template_columns.get("open", []) else [])
                 + visible_columns
                 + (["actions"] if template_columns.get("actions", []) else [])
             )
@@ -133,6 +136,7 @@ class FilteredTableView(
             get_visible_columns(self.request, self.model) or self.default_columns
         )
 
+
         # --- check what type of request---#
         # request options are  summary data, new filter or  actual filter result data
         # if summary data requested, process and return list of summary field data values
@@ -148,6 +152,21 @@ class FilteredTableView(
 
         # fallback is to return of filtered table data
         return response
+
+    def create_export(self, export_format):
+        queryset = self.get_table_data()
+        total = queryset.count()
+        if total > EXPORT_LIMIT:
+            messages.error(
+                self.request,
+                f'Export limited to {EXPORT_LIMIT} rows.'
+            )
+            return HttpResponseRedirect(self.request.path)
+        if self.request.htmx:
+            response = HttpResponse(status=200)
+            response['HX-Redirect'] = self.request.get_full_path()
+            return response
+        return super().create_export(export_format)
 
     def get_table_class(self):
         # Dynamically create table class if not provided
@@ -272,10 +291,20 @@ class FilteredTableView(
             for key in list(data.keys()):
                 if "summary_field" in key or field in key:
                     del data[key]
+
+        qs = self.get_queryset()
+
+        if self.request.method == "GET":
+            selected_ids = self.request.GET.getlist("selected")
+        else:
+            selected_ids = self.request.POST.getlist("selected")
+
+        if selected_ids:
+            qs = qs.filter(pk__in=selected_ids)
         # Pass the cleaned GET data to the FilterSet
         return {
             "data": data,
-            "queryset": self.get_queryset(),
+            "queryset": qs,
             "request": self.request,
         }
 
@@ -326,6 +355,7 @@ class FilteredTableView(
 
     def get_table_data(self):
         self.filterset = self.get_filterset(self.get_filterset_class())
+
         queryset = self.filterset.qs
         return queryset
 
@@ -362,22 +392,6 @@ class BulkUpdateView(FilteredTableView, FormMixin):
 
     def get_template_names(self):
         return [self.template_name]
-
-    def get_filterset_kwargs(self, filterset_class):
-        kwargs = super().get_filterset_kwargs(filterset_class)
-
-        qs = kwargs["queryset"]
-
-        if self.request.method == "GET":
-            selected_ids = self.request.GET.getlist("selected")
-        else:
-            selected_ids = self.request.POST.getlist("selected")
-
-        if selected_ids:
-            qs = qs.filter(pk__in=selected_ids)
-
-        kwargs["queryset"] = qs
-        return kwargs
 
     def get_filtered_objects(self):
         if not hasattr(self, "filterset"):
