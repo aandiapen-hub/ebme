@@ -18,6 +18,7 @@ from .views import (
     TemporaryUploadCreateView,
     TempFilesDeleteAllView,
     TempFilesDeleteView,
+    TempUploadGroupDeleteView,
     QuickScanner,
     LinkTemporaryDocumentView,
     BulkLinkDocument,
@@ -84,6 +85,7 @@ urlpatterns = [
     path("user_temp_files/", TempUploadListView.as_view(), name="user_temp_files"),
     path("temp_files/<uuid:pk>", TempUploadGroupView.as_view(), name="temp_group"),
     path("temp_files/<uuid:pk>/update", TempUploadGroupUpdate.as_view(), name="temp_group_update"),
+    path("temp_files/<uuid:pk>/delete", TempUploadGroupDeleteView.as_view(), name="temp_group_delete"),
     path("temp_files/<int:pk>/load_image/", DocumentPreView.as_view(), name="load_image"),
     path(
         "temp_files/delete_all/",

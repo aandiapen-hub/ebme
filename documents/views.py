@@ -445,12 +445,15 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
     permission_required = "documents.add_tbl_temporaryupload"
 
     def get_success_url(self):
-        return reverse("documents:temp_group", kwargs={'pk': self.group})
+        return reverse("documents:temp_group", kwargs={'pk': self.object.group})
 
     def form_valid(self, form):
         file = self.request.FILES.get("files")
         group_id = self.request.GET.get("group", None)
         scanned_code = self.request.POST.get("scanned_code", None)
+
+        if group_id in ['new', 'quick']:
+            group_id = None
 
         try:
             self.object = save_temp_document(
@@ -464,16 +467,19 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
             return self.form_invalid(form, str(e.message_dict['__all__']))
 
         if self.request.htmx:
+            print('htx called on group create')
             group_document_count = TemporaryUpload.objects.filter(
                 group=self.object.group
             ).count()
             if group_document_count == 1:
                 context = {"group": self.object.group, "temp_files": [self.object]}
-                return render(
+                response = render(
                     self.request,
                     "documents/temp_file_group.html#temp_group",
                     context=context,
                 )
+                response['HX-Retarget'] = '#images_div'
+                return response
             else:
                 context = {"file": self.object}
                 return render(
@@ -483,7 +489,7 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
         else:
             return super().form_valid(form)
 
-    def form_invalid(self, form, error):
+    def form_invalid(self, form):
         group = TempUploadGroup.objects.get(pk=self.request.GET.get("group"))
         response = self.render_to_response(self.get_context_data(form=form, group=group))
         response["HX-Reswap"] = "outerHTML"
@@ -551,6 +557,12 @@ class TempUploadMergedDataUpdate(LoginRequiredMixin, PermissionRequiredMixin, Fo
         group.save(update_fields=['extracted_json'])
         temp_group_resolver(group.pk)
         return super().form_valid(form)
+
+class TempUploadGroupDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    model = TempUploadGroup
+    permission_required = "documents.add_tbl_temporaryupload"
+    template_name = 'documents/temp_group_delete.html'
+    success_url = reverse_lazy('documents:user_temp_files')
 
 
 class TempUploadListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
@@ -647,7 +659,6 @@ class QuickScanner(LoginRequiredMixin, FormView):
             return f"{url}?{query_params}"
 
     def form_invalid(self, form):
-        print('invalid response')
         return render(self.request, self.template_name, context={"form": form})
 
 

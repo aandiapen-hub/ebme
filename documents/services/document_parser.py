@@ -175,10 +175,8 @@ def parse_gs1code(file=None, scanned_code=None):
     if file:
         # scan image for barcode and get a list of test
         gs1_codes = [code.text for code in quick_scan_barcode(file)]
-        print("code to be parsed from file", gs1_codes)
     else:
         gs1_codes = [scanned_code]
-        print("code to be parsed from text given", gs1_codes)
 
     output = {}
     non_gs1_codes = []
@@ -188,9 +186,7 @@ def parse_gs1code(file=None, scanned_code=None):
         parsed_gs1 = biip.parse(code)
 
         if parsed_gs1.gs1_message is None:
-            print('this is a non gs1 output')
             non_gs1_codes.append(code)
-            print('non gs1 appended', non_gs1_codes)
             continue
 
         for es in parsed_gs1.gs1_message.element_strings:
@@ -316,7 +312,6 @@ def find_partial_asset_matches(serial):
 
 
 def gs1_resolver(parsed_data):
-    print('parsed_data', parsed_data)
     asset_no = parsed_data.get("ASSET_NO")
     gtin = parsed_data.get("GTIN")
     serial = parsed_data.get("SERIAL")
@@ -380,7 +375,6 @@ def gs1_resolver(parsed_data):
     # -------------------------
     if serial and not known_model:
         result = find_partial_asset_matches(serial)
-        print('result!!!!!!!',serial, result)
 
         assets = result["assets"]
         too_many_assets = result["too_many_assets"]
@@ -570,7 +564,6 @@ def job_resolver(parsed_data):
 
 
 def delivery_resolver(parsed_data):
-    print('resolving delivery note')
     po_number = parsed_data.get('purchase_order', None)
     delivery_note_number_options = parsed_data.get('delivery_note_number_options', None)
     delivery_date = parsed_data.get('delivery_date', None)

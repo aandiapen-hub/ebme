@@ -221,6 +221,4 @@ class JobBulkUpdateForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         if all(value in [None, "", [], ()] for value in cleaned_data.values()):
-            print("clean form is not valid")
             raise ValidationError({"__all__": "No values entered"})
-            print("dictionary is empty")

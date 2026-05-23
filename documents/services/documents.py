@@ -223,11 +223,6 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
     if not user.is_staff:
         user.temp_upload_group.temp_uploads.all().delete()
 
-    if file and scanned_code:
-        raise ValidationError(
-            {'_all_': 'Please upload either a file or a barcode!'}
-        )
-
     if file:
         if group_id is not None:
             group = TempUploadGroup.objects.filter(pk=group_id).first()
@@ -244,7 +239,7 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
         quick_group_processor(scanned)
         return scanned
 
-    if scanned_code:
+    elif scanned_code:
         gs1_data = parse_gs1code(
             scanned_code=scanned_code.replace('(', '').replace(')', '')
         )
@@ -255,6 +250,7 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
                 '__all__': 'Cannot add non GS1 barcode information to group',
                 'search': search
             })
+        
         barcode_data = [{
             'text': scanned_code,
             'parsed': gs1_data,
@@ -267,9 +263,14 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
             group = TempUploadGroup.objects.create(
                 user=user,
             )
+
+        print('this is being called')
         scanned = TemporaryUpload.objects.create(
             group=group,
             barcode_data=barcode_data,
         )
+
+        print('this call finished')
         quick_group_processor(scanned)
+        return scanned
 

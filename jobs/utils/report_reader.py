@@ -44,7 +44,6 @@ def openaiImageProcessing(files):
         ],
     )
     ai_response = response.choices[0].message.content
-    print(ai_response)
     if ai_response:  
         return json.loads(ai_response)
     else:

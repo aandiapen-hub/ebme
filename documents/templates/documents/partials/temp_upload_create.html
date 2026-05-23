@@ -1,21 +1,98 @@
-{% load static %}
+{% load django_bootstrap5 %}
+  <form id='add_image{{ group_id }}' enctype="multipart/form-data" method="post"
+    novalidate
+    action="{{scan_url}}?group={{ group_id }}"
+    {% if not quick_scanner %}
+    hx-post="{{scan_url}}?group={{ group_id }}"
+    {% if 'new' in group_id %}
+      hx-target="#images_div"
+      {% else %}
+      hx-target="#group_{{ group_id }}"
+    {% endif %}
+    hx-swap="beforeend"
+    hx-trigger='submit'
+    hx-disabled-elt='#inputs_{{group_id}} input, #inputs_{{group_id}} button'
+    hx-indicator='#spinner'
+    {% endif %}
+    _="on htmx:afterRequest
+        wait 300ms
+        trigger click on #scanner_input_button_{{group_id}}
+      end
+  ">
+        {% if form %}
+        {% bootstrap_form_errors form %}
+        {% endif %}
+          {% csrf_token %}
+        <div class='d-flex gap-3' id='inputs_{{group_id}}'>
 
-    <div class="row">
-        <div class="col">
-            <h3>Upload Document</h3>
+        <input type='text' id='scanner_input{{group_id}}'
+          name='scanned_code' class='form-control {{scanner_input_class}}'
+          placeholder='Quick Search'
+          _="on change debounced at 500ms
 
-            <form id='add_image_new' enctype="multipart/form-data" method="post"
-            hx-post="{% url 'documents:create_temp_file' %}"
-            hx-target="#images_div"
-            hx-swap="afterbegin"
-            hx-indicator="#spinner"
-            hx-trigger='change'
-            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-                {% include "documents/partials/temp_file_input.html" %}
-                {% include "documents/partials/scanner_input.html" %}
-            <img  id="spinner" class="htmx-indicator" src="{% static 'spinners/3-dots-fade.svg' %}">
-            </form>
+              set form to #add_image{{ group_id }}
+              then  form.reset()
+            end
+            on focus
+            set my @data-focused to 'true'
+            end
+            on blur
+            set my @data-focused to 'false'
+            end">
 
-        </div>
+
+        <button
+        type='button'
+          id='scanner_input_button_{{group_id}}'
+        class='btn btn-outline-primary btn-sm'
+          _='on click 
+                if #scanner_input{{group_id}}@data-focused is not "true"
+                then set value of #scanner_input{{group_id}} to "" 
+                      then set my innerHTML to "Scanning..."
+                      then remove .btn-outline-primary from me
+                      then add .btn-warning to me
+                      then call #scanner_input{{group_id}}.focus()
+                end
+            on click from body
+                if event.target is not me 
+                wait 100ms
+                  if #scanner_input{{group_id}}@data-focused is "false"
+                  log "removing focus from text input"
+                  set button to `<i class="bi bi-upc-scan"></i>`
+                  set my innerHTML to button
+                        then add .btn-outline-primary to me
+                        then remove .btn-warning from me
+                  end
+                end '>
+        <i class="bi bi-upc-scan"></i>
+        </button>
+
+
+
+
+
+        <input id='files{{group_id}}'
+            type="file"
+            name="files"
+            class="form-control"
+            accept="image/*,application/pdf"
+            hidden
+            capture="environment" multiple required
+        _="on change 
+            set form to #add_image{{ group_id }}
+            if my.files[0].size > 5*1024*1024
+            alert('File too large (max 5MB)')
+            call form.reset()
+            else 
+            call form.requestSubmit() 
+            then wait 100ms then form.reset() end
+            ">
+          
+        <button
+          class='btn btn-outline-primary btn-sm'
+          id='file_input_button{{group_id}}'
+          _='on click call #files{{group_id}}.click()'
+          type='button'><i class="bi bi-camera"></i></button>
+
     </div>
-
+  </form>

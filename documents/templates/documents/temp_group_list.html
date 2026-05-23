@@ -9,17 +9,10 @@
       <div class="col">
           <h3>Create New Group</h3>
 
-          <form id='add_image_new' enctype="multipart/form-data" method="post"
-          hx-post="{% url 'documents:create_temp_file' %}"
-          hx-target="#images_div"
-          hx-swap="afterbegin"
-          hx-indicator="#spinner"
-          hx-trigger='change'
-          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-              {% include "documents/partials/temp_file_input.html" %}
-          <img  id="spinner" class="htmx-indicator" src="{% static 'spinners/3-dots-fade.svg' %}">
-          </form>
-
+          {% url 'documents:create_temp_file' as scan_url %}
+          {% with scanner_input_class='visually-hidden' group_id='new' %}
+            {% include 'documents/partials/temp_upload_create.html' %}
+          {% endwith %}
       </div>
   </div>
 
@@ -30,7 +23,7 @@
       <form
           hx-post="{% url 'documents:delete_all_temp_files' %}"
           hx-target="#images_div"
-          hx-trigger="click"
+          hx-trigger="submit"
           hx-swap="outerHTML"
           hx-select='#images_div'
           hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
@@ -43,7 +36,7 @@
 
   <div id="images_div" class='container'>
         {% for group in temp_groups %}
-            <div class='row border border-2 m-2 p-2'>
+            <div class='row'>
           {% include "documents/temp_file_group.html#temp_group" %}
         </div>
         {% endfor %}

@@ -1,3 +1,4 @@
+from functools import partial
 from django.urls import reverse
 from urllib.parse import urlencode
 from .context import BaseDocumentContextBuilder
@@ -14,7 +15,7 @@ def temp_group_params(temp_group_id):
     return urlencode({'temp_group_id': temp_group_id})
 
 
-def gtin_actions(data, temp_group_id=None):
+def get_gtin_actions(data, temp_group_id=None):
     output = []
     query_params = temp_group_params(temp_group_id)
 
@@ -169,9 +170,10 @@ def get_partially_matched_asset(data, temp_group_id=None):
     return output
 
 
-def create_asset(data, temp_group_id=None):
+def get_create_asset(data, temp_group_id=None):
     output = []
     query_params = temp_group_params(temp_group_id)
+    print(data)
 
     output.append(
         Action(
@@ -197,28 +199,44 @@ class AssetDataContext(
         return 'documents/document_processor/asset_data_actions.html'
 
     def get_extra_context(self):
-        print('getin all contexts1111111111111111')
-        return {
-                'gtin_actions': gtin_actions(
-                    self.resolved_data, self.get_temp_group_id()
-                ),
-                'fully_matched_model': get_model(
-                    self.resolved_data,  self.get_temp_group_id()
-                ),
-                'duplicatable_models': get_duplicatable_models(
-                    self.resolved_data,  self.get_temp_group_id()
-                ),
-                'models_without_gtin': get_models_without_gtin(
-                    self.resolved_data,  self.get_temp_group_id()
-                ),
-                'fully_matched_asset': get_fully_matched_asset(
-                    self.resolved_data,  self.get_temp_group_id()
-                ),
-                'partially_matched_assets': get_partially_matched_asset(
-                    self.resolved_data,  self.get_temp_group_id()
-                ),
-                'create_asset': create_asset(
-                    self.resolved_data,  self.get_temp_group_id()
-                ),
+        temp_group = self.get_temp_group_id()
+        gtin_actions = None
+        models_without_gtin = None
+        
+        partially_matched_asset = None
+        create_asset = None
 
+        fully_matched_model = get_model(
+                    self.resolved_data,  self.get_temp_group_id()
+                )
+        fully_matched_asset = get_fully_matched_asset(
+                    self.resolved_data,  self.get_temp_group_id()
+                )
+
+        if not fully_matched_asset and self.resolved_data.get('asset', {}).get('serialnumber', None):
+            create_asset = get_create_asset(
+                    self.resolved_data,  temp_group
+                )
+            partially_matched_asset = get_partially_matched_asset(
+                    self.resolved_data, temp_group 
+                )
+
+        if not fully_matched_model:
+            gtin_actions = get_gtin_actions(
+                    self.resolved_data, temp_group
+                )
+            models_without_gtin = get_models_without_gtin(
+                    self.resolved_data, temp_group 
+                )
+
+        return {
+                'gtin_actions': gtin_actions,
+                'fully_matched_model': fully_matched_asset,
+                'duplicatable_models': get_duplicatable_models(
+                    self.resolved_data, temp_group 
+                ),
+                'models_without_gtin': models_without_gtin,
+                'fully_matched_asset':  fully_matched_asset ,
+                'partially_matched_assets': partially_matched_asset,
+                'create_asset': create_asset
         }

@@ -60,12 +60,10 @@ def ocr(opened_img, min_conf=50, page_num=0):
 
     output['ocr_boxes'] = words
 
-    print('ocr text for file', full_text)
     return output
 
 
 def extract_text_from_pdf(file):
-    print("extracting text from pdf", repr(file))
 
     with file.file.open('rb') as f:
         pdf_bytes = f.read()

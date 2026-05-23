@@ -65,32 +65,8 @@
 
 {% endpartialdef %}
 
-{% partialdef form %}
-                    <form id='add_image_{{ group.pk }}' enctype="multipart/form-data" method="post"
-                      novalidate
-                      hx-post="{{scan_url}}?group={{ group.pk }}"
-                      hx-target="#group_{{ group.pk }}"
-                      hx-swap="beforeend"
-                      hx-trigger='submit'
-                      hx-disabled-elt='#inputs_{{group.pk}} input, #inputs_{{group.pk}} button'
-                      hx-indicator='#spinner'
-                      _="on htmx:afterRequest
-                          wait 300ms
-                          trigger click on #scanner_input_button_{{group.pk}}
-                        end
-                    ">
-                    {% if form %}
-                    {% bootstrap_form_errors form %}
-                    {% endif %}
-                      {% csrf_token %}
-                    <div class='d-flex gap-3' id='inputs_{{group.pk|default:0}}'>
-                      {% include "documents/partials/temp_file_input.html" %}
-                      {% include "documents/partials/scanner_input.html" %}
-                      </div>
-                    </form>
-{% endpartialdef %}
 {% partialdef temp_group %}
-    <div class='container'  id="group_{{ group.pk }}">
+    <div class='container border border-2 m-2 p-2'  id="group_{{ group.pk }}">
                 <h5>Group Type: 
                       <a href='{% url "documents:temp_group_update" pk=group.pk %}'
                         class='btn btn-sm btn-outline-primary text-decoration-none'>
@@ -105,13 +81,15 @@
               <div class='d-flex flex-row'>
                       <div class='d-flex flex-column align-items-start gap-1'>
                         {% url 'documents:create_temp_file' as scan_url %}
-                        {% with scanner_input_class='visually-hidden' %}
-                          {% partial form %}
+                        {% with scanner_input_class='visually-hidden' group_id=group.pk %}
+                          {% include 'documents/partials/temp_upload_create.html' %}
                         {% endwith %}
+                        {% if request.resolver_match.url_name == 'user_temp_files' %}
                           <a href='{% url "documents:temp_group" pk=group.pk %}'
                             class='text-decoration-none btn btn-sm btn-outline-primary'>
                             Open <i class="bi bi-door-open"></i>
                           </a>
+                        {% endif %}
 
                           <button class="btn btn-outline-warning btn-sm" {% if not group.processable %}disabled{% endif %}
                             hx-post="{% url "documents:extract_text" pk=group.pk %}"
@@ -119,6 +97,11 @@
                             hx-swap="none">
                             Extract Info <i class="bi bi-cpu"></i>
                           </button>
+
+                          <a class="btn btn-outline-danger btn-sm"
+                            href="{% url 'documents:temp_group_delete' pk=group.pk %}">
+                            Delete <i class="bi bi-file-earmark-x"></i>
+                          </a>
 
                           <button class="btn btn-outline-info btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_{{group.pk}}" aria-controls="offcanvas_{{group.pk}}">
                            View Info <i class="bi bi-clipboard-data"></i>

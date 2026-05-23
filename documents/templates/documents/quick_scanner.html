@@ -1,12 +1,5 @@
 {% load django_bootstrap5 %}
-                
-                    <form novalidate id='add_image' enctype="multipart/form-data" method="post" action="{% url 'documents:quick_scanner'%}">
-                      {% csrf_token %}
-                    {% if form %}
-                      {% bootstrap_form_errors form %}
-                      {% endif %}
-                      <div class='d-flex gap-3' id='inputs_{{group.pk|default:0}}'>
-                      {% include "documents/partials/scanner_input.html" %}
-                      {% include "documents/partials/temp_file_input.html" %}
-                      </div>
-                    </form>
+{% url 'documents:quick_scanner' as scan_url %}
+{% with quick_scanner='true' group_id='quick'  %}
+  {% include 'documents/partials/temp_upload_create.html' %}
+{% endwith %}

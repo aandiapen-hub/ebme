@@ -122,7 +122,6 @@ class QuickScannerForm(forms.Form):
         cleaned_data = super().clean()
         scanned_code = cleaned_data.get("scanned_code")
         file = cleaned_data.get("file")
-        print('cealned data', cleaned_data)
 
         # allow empty
         if not file and not scanned_code:

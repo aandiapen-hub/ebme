@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<div class='container'>
+  <form
+  id='form'
+  method='post'
+  action='{% url "documents:temp_group_delete" pk=object.pk %}'
+  >
+    <p>Delete group?</p>
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    {% bootstrap_button button_type='submit' content='Delete' %}
+  </form>
+</div>
+
+{% endblock content %}
