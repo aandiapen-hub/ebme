@@ -1,7 +1,2 @@
-{% if action.action_url %}
-<a href="{{ action.action_url }}" class="btn btn-{{action.color}}">{{action.label}}</a>
-{% endif %}
+<a href="{{ action.url }}" class="btn btn-{{action.color}}">{{action.label}}</a>
 
-{% if action.open_url %}
-<a href="{{ action.open_url }}" class="btn btn-sm btn-{{action.color}}">{{action.obj}}</a>
-{% endif %}

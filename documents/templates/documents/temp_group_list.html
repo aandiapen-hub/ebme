@@ -5,10 +5,9 @@
 
 <div class="container">
 
-  <div class="row">
-      <div class="col">
-          <h3>Create New Group</h3>
-
+  <div class="row m-3 p-3 border border-2 border-secondary">
+      <div class="col d-inline-flex gap-3">
+          <h3>New Scan:</h3>
           {% url 'documents:create_temp_file' as scan_url %}
           {% with scanner_input_class='visually-hidden' group_id='new' %}
             {% include 'documents/partials/temp_upload_create.html' %}
@@ -19,7 +18,7 @@
   <div class='row mb-3'>
 
     <div id="delete_all_div" class="col">
-      <h4>Uploaded Images</h4>
+      <h3>Scan History</h3>
       <form
           hx-post="{% url 'documents:delete_all_temp_files' %}"
           hx-target="#images_div"
@@ -27,7 +26,7 @@
           hx-swap="outerHTML"
           hx-select='#images_div'
           hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
-              <button class="btn btn-warning" type="submit">
+              <button class="btn btn-secondary" type="submit">
                       Delete All
               </button>
         </form>

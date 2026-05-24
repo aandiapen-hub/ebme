@@ -67,7 +67,7 @@
 
 {% partialdef temp_group %}
     <div class='container border border-2 m-2 p-2'  id="group_{{ group.pk }}">
-                <h5>Group Type: 
+                <h5>Scan Type: 
                       <a href='{% url "documents:temp_group_update" pk=group.pk %}'
                         class='btn btn-sm btn-outline-primary text-decoration-none'>
                         {{ group.get_document_type_id_display }}
@@ -91,19 +91,19 @@
                           </a>
                         {% endif %}
 
-                          <button class="btn btn-outline-warning btn-sm" {% if not group.processable %}disabled{% endif %}
+                          <button class="btn btn-outline-primary btn-sm" {% if not group.processable %}disabled{% endif %}
                             hx-post="{% url "documents:extract_text" pk=group.pk %}"
                             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                             hx-swap="none">
                             Extract Info <i class="bi bi-cpu"></i>
                           </button>
 
-                          <a class="btn btn-outline-danger btn-sm"
+                          <a class="btn btn-outline-secondary btn-sm"
                             href="{% url 'documents:temp_group_delete' pk=group.pk %}">
                             Delete <i class="bi bi-file-earmark-x"></i>
                           </a>
 
-                          <button class="btn btn-outline-info btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_{{group.pk}}" aria-controls="offcanvas_{{group.pk}}">
+                          <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_{{group.pk}}" aria-controls="offcanvas_{{group.pk}}">
                            View Info <i class="bi bi-clipboard-data"></i>
                           </button>
 
@@ -173,8 +173,7 @@
     hx-target='this'
     hx-select='#additional_context'
     >
-      {% include template_name %}
-    </div>
+      {% include 'documents/document_processor/groups.html' %} </div>
 </div>
 
 {% endblock %}

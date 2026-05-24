@@ -24,7 +24,8 @@ from utils.generic_views import BulkUpdateView
 
 # import forms
 from .forms import (
-    ModelQuickCreateForm,
+    ModelCreateForm,
+    ModelUpdateForm,
     BrandBulkUpdateForm,
     ModelBulkUpdateForm,
 )
@@ -165,7 +166,7 @@ class ModelUpdateView(
     UpdateView,
 ):
     model = Tblmodel
-    form_class = ModelQuickCreateForm
+    form_class = ModelUpdateForm
     template_name = "model_information/partials/model_update.html"
     permission_required = "assets.change_tblmodel"
     success_url_app_view = 'model_information:model_view'
@@ -189,7 +190,7 @@ class ModelCreateView(
     CreateView,
 ):
     model = Tblmodel
-    form_class = ModelQuickCreateForm
+    form_class = ModelCreateForm
     template_name = "model_information/partials/model_create.html"
     permission_required = "assets.add_tblmodel"
     initial_mapper = 'create_model'

@@ -11,7 +11,8 @@ from documents.services.payloads import (
     apply_payload_to_initial,
     apply_payload_to_context,
 )
-
+from django.utils.dateparse import parse_date, parse_datetime
+from datetime import datetime, date
 
 class DocumentLinkPermissionMixin(PermissionRequiredMixin):
     def check_object_permissions(self, obj):
@@ -162,4 +163,52 @@ class TempUploadMixin:
     def after_save(self, form):
         self.save_temp_files(form, self.object)
         temp_group_resolver(self.get_temp_group_id())
+
+
+class TempUploadUpdateFormMixin:
+    """
+    Adds 'self.original' dict containing fields that changed compared 
+    to the model instance.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.original = {}
+        if not getattr(self, "instance", None) or not getattr(self.instance, 'pk', None):
+            return
+
+        self._compute_original_values()
+        print(self.original)
+
+    def _get_instance_value(self, field):
+        """
+        Handles FK *_id vs attribute access.
+        """
+        if hasattr(self.instance, f"{field}_id"):
+            return getattr(self.instance, f"{field}_id")
+        return getattr(self.instance, field)
+
+    def _normalise_date(self, value, original):
+        """
+        Normalise date values to enable consistent comparison
+        """
+        if isinstance(original, datetime):
+            return parse_datetime(value) if isinstance(value, str) else value
+
+        if isinstance(original, date):
+            return parse_date(value) if isinstance(value, str) else value
+
+        return value
+
+    def _compute_original_values(self):
+
+        for field_name in self.fields:
+            original = self._get_instance_value(field_name)
+            new = self.initial.get(field_name)
+
+            new_normalised = self._normalise_date(new, original)
+
+            if new_normalised != original:
+                self.original[field_name] = original
 

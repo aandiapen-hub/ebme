@@ -45,5 +45,7 @@ def display_filter_value(value):
 
 @register.filter
 def get_original(value, name):
-    output = value.get(name, "")
-    return output
+    if name in value:
+        output = value.get(name, "") or "Empty"
+    
+        return {'field':name, 'value':output}

@@ -27,12 +27,10 @@ from assets.models import (
 )
 
 
-from django_filters.views import FilterView
 
 from documents.services.documents import delete_object_document_links
 
-from utils.generic_views import BulkUpdateView, get_visible_columns
-
+from utils.generic_views import BulkUpdateView
 
 from .forms import (
     JobUpdateForm,

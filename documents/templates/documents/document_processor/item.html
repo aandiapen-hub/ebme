@@ -1,0 +1,16 @@
+
+<div class="card">
+  <div class="card-header">
+    {{item.item_type}}
+  </div>
+  <div class="card-body">
+    <h5 class="card-title">{{item.title}}</h5>
+    <p class="card-text">
+    {{item.description}}
+  <div class="card-footer bg-transparent border-success">
+     {% for action in item.actions %}
+        {% include 'documents/document_processor/action_button.html' %}
+    {% endfor %}
+  </div>
+  </div>
+</div>

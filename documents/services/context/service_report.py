@@ -3,6 +3,11 @@ from .context import BaseDocumentContextBuilder
 from django.shortcuts import reverse
 from assets.models import Tblassets
 
+from .context_action import(
+    Action,
+    MatchedGroup,
+    MatchedItem,
+)
 
 def temp_group_params(temp_group_id):
     if not temp_group_id:
@@ -11,36 +16,63 @@ def temp_group_params(temp_group_id):
 
 
 def get_assets_from_resolved_data(data, temp_group_id=None):
+    query_params = temp_group_params(temp_group_id)
+    items = []
+
     asset_ids = data.get('asset', {}).get('assets', [])
     qs = Tblassets.objects.filter(pk__in=asset_ids).prefetch_related('jobs')
-    create_url = reverse('jobs:job_create')
-    query_params = temp_group_params(temp_group_id)
-    url = f"{create_url}?{query_params}"
 
     for asset in qs:
-        asset.create_job_url = url
+        actions = []
 
+        actions.append(
+                Action(
+                    label='Create New Job',
+                    enabled=True,
+                    url=f"{reverse('jobs:job_create')}?{query_params}",
+                    color='primary'
+                )
+        )
         for job in asset.jobs.all():
-            update_url = reverse('jobs:job_update', kwargs={'pk': job.pk})
-            job.update_url = f"{update_url}?{query_params}"
+            actions.append(
+                Action(
+                    label=f'Update Job:{job} - {job.jobstatusid} (Start:{job.jobstartdate}, End:{job.jobenddate})',
+                    enabled=True,
+                    url = f"{reverse('jobs:job_update', kwargs={'pk': job.pk})}?{query_params}",
+                    color='primary',
+                )
+        )
+        
 
-    return qs
+        items += [ MatchedItem(
+            item_type='Asset',
+            title=f"{asset}",
+            description='Create or Update Job',
+            obj=asset,
+            actions=actions
+        ) ]
+
+
+    return items 
 
 
 class ServiceReportContext(
     BaseDocumentContextBuilder
 ):
-
-    def get_payload(self):
-        return self.resolved_data.get('job', {})
-
-    def template_name(self):
-        return 'documents/document_processor/service_report_actions.html'
-
     def get_extra_context(self):
-        return {
-            'assets': get_assets_from_resolved_data(
-                self.resolved_data, self.get_temp_group_id()
-            )
+        assets = MatchedGroup(
+            title='Assets',
+            confidence='Partial',
+            items=[],
+            color='success')
 
+        assets.items += get_assets_from_resolved_data(
+                    self.resolved_data, self.get_temp_group_id()
+                )
+
+
+        return {
+            'groups': [
+                assets
+            ]
         }

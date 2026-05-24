@@ -48,7 +48,6 @@ from .forms import (
     DocumentCreateForm,
     DocumentUpdateForm,
     TempFileUploadForm,
-    QuickScannerForm,
     LinkTemporaryDocumentForm,
     DocumentLinkUpdateForm,
     BulkLinkDocument,
@@ -467,7 +466,6 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
             return self.form_invalid(form, str(e.message_dict['__all__']))
 
         if self.request.htmx:
-            print('htx called on group create')
             group_document_count = TemporaryUpload.objects.filter(
                 group=self.object.group
             ).count()

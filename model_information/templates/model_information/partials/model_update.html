@@ -12,8 +12,8 @@
         hx-select='#model-detail'>
         {% csrf_token %}
         {{form.media}}
-        {% bootstrap_form form %}
-        <input  type="hidden" name="temp_document_group" value="{{ temp_document_group }}">
+
+        {% include 'partials/form_with_comparison.html' %}
 
         <button class="btn btn-primary" type="submit">Save</button>
 

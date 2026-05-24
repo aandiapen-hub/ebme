@@ -1,0 +1,15 @@
+{% for group in groups %}
+
+<section class="mb-4 p-2 border border-2 border-{{group.color}}">
+
+    <h4>{{ group.title }}</h4>
+
+  <div class='card-group'>
+    {% for item in group.items %}
+          {% include "documents/document_processor/item.html" %}
+      {% endfor %}
+    </div>
+
+</section>
+
+{% endfor %}

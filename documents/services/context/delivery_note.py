@@ -1,7 +1,11 @@
 from django.shortcuts import reverse
 from urllib.parse import urlencode
 from .context import BaseDocumentContextBuilder
-from .context_action import Action
+from .context_action import(
+    Action,
+    MatchedGroup,
+    MatchedItem,
+)
 
 from procurement.models import TblPurchaseOrder, TblDeliveries
 
@@ -14,64 +18,93 @@ def temp_group_params(temp_group_id):
 
 def get_purchase_order_from_resolved_data(data, temp_group_id=None):
     po_id = data.get('delivery', {}).get('po')
-    output = []
-    if po_id:
-        po_qs = TblPurchaseOrder.objects.filter(pk=po_id)
-        query_params = temp_group_params(temp_group_id)
+    query_params = temp_group_params(temp_group_id)
 
-        for po in po_qs:
-            output.append(Action(
-                key='create_delivery',
-                header='Matched PO',
-                label='Open PO',
-                obj=po,
+    items = []
+    if po_id:
+        po = TblPurchaseOrder.objects.filter(pk=po_id).first()
+
+        actions = []
+        actions.append(
+            Action(
+                label='Create Delivery',
                 enabled=True,
-                action_url=f"{reverse('procurement:deliveries_create', kwargs={'po_id': po_id})}?{query_params}",
-                color='success'
+                url=f"{reverse('procurement:deliveries_create', kwargs={'po_id': po_id})}?{query_params}",
+                color='primary'
                 )
-            )
-        return output
-    return None
+        ) 
+        actions.append(
+            Action(
+                label='Open',
+                enabled=True,
+                url=f"{reverse('procurement:po_detail', kwargs={'pk': po_id})}",
+                color='outline-primary'
+                )
+        ) 
+        items += [ MatchedItem(
+            item_type='Purchase Order',
+            title='PO Found',
+            description=f'{po} - {po.order_status}',
+            obj=po,
+            actions=actions
+        ) ]
+    return items
+
 
 
 def get_existing_matching_deliveries(data):
-
     del_note_number = data.get('delivery', {}).get('delivery_ids')
-    output = []
+    items = []
     if del_note_number:
         existing_deliveries = TblDeliveries.objects.filter(pk__in=del_note_number)
         for delivery in existing_deliveries:
-            output.append(
+            actions = []
+            actions.append(
                 Action(
-                    key='matched_delivery',
-                    header='Existing Deliveries',
                     label='Open',
-                    obj=delivery,
                     enabled=True,
-                    open_url=reverse('procurement:po_detail', kwargs={'pk': delivery.po}),
-                    color='primary',
+                    url=reverse('procurement:po_detail', kwargs={'pk': delivery.po}),
+                    color='outline-primary',
                 )
             )
-
-        return output
-
+        items += [ MatchedItem(
+            item_type='Delivery Note',
+            title='Delivery Note Found',
+            description=f'{delivery} for {delivery.po}({delivery.po.order_status})',
+            obj=delivery,
+            actions=actions
+        ) ]
+    return items
 
 class DeliveryNoteContext(
     BaseDocumentContextBuilder
 ):
 
-    def get_payload(self):
-        return self.resolved_data.get('delivery', {})
-
-    def template_name(self):
-        return 'documents/document_processor/delivery_note_actions.html'
-
     def get_extra_context(self):
-        return {
-                'purchase_order': get_purchase_order_from_resolved_data(
+
+        purchase_order =  MatchedGroup(
+            title='Purchase Order',
+            confidence='Full',
+            items=[],
+            color='primary')
+
+
+        purchase_order.items += get_purchase_order_from_resolved_data(
                     self.resolved_data, self.get_temp_group_id()
-                ),
-                'existing_deliveries': get_existing_matching_deliveries(
+                )
+
+        existing_deliveries = MatchedGroup(
+            title='Matched Deliveries',
+            confidence='Full',
+            items=[],
+            color='primary')
+
+        existing_deliveries.items += get_existing_matching_deliveries(
                     self.resolved_data
                 )
-        }
+
+        return {
+            'groups': [
+                purchase_order,
+                existing_deliveries,
+            ]}

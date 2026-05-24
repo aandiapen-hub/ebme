@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load django_bootstrap5 %}
+{% load custom_tags %}
 
 {% block content %}
 
@@ -125,6 +126,7 @@
                                   {% elif field.name in 'categoryid' %}
                                     {% partial category %}
                                   {% endif %}
+
                                 </div>
                               {% endfor %}
                                 <button class="btn btn-primary" type="submit">Save</button>
