@@ -33,17 +33,7 @@ def get_assets_from_resolved_data(data, temp_group_id=None):
                     color='primary'
                 )
         )
-        for job in asset.jobs.all():
-            actions.append(
-                Action(
-                    label=f'Update Job:{job} - {job.jobstatusid} (Start:{job.jobstartdate}, End:{job.jobenddate})',
-                    enabled=True,
-                    url = f"{reverse('jobs:job_update', kwargs={'pk': job.pk})}?{query_params}",
-                    color='primary',
-                )
-        )
         
-
         items += [ MatchedItem(
             item_type='Asset',
             title=f"{asset}",
@@ -53,12 +43,16 @@ def get_assets_from_resolved_data(data, temp_group_id=None):
         ) ]
 
 
+    print('asset item', items)
     return items 
 
 
 class ServiceReportContext(
     BaseDocumentContextBuilder
 ):
+
+    def template_name(self):
+       return 'documents/document_processor/service_report.html' 
     def get_extra_context(self):
         assets = MatchedGroup(
             title='Assets',
@@ -72,7 +66,7 @@ class ServiceReportContext(
 
 
         return {
-            'groups': [
+            'asset_groups': [
                 assets
             ]
         }

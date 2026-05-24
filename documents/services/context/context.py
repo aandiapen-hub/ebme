@@ -20,6 +20,7 @@ class BaseDocumentContextBuilder(ABC):
 
     def build(self):
         return {
+            'template_name': self.template_name(),
             **self.get_extra_context(),
         }
 
@@ -31,6 +32,9 @@ class BaseDocumentContextBuilder(ABC):
         if self.temp_group:
             return self.temp_group.pk
 
+    @abstractmethod
+    def template_name(self):
+        pass
 
     def get_extra_context(self):
         pass

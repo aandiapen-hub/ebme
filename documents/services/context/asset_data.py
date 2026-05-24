@@ -231,7 +231,7 @@ def get_create_asset(data, temp_group_id=None):
         items += [ MatchedItem(
             item_type='Asset',
             title="Create Asset",
-            description='Create Asset from extracted information',
+            description='Create Asset using the extracted information',
             obj=None,
             actions=[action]
         ) ]
@@ -240,6 +240,9 @@ def get_create_asset(data, temp_group_id=None):
 class AssetDataContext(
     BaseDocumentContextBuilder
 ):
+
+    def template_name(self):
+       return 'documents/document_processor/asset_data.html' 
 
     def get_extra_context(self):
         temp_group = self.get_temp_group_id()
@@ -257,7 +260,7 @@ class AssetDataContext(
         )
 
         suggested_actions = MatchedGroup(
-            title='Suggested Actions',
+            title='Create new records',
             confidence='Full',
             items=[],
             color='primary')
@@ -269,9 +272,8 @@ class AssetDataContext(
                     self.resolved_data, temp_group
                 )
 
-        print('suggested actions', suggested_actions)
         partial_matches = MatchedGroup(
-            title='Partial Matches',
+            title='Partial Matches (matched on serial number only)',
             confidence='partial',
             items=[],
             color='secondary')

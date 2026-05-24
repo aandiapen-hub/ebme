@@ -75,7 +75,7 @@
                       <img  id="spinner" class="htmx-indicator" src={% static 'spinners/3-dots-fade.svg' %} alt="Loading..."/>
                       </h5>
                       {% if not group.processable %}
-                        <p class='text-warning'>Set document type before processing document</p>
+                        <p class='text-secondary'>Set scan type to enable data extraction.</p>
                       {% endif %}
 
               <div class='d-flex flex-row'>
@@ -173,7 +173,7 @@
     hx-target='this'
     hx-select='#additional_context'
     >
-      {% include 'documents/document_processor/groups.html' %} </div>
+      {% include template_name %} </div>
 </div>
 
 {% endblock %}

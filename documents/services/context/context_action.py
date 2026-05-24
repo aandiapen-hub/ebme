@@ -4,9 +4,10 @@ from typing import Any
 @dataclass
 class Action:
     label: str
+    obj: Any | None = None # Any django model instance
     enabled: bool = True
-    url: str | None = None
     color: str = 'secondary'
+    url: str | None = None
 
 @dataclass
 class MatchedItem:
