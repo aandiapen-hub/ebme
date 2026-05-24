@@ -1,0 +1,27 @@
+
+
+<section class="mb-4 p-2 border border-2 border-{{existing_deliveries.color}}">
+
+    <h4>{{ existing_deliveries.title }}</h4>
+
+  <div class='card-group'>
+    {% for item in existing_deliveries.items %}
+          {% include "documents/document_processor/item.html" %}
+      {% endfor %}
+    </div>
+
+</section>
+
+
+<section class="mb-4 p-2 border border-2 border-{{purchase_order.color}}">
+
+    <h4>{{ purchase_order.title }}</h4>
+
+  <div class='card-group'>
+    {% for item in purchase_order.items %}
+          {% include "documents/document_processor/item.html" %}
+      {% endfor %}
+    </div>
+
+</section>
+

@@ -80,6 +80,9 @@ class DeliveryNoteContext(
     BaseDocumentContextBuilder
 ):
 
+    def template_name(self):
+       return 'documents/document_processor/delivery_note.html' 
+
     def get_extra_context(self):
 
         purchase_order =  MatchedGroup(
@@ -93,18 +96,18 @@ class DeliveryNoteContext(
                     self.resolved_data, self.get_temp_group_id()
                 )
 
+
         existing_deliveries = MatchedGroup(
             title='Matched Deliveries',
             confidence='Full',
             items=[],
-            color='primary')
+            color='success')
 
         existing_deliveries.items += get_existing_matching_deliveries(
                     self.resolved_data
                 )
 
         return {
-            'groups': [
-                purchase_order,
-                existing_deliveries,
-            ]}
+            'purchase_order': purchase_order,
+            'existing_deliveries': existing_deliveries,
+            }

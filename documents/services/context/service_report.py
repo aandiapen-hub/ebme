@@ -43,7 +43,6 @@ def get_assets_from_resolved_data(data, temp_group_id=None):
         ) ]
 
 
-    print('asset item', items)
     return items 
 
 
