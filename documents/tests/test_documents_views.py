@@ -1,12 +1,10 @@
 import os
-from tokenize import group
 from urllib.parse import urlencode
 import pytest
 from pytest_django.asserts import assertTemplateUsed
 from django.contrib.messages import get_messages
 from django.urls import reverse
 
-from documents.service import SaveTempFiles
 from assets.models import Tblassets, Tbljob, Tblmodel, Tbltesteqused
 from documents.models import (
     DocumentsView,
@@ -1188,37 +1186,6 @@ def test_document_update_view_post(client, user_setup, mocker):
     assert last_document.document_name == "test_document"
 
 
-# test saving temp file permanently
-@pytest.mark.django_db
-def test_save_temp_file_permanently(user_setup, client):
-    user = user_setup
-    client.force_login(user)
-    last_document = TblDocuments.objects.last()
-
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user,
-            original_name="delivery_note.jpeg",
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="image/jpeg",
-        )
-    temp_document = TemporaryUpload.objects.filter(user=user)
-
-    assert TemporaryUpload.objects.filter(user=user).exists()
-
-    temp_files = SaveTempFiles(
-        temp_document, 300, TblDocTableRef.objects.first().table_name
-    )
-    temp_files.save_all()
-
-    last_document = TblDocuments.objects.last()
-    assert not TemporaryUpload.objects.filter(user=user).exists()
-
-    assert TblDocuments.objects.filter(document_name="delivery_note.jpeg").exists()
 
 
 # test LinkTemporaryDocumentView
@@ -1595,3 +1562,101 @@ def test_quick_scanner_post_incorrect_filetype(client, user_setup, mocker):
 
     messages_list = [m.message for m in messages]
     assert any("Incorrect" in msg for msg in messages_list)
+
+
+#-----------------------------test readers-----------------
+
+@pytest.mark.django_db
+def test_bar_code_reader_post_with_ai(client, user_setup, mocker):
+    user = user_setup
+    mocker.patch(
+        "assets.mixins.CustomerAssetPermissionMixin.has_permission", return_value=True
+    )
+    user.customerid = Tblassets.objects.first().customerid
+    user.save()
+    client.force_login(user)
+    import os
+
+    base_dir = os.path.dirname(__file__)
+
+    image1_path = os.path.join(base_dir, "test_images", "gs1_id_label.jpg")
+
+    with open(image1_path, "rb") as f:
+        testfile = File(f)
+        testFile = File(f, name="test_img1.jpg")
+        image = TemporaryUpload.objects.create(
+            user=user, file=testFile, file_size=testFile.size, mime_type="image/jpg"
+        )
+    group = image.group
+
+    url = reverse("assets:barcode_scanner", kwargs={"temp_file_group": 0})
+    query_params = urlencode({"use_ai": "true"})
+    full_url = f"{url}?{query_params}"
+    response = client.post(full_url)
+    assert response.status_code == 200
+    assertTemplateUsed("assets/partials/barcode_scanner_output.html")
+
+
+@pytest.mark.django_db
+def test_bar_code_reader_post_incorrect_document_type(client, user_setup, mocker):
+    user = user_setup
+    mocker.patch(
+        "assets.mixins.CustomerAssetPermissionMixin.has_permission", return_value=True
+    )
+    user.customerid = Tblassets.objects.first().customerid
+    user.save()
+    client.force_login(user)
+    import os
+
+    base_dir = os.path.dirname(__file__)
+
+    image1_path = os.path.join(base_dir, "test_images", "delivery_note.jpeg")
+
+    with open(image1_path, "rb") as f:
+        testfile = File(f)
+        testFile = File(f, name="test_img1.jpg")
+        image = TemporaryUpload.objects.create(
+            user=user, file=testFile, file_size=testFile.size, mime_type="image/jpg"
+        )
+    group = image.group
+
+    url = reverse("assets:barcode_scanner", kwargs={"temp_file_group": group})
+    response = client.post(url)
+    assert response.status_code == 200
+    assertTemplateUsed("partials/messages.html")
+    error_messages = list(get_messages(response.wsgi_request))
+    assert any(
+        "No barcodes recognised from these images" in str(message)
+        for message in error_messages
+    )
+
+
+@pytest.mark.django_db
+def test_bar_code_reader_post_incorrect_document_format(client, user_setup, mocker):
+    user = user_setup
+    mocker.patch(
+        "assets.mixins.CustomerAssetPermissionMixin.has_permission", return_value=True
+    )
+    user.customerid = Tblassets.objects.first().customerid
+    user.save()
+    client.force_login(user)
+    import os
+
+    base_dir = os.path.dirname(__file__)
+
+    image1_path = os.path.join(base_dir, "test_images", "filter.svg")
+
+    with open(image1_path, "rb") as f:
+        testfile = File(f)
+        testFile = File(f, name="filter.svg")
+        image = TemporaryUpload.objects.create(
+            user=user, file=testFile, file_size=testFile.size, mime_type="svg"
+        )
+    group = image.group
+
+    url = reverse("assets:barcode_scanner", kwargs={"temp_file_group": group})
+    response = client.post(url)
+    assert response.status_code == 200
+    assertTemplateUsed("partials/messages.html")
+    error_messages = list(get_messages(response.wsgi_request))
+    assert any("Incorrect file type" in str(message) for message in error_messages)

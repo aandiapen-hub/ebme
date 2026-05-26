@@ -64,7 +64,6 @@ class Tblassets(models.Model):
         models.PROTECT,
         blank=True,
         db_column="asset_status_id",
-        default=1,
     )
     support_level = models.ForeignKey(
         "TblSupportLevel", models.PROTECT, blank=True, null=True

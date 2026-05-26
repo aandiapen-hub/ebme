@@ -29,10 +29,10 @@ JOB_STATUS = ["Inprogress","Completed","Not Started"]
 class JobStatusFactory(DjangoModelFactory):
     class Meta:
         model = Tbljobstatus
-        django_get_or_create = ('jobstatus',)
+        django_get_or_create = ('jobstatusname',)
 
 
-    jobstatus = factory.Iterator(JOB_STATUS,cycle=True)
+    jobstatusname = factory.Iterator(JOB_STATUS,cycle=True)
     jobstatusid = factory.Sequence(lambda n: 10000 + n)
 
 JOB_TYPES = ["PPM","Repair"]
@@ -84,6 +84,8 @@ CHECKS = [
     "Leak Test",
     "Operational Test"
 ]
+
+
 class ChecklistsFactory(DjangoModelFactory):
     class Meta:
         model = Tblcheckslists
@@ -95,6 +97,8 @@ class ChecklistsFactory(DjangoModelFactory):
 
 RESULTNAME = ["Pass","Fail","N/A"]
 RESULTID =[1,2,3]
+
+
 class TestResultFactory(DjangoModelFactory):
     class Meta:
         model = Tbltestresult

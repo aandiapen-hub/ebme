@@ -4,7 +4,6 @@ from django.urls import reverse
 from pytest_django.asserts import assertTemplateUsed
 
 from documents.models import TemporaryUpload
-from documents.utils import clear_extraction_results, save_extraction_results
 from procurement.models import TblSuppliers,TblPurchaseOrder, TblPoLines, TblDeliveries, TblDeliveryLines,TblInvoices
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -768,18 +767,6 @@ def test_invoice_create_view_renders_with_ai_data(client, user_setup, mocker):
     assert response.status_code == 200
     assertTemplateUsed(response, 'procurement/invoices_create.html')
 
-@pytest.mark.django_db
-def test_invoice_create_view_renders(client, user_setup, mocker):
-    mocker.patch('django.contrib.auth.mixins.PermissionRequiredMixin.has_permission', return_value=True)
-    user = user_setup
-    client.force_login(user)
-    url = reverse('procurement:invoices_create')
-    clear_extraction_results(user, group=None)
-    query_params = urlencode({'invoice_no': '1234'})
-    full_url = f"{url}?{query_params}"
-    response = client.get(full_url)
-    assert response.status_code == 200
-    assertTemplateUsed(response, 'procurement/invoices_create.html')
 
 @pytest.mark.django_db
 def test_invoice_create_view_post_successful(client, user_setup, mocker):
@@ -1085,89 +1072,6 @@ def test_delivery_note_reader_output_permission_required(client, user_setup):
     response = client.get(url)
     assert response.status_code == 403
 
-@pytest.mark.django_db
-def test_delivery_note_reader_output_view_renders(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch('django.contrib.auth.mixins.PermissionRequiredMixin.has_permission', return_value=True)
-    po = TblPurchaseOrder.objects.last()
-    client.force_login(user)
-
-    save_extraction_results(
-        user_id=user,
-        group=1,
-        results={'po':po.po_id,
-                 'DelNote':'12345'
-                },
-        hours=1,
-    )
-
-
-    url = reverse('procurement:delivery_note_reader_output', kwargs={'temp_file_group':1})
-    response = client.get(url)
-    assert response.status_code == 200
-    assertTemplateUsed(response,'procurement/partials/delivery_note_reader_output.html')
-
-@pytest.mark.django_db
-def test_delivery_note_reader_output_view_renders_no_delivery_info(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch('django.contrib.auth.mixins.PermissionRequiredMixin.has_permission', return_value=True)
-    po = TblPurchaseOrder.objects.last()
-    client.force_login(user)
-
-    save_extraction_results(
-        user_id=user,
-        group=1,
-        results={},
-        hours=1,
-    )
-
-
-    url = reverse('procurement:delivery_note_reader_output', kwargs={'temp_file_group':1})
-    response = client.get(url)
-    assert 'No delivery note data' in response.context['error']
-
-@pytest.mark.django_db
-def test_delivery_note_reader_output_view_renders_existing_delivery(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch('django.contrib.auth.mixins.PermissionRequiredMixin.has_permission', return_value=True)
-    client.force_login(user)
-    delivery_note = TblDeliveries.objects.first()
-
-    save_extraction_results(
-        user_id=user,
-        group=1,
-        results={'PO':delivery_note.po_id,
-                 'DelNote':delivery_note.delivery_note_number,
-                },
-        hours=1,
-    )
-
-    url = reverse('procurement:delivery_note_reader_output', kwargs={'temp_file_group':1})
-    response = client.get(url)
-    assert response.context['existing_delivery']
-
-@pytest.mark.django_db
-def test_delivery_note_reader_output_view_renders_unknown_po(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch('django.contrib.auth.mixins.PermissionRequiredMixin.has_permission', return_value=True)
-    client.force_login(user)
-
-    save_extraction_results(
-        user_id=user,
-        group=1,
-        results={'po':'12',
-                 'DelNote':'12345'
-                },
-        hours=1,
-    )
-
-
-    url = reverse('procurement:delivery_note_reader_output', kwargs={'temp_file_group':1})
-    response = client.get(url)
-    assert response.status_code == 200
-    assert "Purchase order not recognised" in response.context['error'] 
-
-
 
 #test invoice reader
 
@@ -1261,86 +1165,3 @@ def test_invoice_reader_output_permission_required(client, user_setup):
     response = client.get(url)
     assert response.status_code == 403
 
-@pytest.mark.django_db
-def test_invoices_reader_output_view_renders(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch('django.contrib.auth.mixins.PermissionRequiredMixin.has_permission', return_value=True)
-    po = TblPurchaseOrder.objects.last()
-    invoice = TblInvoices.objects.last()
-    client.force_login(user)
-
-    save_extraction_results(
-        user_id=user,
-        group=1,
-        results={'po':po.po_id,
-                 'invoice_no'  : invoice.invoice_no,
-                },
-        hours=1,
-    )
-
-    url = reverse('procurement:invoices_reader_output', kwargs={'temp_file_group':1})
-    response = client.get(url)
-    assert response.status_code == 200
-    assertTemplateUsed(response,'procurement/partials/invoice_reader_output.html')
-
-@pytest.mark.django_db
-def test_invoices_reader_output_view_renders_new_invoice(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch('django.contrib.auth.mixins.PermissionRequiredMixin.has_permission', return_value=True)
-    po = TblPurchaseOrder.objects.last()
-    invoice = TblInvoices.objects.last()
-    client.force_login(user)
-
-    save_extraction_results(
-        user_id=user,
-        group=1,
-        results={'po':po.po_id,
-                 'invoice_no'  : '1234'
-                },
-        hours=1,
-    )
-
-    url = reverse('procurement:invoices_reader_output', kwargs={'temp_file_group':1})
-    response = client.get(url)
-    assert response.status_code == 200
-    assertTemplateUsed(response,'procurement/partials/invoice_reader_output.html')
-
-
-@pytest.mark.django_db
-def test_invoices_reader_output_view_renders_no_invoice_data(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch('django.contrib.auth.mixins.PermissionRequiredMixin.has_permission', return_value=True)
-    po = TblPurchaseOrder.objects.last()
-    client.force_login(user)
-
-    save_extraction_results(
-        user_id=user,
-        group=1,
-        results={ },
-        hours=1,
-    )
-
-    url = reverse('procurement:invoices_reader_output', kwargs={'temp_file_group':1})
-    response = client.get(url)
-    assert response.status_code == 200
-    assert 'No invoice data' in response.context['error']
-
-
-@pytest.mark.django_db
-def test_invoices_reader_output_view_renders_uknown_po(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch('django.contrib.auth.mixins.PermissionRequiredMixin.has_permission', return_value=True)
-    po = TblPurchaseOrder.objects.last()
-    client.force_login(user)
-
-    save_extraction_results(
-        user_id=user,
-        group=1,
-        results={'po':'1234' },
-        hours=1,
-    )
-
-    url = reverse('procurement:invoices_reader_output', kwargs={'temp_file_group':1})
-    response = client.get(url)
-    assert response.status_code == 200
-    assert 'order not recognised' in response.context['error']

@@ -1,7 +1,6 @@
-
 import pytest
-
 from documents.tests.factories import AssetDocumentLinks
+from assets.tests.factories import AssetFactory, CustomerFactory
     
 
 @pytest.fixture(scope='session')
@@ -23,6 +22,15 @@ def user_setup(django_user_model):
         first_name='test',
     )
     return user
+
+
+@pytest.fixture
+def customer():
+    return CustomerFactory
+
+@pytest.fixture
+def asset():
+    return AssetFactory()
 
 
 @pytest.fixture(scope="function")

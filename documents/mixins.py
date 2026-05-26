@@ -144,8 +144,8 @@ class TempUploadMixin:
             )
         return form
 
-    def get_context_data(self):
-        context = super().get_context_data()
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
 
         # populate from payload
         context = self.apply_temp_payload_to_context(context=context)

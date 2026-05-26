@@ -1,150 +1,153 @@
 
+from django.urls import reverse
 import pytest
-from django.test import RequestFactory
-from django.views.generic import ListView, DetailView
-from django.db.models import Q
+from django.contrib.auth.models import Permission
+from assets.models import AssetView
 
-from django.core.exceptions import PermissionDenied
-from assets.models import Tblassets, Tblcustomer
 
-from assets.mixins import CustomerAssetPermissionMixin
 
-from django.http import Http404
-
-class DummyListView(CustomerAssetPermissionMixin, ListView):
-    model = Tblassets
 
 @pytest.mark.django_db
-def test_customer_asse_permission_mixin_list(user_setup):
+def test_customer_asse_permission_mixin_list(
+    client,
+    user_setup,
+    customer,
+    create_assets,
+):
+
+    customer1 = customer(customer_name='customerA')
+    customer2 = customer(customer_name='customerb')
+
+    assets1 = create_assets(customerid=customer1, count=10)
+    assets2 = create_assets(customerid=customer2, count=20)
+
     user = user_setup
+    user.is_staff = False
+    permission = Permission.objects.get(codename="view_assetview")
+    user.user_permissions.add(permission)
+    user.customerid = customer1
+    user.save()
 
-    customer = Tblassets.objects.last().customerid
+    client.force_login(user)
+    url = reverse('assets:assets_list') 
+    response = client.get(url)
 
-    customer_assets = Tblassets.objects.filter(customerid=customer)
-    other_assets = Tblassets.objects.filter(~Q(customerid=customer))
-    
-    request = RequestFactory().get('/fake-url/')
-    request.user = user
+    table = response.context['table']
+    assert table.data.data.count() == 10
 
-    view = DummyListView()
-    view.request = request
-    
-    #test output for user with no customer set
-    with pytest.raises(PermissionDenied):
-        view.get_queryset()
-    
-    #test output that user can only see asset that belongs to them
-    user.customerid = customer
-    qs = view.get_queryset()
-    assert set(qs) == set(customer_assets)
-    assert any(item in set(qs) for item in set(other_assets)) == False
+    #asset that no asset from customer2 is in the list
+    asset = assets2[0]
 
-def test_customer_asse_permission_mixin_list_for_staff(user_setup):
+    assert asset not in table.data.data
+
+
+def test_customer_asse_permission_mixin_list_for_staff(
+    client,
+    user_setup,
+    customer,
+    create_assets,
+):
+
+    customer1 = customer(customer_name='customerA')
+    customer2 = customer(customer_name='customerb')
+
+    assets1 = create_assets(customerid=customer1, count=10)
+    assets2 = create_assets(customerid=customer2, count=20)
+
     user = user_setup
-    user.is_staff = True
-    
-    request = RequestFactory().get('/fake-url/')
-    request.user = user
+    user.is_staff = True 
+    permission = Permission.objects.get(codename="view_assetview")
+    user.user_permissions.add(permission)
+    user.save()
 
-    view = DummyListView()
-    view.request = request
-    
-    #test output that user can only see asset that belongs to them
-    qs = view.get_queryset()
-    assert qs.count() == Tblassets.objects.all().count() 
+    client.force_login(user)
+    url = reverse('assets:assets_list') 
+    response = client.get(url)
 
+    table = response.context['table']
+    assert table.data.data.count() == 30
 
-class DummyDetailView(CustomerAssetPermissionMixin, DetailView):
-    model = Tblassets
 
 @pytest.mark.django_db
-def test_customer_asset_permission_mixin_object(user_setup):
+def test_customer_asset_permission_mixin_object_for_staff(
+    client,
+    user_setup,
+    customer,
+    create_assets,
+):
+
+    customer1 = customer(customer_name='customerA')
+    customer2 = customer(customer_name='customerb')
+
+    assets1 = create_assets(customerid=customer1, count=10)
+    assets2 = create_assets(customerid=customer2, count=20)
+
     user = user_setup
+    user.is_staff = True 
+    permission = Permission.objects.get(codename="view_assetview")
+    user.user_permissions.add(permission)
+    user.save()
 
-    customer = Tblassets.objects.last().customerid
-    pk = Tblassets.objects.last().assetid
+    client.force_login(user)
+    url = reverse('assets:view_asset', kwargs={'pk': assets1[0].pk}) 
+    response = client.get(url)
 
-    customer_assets = Tblassets.objects.filter(customerid=customer)
-    other_assets = Tblassets.objects.filter(~Q(customerid=customer))    
-    request = RequestFactory().get('/fake-url/')
-    request.user = user
-    
-    #test user can see thier asset
-    view = DummyDetailView()
-    view.request = request
-    view.kwargs = {'pk':pk}
-    with pytest.raises(PermissionDenied):
-        view.get_object()
-    
-    user.customerid = customer
-    object = view.get_object()
-
-    assert object in set(customer_assets)
+    obj = AssetView.objects.get(pk=assets1[0].pk)
+    assert obj == response.context['asset']
 
 @pytest.mark.django_db
-def test_customer_asset_permission_mixin_object_for_staff(user_setup):
+def test_customer_asset_permission_mixin_other_object(
+    client,
+    user_setup,
+    customer,
+    create_assets,
+):
+
+    customer1 = customer(customer_name='customerA')
+    customer2 = customer(customer_name='customerb')
+
+    assets1 = create_assets(customerid=customer1, count=10)
+    assets2 = create_assets(customerid=customer2, count=20)
+
     user = user_setup
-    user.is_staff = True
+    user.is_staff = False
+    user.customerid = customer1
+    permission = Permission.objects.get(codename="view_assetview")
+    user.user_permissions.add(permission)
+    user.save()
 
-    pk = Tblassets.objects.last().assetid
+    client.force_login(user)
+    url = reverse('assets:view_asset', kwargs={'pk': assets1[0].pk}) 
+    response = client.get(url)
 
-    request = RequestFactory().get('/fake-url/')
-    request.user = user
+    obj = AssetView.objects.get(pk=assets1[0].pk)
+    assert obj == response.context['asset']
     
-    #test user can see thier asset
-    view = DummyDetailView()
-    view.request = request
-    view.kwargs = {'pk':pk}
-    
 
-    object = view.get_object()
-
-    assert object
 
 @pytest.mark.django_db
-def test_customer_asset_permission_mixin_other_object(user_setup):
+def test_customer_asset_permission_mixin_other_denied(
+    client,
+    user_setup,
+    customer,
+    create_assets,
+):
+
+    customer1 = customer(customer_name='customerA')
+    customer2 = customer(customer_name='customerb')
+
+    assets1 = create_assets(customerid=customer1, count=10)
+    assets2 = create_assets(customerid=customer2, count=20)
+
     user = user_setup
-    customer = Tblassets.objects.last().customerid      
-    user.customerid = customer
+    user.customerid=customer1
+    user.is_staff = False
+    permission = Permission.objects.get(codename="view_assetview")
+    user.user_permissions.add(permission)
+    user.save()
 
-    other_assets = Tblassets.objects.filter(~Q(customerid=customer))    
-    pk = other_assets.last().assetid
+    client.force_login(user)
+    url = reverse('assets:view_asset', kwargs={'pk': assets2[0].pk}) 
+    response = client.get(url)
 
-    request = RequestFactory().get('/fake-url/')
-    request.user = user
-    
-    #test user can see thier asset
-    view = DummyDetailView()
-    view.request = request
-    view.kwargs = {'pk': pk}
-
-    with pytest.raises(Http404):
-        view.get_object()
-    
-
-
-class DummyDetailView2(CustomerAssetPermissionMixin, DetailView):
-    model = Tblassets
-    
-    def get_queryset(self):
-        return Tblassets.objects.all()
-
-@pytest.mark.django_db
-def test_customer_asset_permission_mixin_other_denied(user_setup):
-    user = user_setup
-    customer = Tblassets.objects.last().customerid      
-    user.customerid = customer
-
-    other_assets = Tblassets.objects.filter(~Q(customerid=customer))    
-    pk = other_assets.last().assetid
-
-    request = RequestFactory().get('/fake-url/')
-    request.user = user
-    
-    #test user can see thier asset
-    view = DummyDetailView2()
-    view.request = request
-    view.kwargs = {'pk': pk}
-
-    with pytest.raises(PermissionDenied):
-        view.get_object()
+    assert response.status_code == 404

@@ -3,10 +3,10 @@ from django.db import transaction
 from documents.mixins import TempUploadMixin
 from django.http import HttpResponse, HttpResponseRedirect
 import json
+from documents.services.documents import delete_object_document_links
 
 
 from django.shortcuts import render
-import ast
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
     ListView,
@@ -16,7 +16,6 @@ from django.views.generic import (
     DetailView,
 )
 from datetime import datetime
-from documents.models import TblDocumentLinks
 from model_information.views import BrandCreateView, CategoryCreateView, ModelUpdateView
 
 from .models import (
@@ -131,7 +130,7 @@ class AssetDeleteView(
         self.object = self.get_object()
         try:
             with transaction.atomic():
-                TblDocumentLinks.delete_link_documents(self.object)
+                delete_object_document_links(self.object)
                 self.object.delete()
             response = HttpResponse(status=204)
             response["HX-Redirect"] = self.success_url
@@ -227,59 +226,3 @@ class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):
     operation = "update"
     table_to_update = Tblassets
 
-
-class QuickBrandCreateView(BrandCreateView):
-    def form_valid(self, form):
-        self.object = form.save()
-        context = {
-            "data": {
-                "brand": {
-                    "brandname": self.object.brandname,
-                    "brandid": self.object.pk,
-                }
-            }
-        }
-
-        response = render(
-            self.request, "model_information/partials/brand_set_select.html", context
-        )
-        response["HX-Retarget"] = "#brands_list"
-        response["HX-Reswap"] = "beforeend"
-        return response
-
-
-class QuickCategoryCreateView(CategoryCreateView):
-    def form_valid(self, form):
-        self.object = form.save()
-        context = {
-            "data": {
-                "category": {
-                    "categoryname": self.object.categoryname,
-                    "categoryid": self.object.pk,
-                }
-            }
-        }
-
-        response = render(
-            self.request, "model_information/partials/category_set_select.html", context
-        )
-        response["HX-Retarget"] = "#categories_list"
-
-        response["HX-Reswap"] = "beforeend"
-        return response
-
-
-class QuickModelGtinUpdate(ModelUpdateView):
-    def get_success_url(self, **kwargs):
-        temp_document_group = self.request.POST.get("temp_document_group")
-
-        return reverse(
-            "assets:barcode_output", kwargs={"temp_file_group": temp_document_group}
-        )
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        temp_document_group = self.request.GET.get("temp_document_group")
-        if temp_document_group:
-            context["temp_document_group"] = temp_document_group
-        return context

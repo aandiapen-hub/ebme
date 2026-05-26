@@ -5,7 +5,6 @@ from factory.django import DjangoModelFactory
 from assets.models import (
     Tblassets, Tblbrands, Tblmodel, Tblcustomer,
     TblAssetStatus, Tblcategories, Tblppmschedules,
-    Tbljob,Tbljobstatus, Tbljobtypes,Tbltechnicianlist
     
 )
 
@@ -51,7 +50,6 @@ class AssetStatusFactory(DjangoModelFactory):
         django_get_or_create = ('status_name',)
 
 
-    asset_status_id = factory.Sequence(lambda n: n + 1)
     status_name = factory.Iterator(ASSET_STATUS,cycle=True)
 
 
@@ -65,12 +63,24 @@ class PpmScheduleFactory(DjangoModelFactory):
     schedulefrequency = factory.Iterator([1, 3, 6, 12], cycle=True)
 
 
+
+class TblcustomerFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Tblcustomer
+
+    customer_name = factory.Sequence(lambda n: f"Customer {n}")
+    customer_address = factory.Faker("street_address")
+    customer_phone = factory.Faker("phone_number")
+    customer_postcode = factory.Faker("postcode")
+
+    # customerid is a BigAutoField, so Django/database will generate it
+
 class AssetFactory(DjangoModelFactory):
     class Meta:
         model = Tblassets
 
     modelid = factory.SubFactory(ModelFactory)
-    customerid = factory.SubFactory(CustomerFactory)
+    customerid = factory.SubFactory(TblcustomerFactory)
     serialnumber = factory.Sequence(lambda n: 15245155412 + n)
     asset_status_id = factory.SubFactory(AssetStatusFactory)
     ppmscheduleid = factory.SubFactory(PpmScheduleFactory)

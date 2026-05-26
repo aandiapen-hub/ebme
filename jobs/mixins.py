@@ -76,7 +76,7 @@ class CustomerJobChildPermissionMixin(PermissionRequiredMixin):
             jobid = self.kwargs.get('jobid') or request.GET.get("jobid")
         self.jobid = jobid
 
-        job = Tbljob.objects.get(jobid=jobid)
+        job = Tbljob.objects.filter(jobid=jobid).first()
             
 
         
@@ -86,8 +86,8 @@ class CustomerJobChildPermissionMixin(PermissionRequiredMixin):
         else:
             # Get customerid from logged-in user
             customerid = getattr(request.user, 'customerid', None)
+            print('jobid', jobid)
             
-            # Fetch jobid from URL kwargs
             
             if customerid is None or jobid is None:
                 raise PermissionDenied("Invalid access - missing customer or job.")

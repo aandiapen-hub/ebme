@@ -6,9 +6,7 @@ from .views import (AssetCreateView,
                     AssetDeleteView,
                     AssetJobsListView,
                     AssetBulkUpdateView,
-                    QuickBrandCreateView,
-                    QuickCategoryCreateView,
-                    QuickModelGtinUpdate)
+)
 
 
 app_name = 'assets'
@@ -21,9 +19,5 @@ urlpatterns = [
     path("jobsummary/<int:assetid>/", AssetJobsListView.as_view(), name="asset_jobs"),
     path("bulk_update/",AssetBulkUpdateView.as_view(),name='bulk_update_assets'),
     #utils
-
-    path("quickbrandcreate/",QuickBrandCreateView.as_view(),name='quick_create_brand'),
-    path("quickcategorycreate/",QuickCategoryCreateView.as_view(),name='quick_create_category'),
-    path("quickmodelgtinupdate/<int:pk>/",QuickModelGtinUpdate.as_view(),name="quick_update_model"),
 
 ]   
