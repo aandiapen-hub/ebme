@@ -43,6 +43,7 @@ class ModelFactory(DjangoModelFactory):
     brandid = factory.SubFactory(BrandFactory)
     categoryid = factory.SubFactory(CategoryFactory)
 
+
 ASSET_STATUS = ["Active", "Quarantined", "Decommissioned"]
 class AssetStatusFactory(DjangoModelFactory):
     class Meta:

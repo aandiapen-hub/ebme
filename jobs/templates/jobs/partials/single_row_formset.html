@@ -1,0 +1,13 @@
+{% load django_bootstrap5 %}
+<input
+    type="hidden"
+    name="{{ prefix }}-TOTAL_FORMS"
+    id="id_{{ prefix }}-TOTAL_FORMS"
+    value="{{ total_forms|add:1 }}"
+    hx-swap-oob="true"
+/>
+
+
+  {{ form.media}}
+  {% bootstrap_form form %}
+

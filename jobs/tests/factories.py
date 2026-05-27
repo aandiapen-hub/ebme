@@ -2,7 +2,7 @@
 
 import factory
 from factory.django import DjangoModelFactory
-from assets.tests.factories import AssetFactory,ModelFactory
+from assets.tests.factories import AssetFactory, ModelFactory
 from assets.models import (
     Tbljob, Tbljobstatus,Tbljobtypes, Tbltechnicianlist,
     Tbltesteqused,Tblcheckslists, Tbltestscarriedout,

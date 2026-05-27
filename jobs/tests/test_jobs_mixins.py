@@ -19,7 +19,7 @@ def test_customer_job_permission_mixin_denied(
 
     user = user_setup
     user.customerid = customer1
-    permission = Permission.objects.get(codename="view_assetview")
+    permission = Permission.objects.get(codename="view_jobview")
     user.user_permissions.add(permission)
     user.save()
 

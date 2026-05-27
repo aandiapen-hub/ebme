@@ -5,20 +5,9 @@ from .views import (
     JobDetailView,
     JobCreateView,
     JobDeleteView,
-    TestsCarriedOutView,
-    TestsCarriedOutUpdate,
-    TestsCarriedOutCreate,
-    TestsCarriedOutDelete,
-    SparePartsUsedListView,
-    SparePartsUsedUpdate,
-    SparePartsUsedDelete,
-    SparePartsUsedCreateView,
-    TestEquipmentUsedListView,
-    TestEquipmentUsedCreate,
-    TestEquipmentUsedDelete,
     GenerateReportView,
-    SparePartsUsedDetail,
     JobBulkUpdateView,
+    AddFormsetRowView,
 )
 
 app_name = "jobs"
@@ -32,56 +21,5 @@ urlpatterns = [
     path("jobs/generate-report", GenerateReportView.as_view(), name="gen_report"),
     # bulk update job
     path("job_bulk_update", JobBulkUpdateView.as_view(), name="bulk_update_jobs"),
-    path("testscarriedout/", TestsCarriedOutView.as_view(), name="testscarriedout"),
-    path(
-        "testscarriedout_update/<int:pk>/",
-        TestsCarriedOutUpdate.as_view(),
-        name="testscarriedout_update",
-    ),
-    path(
-        "testscarriedout_create/<int:jobid>/",
-        TestsCarriedOutCreate.as_view(),
-        name="testscarriedout_create",
-    ),
-    path(
-        "testscarriedout_delete/<int:pk>/",
-        TestsCarriedOutDelete.as_view(),
-        name="testscarriedout_delete",
-    ),
-    path("sparepartsused/", SparePartsUsedListView.as_view(), name="sparepartsused"),
-    path(
-        "sparepartsused/<int:pk>/detail",
-        SparePartsUsedDetail.as_view(),
-        name="sparepartsused_detail",
-    ),
-    path(
-        "sparepartsused_update/<int:pk>/",
-        SparePartsUsedUpdate.as_view(),
-        name="sparepartsused_update",
-    ),
-    path(
-        "sparepartsused_delete/<int:pk>/",
-        SparePartsUsedDelete.as_view(),
-        name="sparepartsused_delete",
-    ),
-    path(
-        "sparepartused_create/<int:jobid>/",
-        SparePartsUsedCreateView.as_view(),
-        name="sparepartsused_create",
-    ),
-    path(
-        "testequipmentused/",
-        TestEquipmentUsedListView.as_view(),
-        name="testequipmentused",
-    ),
-    path(
-        "testequipmentused_delete/<int:pk>/",
-        TestEquipmentUsedDelete.as_view(),
-        name="testequipmentused_delete",
-    ),
-    path(
-        "testequipmentused_create/<int:jobid>/",
-        TestEquipmentUsedCreate.as_view(),
-        name="testequipmentused_create",
-    ),
+    path("jobs/add_formset_row/<str:formset_type>/", AddFormsetRowView.as_view(), name="add_formset_row"),
 ]

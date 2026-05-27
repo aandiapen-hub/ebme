@@ -55,10 +55,15 @@ class JobUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
         }
 
 
-class AddTestEquipmentToJobForm(forms.ModelForm):
+class TestEqUsedForm(forms.ModelForm):
     class Meta:
         model = Tbltesteqused
         fields = ("test_eq",)
+
+
+TestEqFormset = forms.inlineformset_factory(
+    Tbljob, Tbltesteqused, form=TestEqUsedForm, extra=0, can_delete=True
+)
 
 
 class JobCreateForm(forms.ModelForm):
@@ -92,7 +97,7 @@ class JobCreateForm(forms.ModelForm):
         }
 
 
-class TestCarriedOutForm(forms.ModelForm):
+class ChecklistForm(forms.ModelForm):
     class Meta:
         model = Tbltestscarriedout
         fields = ("checkid", "resultid")  # Specify the fields to include in the form
@@ -105,7 +110,6 @@ class TestCarriedOutForm(forms.ModelForm):
                     "modelid__modelname__icontains",
                 ],
                 attrs={
-                    "data-dropdown-parent": "#modals-here",
                     "data-placeholder": "Select Test",
                     "data-minimum-input-length": 0,
                 },
@@ -114,31 +118,12 @@ class TestCarriedOutForm(forms.ModelForm):
         }
 
 
-class SparePartsUsedUpdateForm(forms.ModelForm):
-    class Meta:
-        model = Tblpartsused
-        fields = (
-            "partid",
-            "quantity",
-            "unitprice",
-        )  # Specify the fields to include in the form
-        widgets = {
-            "partid": ModelSelect2Widget(
-                model=TblPartModel,
-                search_fields=[
-                    "part_number__icontains",
-                    "short_name__icontains",
-                    "description__icontains",
-                ],
-                attrs={
-                    "data-placeholder": "Select Spare Part",
-                    "data-minimum-input-length": 0,
-                },
-            )
-        }
+ChecklistFormset = forms.inlineformset_factory(
+    Tbljob, Tbltestscarriedout, form=ChecklistForm, extra=0, can_delete=True
+)
 
 
-class SparePartsUsedCreateForm(forms.ModelForm):
+class PartsUsedForm(forms.ModelForm):
     class Meta:
         model = Tblpartsused
         fields = ("partid", "quantity")  # Specify the fields to include in the form
@@ -151,7 +136,6 @@ class SparePartsUsedCreateForm(forms.ModelForm):
                     "description__icontains",
                 ],
                 attrs={
-                    "data-dropdown-parent": "#modals-here",
                     "data-placeholder": "Select Spare Part",
                     "data-minimum-input-length": 0,
                 },
@@ -169,6 +153,11 @@ class SparePartsUsedCreateForm(forms.ModelForm):
             parts = Tblpartslist.objects.filter(partid__in=parts_ids)
             active_parts = parts.filter(~Q(inactive=True) | Q(inactive__isnull=True))
             self.fields["partid"].queryset = active_parts
+
+
+PartsUsedFormset = forms.inlineformset_factory(
+    Tbljob, Tblpartsused, form=PartsUsedForm, extra=0, can_delete=True
+)
 
 
 class JobBulkUpdateForm(forms.ModelForm):

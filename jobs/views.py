@@ -1,61 +1,47 @@
-from utils.generic_views import FilteredTableView
-from documents.mixins import TempUploadMixin
 import datetime
-from django.http import HttpResponse, HttpResponseRedirect
-from django.urls import reverse, reverse_lazy
-from django.contrib import messages
-from django.views.generic import (
-    CreateView,
-    UpdateView,
-    DeleteView,
-    ListView,
-    DetailView,
-)
-from django.shortcuts import render
-from django.db import transaction
-
-from assets.models import (
-    JobView,
-    Tbljobstatus,
-    Tbljobtypes,
-    Tbljob,
-    Tbltestscarriedout,
-    Tblpartsused,
-    Tbltesteqused,
-    Tblassets,
-    Tbltestresult,
-)
-
-
-
-from documents.services.documents import delete_object_document_links
-
-from utils.generic_views import BulkUpdateView
-
-from .forms import (
-    JobUpdateForm,
-    JobBulkUpdateForm,
-    AddTestEquipmentToJobForm,
-    JobCreateForm,
-    TestCarriedOutForm,
-    SparePartsUsedCreateForm,
-    SparePartsUsedUpdateForm,
-)
-# ServiceReportReaderForm)
-
-from .reports.service_reports import generate_service_report
-from .reports.job_list import generate_jobs_list
-from utils.generic_filters import dynamic_filterset_generator
-
+from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
 
 # import permissions
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .mixins import (
-    CustomerJobPermissionMixin,
-    CustomerJobChildPermissionMixin,
-    CustomerJobListPermissionMixin,
+from django.db import transaction
+from django.http import HttpResponse, HttpResponseRedirect
+from django.urls import reverse, reverse_lazy
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    DetailView,
+    UpdateView,
+    TemplateView,
 )
 
+from assets.models import (
+    JobView,
+    Tbljob,
+    Tbljobstatus,
+    Tbljobtypes,
+)
+from documents.mixins import TempUploadMixin
+from documents.services.documents import delete_object_document_links
+from parts.models import Tblpartsprice
+from utils.generic_views import BulkUpdateView, FilteredTableView
+
+from .forms import (
+    JobBulkUpdateForm,
+    JobCreateForm,
+    JobUpdateForm,
+    TestEqFormset,
+    ChecklistFormset,
+    PartsUsedFormset,
+)
+from .mixins import (
+    CustomerJobListPermissionMixin,
+    CustomerJobPermissionMixin,
+)
+from .reports.job_list import generate_jobs_list
+
+# ServiceReportReaderForm)
+from .reports.service_reports import generate_service_report
 
 # Job Views.
 
@@ -120,10 +106,27 @@ class JobUpdateView(
         return reverse_lazy("jobs:job_summary", kwargs={"pk": self.object.jobid})
 
     def form_valid(self, form):
-        with transaction.atomic():
-            self.object = form.save()
-            self.save_temp_files(form, self.object)
-        return HttpResponseRedirect(self.get_success_url())
+        context = self.get_context_data()
+
+        formsets = [context[prefix] for prefix in JOB_FORMSETS]
+
+        if all([formset.is_valid for formset in formsets]):
+            with transaction.atomic():
+                self.object = form.save()
+                for formset in formsets:
+                    formset.instance = self.object
+                    formset.save()
+                self.after_save(form)
+
+            return HttpResponseRedirect(self.get_success_url())
+        else:
+            return self.form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["assetid"] = self.request.GET.get("assetid", None)
+        context.update(get_formsets())
+        return context
 
 
 class JobBulkUpdateView(BulkUpdateView, CustomerJobPermissionMixin):
@@ -146,6 +149,13 @@ class JobDetailView(
     template_name = "jobs/job_summary.html"
     context_object_name = "job"
     permission_required = "assets.view_jobview"
+
+
+JOB_FORMSETS = {
+    "test_eq": TestEqFormset,
+    "checklist": ChecklistFormset,
+    "parts_used": PartsUsedFormset,
+}
 
 
 class JobCreateView(
@@ -177,18 +187,85 @@ class JobCreateView(
 
         return initial
 
+    def get_formsets(self):
+        formsets = {}
+        for prefix, formset in JOB_FORMSETS.items():
+            formsets[prefix] = formset(
+                self.request.POST or None, instance=self.object, prefix=prefix
+            )
+        return formsets
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["assetid"] = self.request.GET.get("assetid", None)
+        context.update(self.get_formsets())
         return context
 
     def form_valid(self, form):
-        with transaction.atomic():
-            self.object = form.save()
-            self.save_temp_files(form, self.object)
-            self.after_save(form)
+        context = self.get_context_data()
 
-        return HttpResponseRedirect(self.get_success_url())
+        formsets = [context[prefix] for prefix in JOB_FORMSETS]
+
+        if all([formset.is_valid for formset in formsets]):
+            with transaction.atomic():
+                self.object = form.save()
+                for formset in formsets:
+                    formset.instance = self.object
+                    formset.save()
+                self.after_save(form)
+
+            return HttpResponseRedirect(self.get_success_url())
+        else:
+            return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        context = self.get_context_data(form=form)
+        return self.render_to_response(context)
+
+
+FORMSET_CONFIG = {
+    "parts_used": {
+        "prefix": "parts_used",
+        "formset": PartsUsedFormset,
+        "lookup_param": "sparepartid",
+        "model": Tblpartsprice,
+        "pk_field": "sparepartid",
+        "initial": lambda obj: {
+            "sparepartid": obj.pk,
+            "unitprice": obj.effectiveprice,
+            "quantity": 1,
+        },
+    },
+}
+
+
+class AddFormsetRowView(TemplateView):
+    template_name = "jobs/partials/single_row_formset.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        formset_type = self.kwargs["formset_type"]
+        config = FORMSET_CONFIG[formset_type]
+        prefix = config["prefix"]
+        total_forms = int(self.request.GET[f"{prefix}-TOTAL_FORMS"])
+
+        formset = config["formset"].form
+        form = formset(prefix=f"{prefix}-{total_forms}")
+
+        # prefill form before rendering
+        lookup_param = self.request.GET.get(config["lookup_param"], None)
+        if lookup_param:
+            obj = get_object_or_404(
+                config["model"],
+                **{config["pk_field"]: lookup_param},
+            )
+            form.initial.update(config["initial"](obj))
+
+        context["prefix"] = prefix
+        context["total_forms"] = total_forms
+        context["form"] = form
+        return context
+
 
 class JobDeleteView(
     LoginRequiredMixin,
@@ -220,431 +297,6 @@ class JobDeleteView(
                 f"An error occurred while deleting the Job. Error Details: {str(e)}"
             )
             return self.render_to_response(context)
-
-
-# Tests carried out views
-"""
-class TestsCarriedoutTable(tables.Table):
-    class Meta:
-        model = Tbltestscarriedout
-        template_name = "jobs/tables/testscarriedout_table.html"
-        attrs = {
-            'class': 'table table-hover table-bordered table-striped  ',
-            'thead': {
-                'class': 'table-bordered align-middle' ,
-            },
-    }
-
-class TestsCarriedOutTableView(LoginRequiredMixin,
-                               CustomerJobChildPermissionMixin,
-                               SingleTableView):
-    model = Tbltestscarriedout
-    table_class = TestsCarriedoutTable
-    permission_required = 'assets.view_tbltestscarriedout'
-
-    def get_queryset(self):
-        qs = Tbltestscarriedout.objects.filter(jobid=self.kwargs['jobid'])
-        return qs
-
-    def get_context_data(self, **kwargs):
-        context = super(TestsCarriedOutTableView,
-                        self).get_context_data(**kwargs)
-        context['jobid'] = self.kwargs['jobid']
-        return context
-
-    def get_template_names(self):
-        if self.request.htmx:
-            template_name = "jobs/testscarriedout.html#tco-partials"
-        else:
-            template_name = "jobs/testscarriedout.html"
-        return template_name
-
-"""
-
-
-class TestsCarriedOutView(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, ListView
-):
-    model = Tbltestscarriedout
-    context_object_name = "checklist"
-    template_name = "jobs/partials/checklist.html"
-    permission_required = "assets.view_tbltestscarriedout"
-
-    def get_queryset(self):
-        queryset = Tbltestscarriedout.objects.filter(jobid=self.jobid)
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["jobid"] = self.jobid
-        return context
-
-
-class TestsCarriedOutUpdate(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, UpdateView
-):
-    model = Tbltestscarriedout
-    template_name = "jobs/partials/testscarriedout_update.html"
-    context_object_name = "check"
-    fields = "__all__"
-    permission_required = "assets.change_tbltestscarriedout"
-
-    """def get_success_url(self):
-        return reverse('jobs:job_testscarriedout', kwargs={'pk': self.object.testid})"""
-
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-
-        result = self.request.POST.get("result")
-        result_mapping = {"Pass": 1, "Fail": 2, "n/a": 3}
-
-        if result in result_mapping:
-            resultid = Tbltestresult.objects.get(resultid=result_mapping[result])
-            self.object.resultid = resultid
-        else:
-            self.object.resultid = None
-        self.object.save(update_fields=["resultid"])
-
-        if self.request.htmx:
-            return render(
-                self.request,
-                "jobs/partials/checklist.html#check",
-                {"check": self.object},
-            )
-        return super().post(self)
-
-
-class TestsCarriedOutCreate(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, CreateView
-):
-    model = Tbltestscarriedout
-    # fields = ('checkid','resultid')
-    form_class = TestCarriedOutForm
-    template_name = "jobs/partials/testscarriedout_modal.html"
-    permission_required = "assets.add_tbltestscarriedout"
-
-    def get_success_url(self):
-        url = reverse("jobs:testscarriedout")
-        return f"{url}?jobid={self.jobid}"
-
-    def get_context_data(self, **kwargs):
-        context = super(TestsCarriedOutCreate, self).get_context_data(**kwargs)
-        context["jobid"] = self.jobid
-        return context
-
-    def form_valid(self, form):
-        form.instance.jobid = Tbljob.objects.get(jobid=self.jobid)
-        check = form.save()
-        if self.request.htmx:
-            return render(
-                self.request, "jobs/partials/checklist.html#check", {"check": check}
-            )
-        return super().form_valid(form)
-
-
-class TestsCarriedOutDelete(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, DeleteView
-):
-    model = Tbltestscarriedout
-    template_name = "jobs/partials/testscarriedout_modal.html"
-    permission_required = "assets.delete_tbltestscarriedout"
-
-    def get_success_url(self):
-        url = reverse("jobs:testscarriedout")
-        return f"{url}?jobid={self.jobid}"
-
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
-
-        if request.htmx:
-            # Send an empty response to remove the row in HTMX
-            return HttpResponse("")
-        return HttpResponseRedirect(self.get_success_url())
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["view_type"] = "delete"
-        context["title"] = "Delete Test"
-        return context
-
-
-# spare parts used views
-"""
-class SparePartsUsedTable(tables.Table):
-    class Meta:
-        model = Tblpartsused
-        template_name = "jobs/tables/sparepartsused_table.html"
-
-class SparePartsUsedTableView(LoginRequiredMixin,
-                              CustomerJobChildPermissionMixin,
-                              SingleTableView):
-    model = Tblpartsused
-    table_class = SparePartsUsedTable
-    permission_required = 'assets.view_tblpartsused'
-
-    def get_queryset(self):
-        qs = Tblpartsused.objects.filter(jobid=self.kwargs['jobid'])
-        return qs
-
-    def get_context_data(self, **kwargs):
-        context = super(SparePartsUsedTableView,
-                        self).get_context_data(**kwargs)
-        context['jobid'] = self.kwargs['jobid']
-        return context
-
-    def get_template_names(self):
-        if self.request.htmx:
-            template_name =  "jobs/sparepartsused.html#spu-partials"
-        else:
-            template_name =  "jobs/sparepartsused.html"
-        return template_name
-"""
-
-
-class SparePartsUsedListView(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, ListView
-):
-    model = Tblpartsused
-    context_object_name = "partslist"
-    template_name = "jobs/partials/partslist.html"
-    permission_required = "assets.view_tblpartsused"
-
-    def get_queryset(self):
-        jobid = self.request.GET.get("jobid")
-        queryset = Tblpartsused.objects.filter(jobid=jobid)
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["jobid"] = self.request.GET.get("jobid")
-        return context
-
-
-class SparePartsUsedDetail(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, DetailView
-):
-    model = Tblpartsused
-    context_object_name = "part"
-
-    template_name = "jobs/partials/partslist.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["jobid"] = self.jobid
-        return context
-
-    def render_to_response(self, context, **response_kwargs):
-        if self.request.htmx:
-            return render(self.request, "jobs/partials/partslist.html#part", context)
-        return super().render_to_response(context, **response_kwargs)
-
-
-class SparePartsUsedUpdate(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, UpdateView
-):
-    model = Tblpartsused
-    template_name = "jobs/partials/sparepartsused_update.html"
-    form_class = SparePartsUsedUpdateForm
-    context_object_name = "part"
-    permission_required = "assets.change_tblpartsused"
-
-    def get_success_url(self):
-        url = reverse("jobs:sparepartsused")
-        return f"{url}?jobid={self.jobid}"
-
-    def form_valid(self, form):
-        try:
-            part = form.save()
-        except Exception as e:
-            messages.warning(
-                self.request, f"There was an error saving the update. Details: {str(e)}"
-            )
-            context = self.get_context_data(form=form)
-            return self.render_to_response(context)
-
-        saved_part = Tblpartsused.objects.get(partsusedid=part.partsusedid)
-        if self.request.htmx:
-            return render(
-                self.request, "jobs/partials/partslist.html#part", {"part": saved_part}
-            )
-        return HttpResponseRedirect(self.get_success_url())
-
-
-class SparePartsUsedDelete(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, DeleteView
-):
-    model = Tblpartsused
-    template_name = "jobs/partials/sparepartsused_modal.html"
-    permission_required = "assets.delete_tblpartsused"
-
-    def get_success_url(self):
-        url = reverse("jobs:testscarriedout")
-        return f"{url}?jobid={self.jobid}"
-
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        if request.htmx:
-            self.object.delete()
-            # Return an empty response to indicate successful deletion
-            return HttpResponse("")
-        return super().post(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["view_type"] = "delete"
-        return context
-
-
-class SparePartsUsedCreateView(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, CreateView
-):
-    model = Tblpartsused
-    template_name = "jobs/partials/sparepartsused_modal.html"
-    form_class = SparePartsUsedCreateForm
-    permission_required = "assets.add_tblpartsused"
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        modelid = Tbljob.objects.get(jobid=self.jobid).assetid.modelid
-        kwargs["modelid"] = modelid
-        return kwargs
-
-    def get_success_url(self):
-        url = reverse("jobs:sparepartsused")
-        return f"{url}?jobid={self.jobid}"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["jobid"] = self.jobid
-        return context
-
-    def form_valid(self, form):
-        form.instance.jobid = Tbljob.objects.get(jobid=self.jobid)
-        part = form.save()
-        saved_part = Tblpartsused.objects.get(partsusedid=part.partsusedid)
-        if self.request.htmx:
-            return render(
-                self.request, "jobs/partials/partslist.html#part", {"part": saved_part}
-            )
-        return HttpResponseRedirect(self.get_success_url())
-
-
-# Test equipment used views
-"""class TestEquipmentUsedTable(tables.Table):
-    class Meta:
-        model = Tbltesteqused
-        template_name = "jobs/tables/testeqused_table.html"
-
-class TestEquipmentUsedTableView(LoginRequiredMixin,
-                                 CustomerJobChildPermissionMixin,
-                                 SingleTableView):
-    model = Tbltesteqused
-    table_class = TestEquipmentUsedTable
-    permission_required = 'assets.view_tbltesteqused'
-
-    def get_queryset(self):
-        qs = Tbltesteqused.objects.filter(jobid=self.kwargs['jobid'])
-        return qs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['jobid'] = self.kwargs['jobid']
-        return context
-
-
-    def get_template_names(self):
-        if self.request.htmx:
-            template_name =  "jobs/testequipmentused.html#teu-partials"
-        else:
-            template_name =  "jobs/testequipmentused.html"
-        return template_name"""
-
-
-class TestEquipmentUsedListView(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, ListView
-):
-    model = Tbltesteqused
-    context_object_name = "TestEquipmentList"
-    template_name = "jobs/partials/testeqlist.html"
-    permission_required = "assets.view_tbltesteqused"
-
-    def get_queryset(self):
-        jobid = self.request.GET.get("jobid")
-        queryset = Tbltesteqused.objects.filter(jobid=jobid)
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["jobid"] = self.jobid
-        return context
-
-
-class TestEquipmentUsedCreate(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, CreateView
-):
-    model = Tbltesteqused
-    template_name = "jobs/partials/testeqused_modal.html"
-    form_class = AddTestEquipmentToJobForm
-    permission_required = "assets.add_tbltesteqused"
-
-    def get_success_url(self):
-        url = reverse("jobs:testequipmentused")
-        return f"{url}?jobid={self.jobid}"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["jobid"] = self.jobid
-        used_eq = list(
-            Tbltesteqused.objects.filter(jobid=self.jobid).values_list(
-                "test_eq", flat=True
-            )
-        )
-        context["test_eq_options"] = Tblassets.objects.filter(
-            is_test_eq=True,
-            asset_status_id=1,
-        ).exclude(assetid__in=used_eq)
-
-        return context
-
-    def post(self, request, *args, **kwargs):
-        test_eq_ids = self.request.POST.getlist("selected")
-        job = Tbljob.objects.get(jobid=self.jobid)
-        used_eq_objects = [
-            Tbltesteqused(test_eq_id=test_eq_id, jobid=job)
-            for test_eq_id in test_eq_ids
-        ]
-
-        # Bulk create all at once
-        Tbltesteqused.objects.bulk_create(used_eq_objects)
-
-        return HttpResponseRedirect(self.get_success_url())
-
-
-class TestEquipmentUsedDelete(
-    LoginRequiredMixin, CustomerJobChildPermissionMixin, DeleteView
-):
-    model = Tbltesteqused
-    permission_required = "assets.delete_tbltesteqused"
-    template_name = "jobs/partials/testeqused_delete_modal.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["view_type"] = "delete"
-        return context
-
-    def get_success_url(self):
-        url = reverse("jobs:testequipmentused")
-        return f"{url}?jobid={self.jobid}"
-
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-
-        if request.htmx:
-            self.object.delete()
-            # Return an empty response to indicate successful deletion
-            return HttpResponse(status=200)
-        return super().post(request, *args, **kwargs)
 
 
 class FilteredJobTableView(

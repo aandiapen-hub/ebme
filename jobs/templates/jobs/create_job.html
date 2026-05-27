@@ -16,6 +16,37 @@
                     {% csrf_token %} 
                     {% bootstrap_form form layout='horizontal' %}
                     <button type="submit" class="btn btn-primary">Save Job</button>
+
+              
+                      <h3>Checklist</h3>
+                      <div id="checklist_formset">
+                        {{ checklist.media}}
+                        {% bootstrap_formset checklist layout='horizontal' %}
+                      </div>
+
+                      <h3>Test Eq</h3>
+                      <div id="test_eq_formset">
+                        {{ test_eq.media}}
+                        {% bootstrap_formset test_eq layout='horizontal' %}
+                      </div>
+  
+                      <h3>Parts</h3>
+                      <button type="button"
+                      hx-get="{% url 'jobs:add_formset_row' formset_type='parts_used' %}"
+                      hx-include="#{{parts_used.prefix}}-management input"
+                              hx-target="#{{parts_used.prefix}}-container"
+                              hx-swap="beforeend">
+                        Add Part 
+                      </button>
+                      <div id="{{ parts_used.prefix }}-management" hx-swap-oob='true'>
+                        {{ parts_used.management_form }}
+                      </div>
+                      <div id="{{ parts_used.prefix }}-container">
+                        {{ parts_used.media}}
+                        {% for form in parts_used %}
+                          {% bootstrap_form parts_used.form %}
+                        {% endfor %}
+                      </div>
             </form>
         </div>
     </div>
