@@ -1,5 +1,6 @@
 from django_select2.forms import ModelSelect2Widget
 from documents.mixins import TempUploadUpdateFormMixin
+from django_bootstrap5.widgets import RadioSelectButtonGroup
 
 from django.core.exceptions import ValidationError
 from django import forms
@@ -10,6 +11,7 @@ from assets.models import (
     Tblcheckslists,
     Tbltestscarriedout,
     Tblpartsused,
+    Tblcheckslists,
 )
 from django.db.models import Q
 from parts.models import Tblpartslist
@@ -60,6 +62,26 @@ class TestEqUsedForm(forms.ModelForm):
         model = Tbltesteqused
         fields = ("test_eq",)
 
+        widgets = {
+            'test_eq': forms.HiddenInput
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        readonly_fields = [
+            'test_eq',
+            
+        ]
+
+        test_eq = getattr(self.instance, "test_eq", None)
+
+        if test_eq:
+            self.fields['test_eq'].label = (
+                f"{test_eq.modelid.categoryid}-"
+                f"{test_eq.modelid}: "
+                f"{test_eq.serialnumber}"
+            )
+
 
 TestEqFormset = forms.inlineformset_factory(
     Tbljob, Tbltesteqused, form=TestEqUsedForm, extra=0, can_delete=True
@@ -102,21 +124,28 @@ class ChecklistForm(forms.ModelForm):
         model = Tbltestscarriedout
         fields = ("checkid", "resultid")  # Specify the fields to include in the form
         widgets = {
-            "checkid": ModelSelect2Widget(
-                model=Tblcheckslists,
-                search_fields=[
-                    "testname__icontains",
-                    "test_description__icontains",
-                    "modelid__modelname__icontains",
-                ],
-                attrs={
-                    "data-placeholder": "Select Test",
-                    "data-minimum-input-length": 0,
-                },
-            ),
-            "resultid": forms.RadioSelect(attrs={"class": "form-check-input"}),
+            "checkid": forms.HiddenInput,
+            "resultid": RadioSelectButtonGroup,
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        readonly_fields = [
+            'checkid',
+        ]
+
+        check = getattr(self.instance, "checkid", None)
+
+        if not check:
+            check_id = self.initial.get("checkid")
+            if check_id:
+                obj = Tblcheckslists.objects.filter(pk=check_id).first()
+                self.fields['checkid'].label = obj
+
+        if check:
+            print('labels being added')
+            self.fields['checkid'].label = self.instance.checkid
+            self.fields['resultid'].label = ''
 
 ChecklistFormset = forms.inlineformset_factory(
     Tbljob, Tbltestscarriedout, form=ChecklistForm, extra=0, can_delete=True
@@ -126,26 +155,18 @@ ChecklistFormset = forms.inlineformset_factory(
 class PartsUsedForm(forms.ModelForm):
     class Meta:
         model = Tblpartsused
-        fields = ("partid", "quantity")  # Specify the fields to include in the form
+        fields = ("partid", "quantity", "unitprice")  # Specify the fields to include in the form
         widgets = {
-            "partid": ModelSelect2Widget(
-                model=TblPartModel,
-                search_fields=[
-                    "part_number__icontains",
-                    "short_name__icontains",
-                    "description__icontains",
-                ],
-                attrs={
-                    "data-placeholder": "Select Spare Part",
-                    "data-minimum-input-length": 0,
-                },
-            )
+            "partid": forms.HiddenInput
         }
 
     def __init__(self, *args, **kwargs):
-        self.modelid = kwargs.pop("modelid", None)
         super().__init__(*args, **kwargs)
+        readonly_fields = [
+            'partid',
+        ]
 
+        '''
         if self.modelid:
             parts_ids = TblPartModel.objects.filter(model=self.modelid).values_list(
                 "part"
@@ -154,6 +175,13 @@ class PartsUsedForm(forms.ModelForm):
             active_parts = parts.filter(~Q(inactive=True) | Q(inactive__isnull=True))
             self.fields["partid"].queryset = active_parts
 
+        '''
+        part = getattr(self.instance, "partid", None)
+        if part:
+            self.fields['partid'].label = (
+                    f"{self.instance.partid.short_name}- "
+                    f"{self.instance.partid.part_number}"
+            )
 
 PartsUsedFormset = forms.inlineformset_factory(
     Tbljob, Tblpartsused, form=PartsUsedForm, extra=0, can_delete=True

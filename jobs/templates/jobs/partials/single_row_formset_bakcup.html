@@ -1,0 +1,20 @@
+{% load django_bootstrap5 %}
+<input
+    type="hidden"
+    name="{{ prefix }}-TOTAL_FORMS"
+    id="id_{{ prefix }}-TOTAL_FORMS"
+    value="{{ total_forms|add:1 }}"
+    hx-swap-oob="true"
+/>
+
+<div class='formset-row d-inline-flex align-items-center'>
+  {{ form.media}}
+  {% bootstrap_form form %}
+  <button
+      type="button"
+      class="btn btn-danger align-self-middle"
+      onclick="this.closest('.formset-row').remove()"
+  >
+      Remove
+  </button>
+</div>

@@ -17,9 +17,11 @@ from django.views.generic import (
 
 from assets.models import (
     JobView,
+    Tblcheckslists,
     Tbljob,
     Tbljobstatus,
     Tbljobtypes,
+    Tblassets,
 )
 from documents.mixins import TempUploadMixin
 from documents.services.documents import delete_object_document_links
@@ -105,6 +107,20 @@ class JobUpdateView(
     def get_success_url(self):
         return reverse_lazy("jobs:job_summary", kwargs={"pk": self.object.jobid})
 
+    def get_formsets(self):
+        formsets = {}
+        for prefix, formset in JOB_FORMSETS.items():
+            formsets[prefix] = formset(
+                self.request.POST or None, instance=self.object, prefix=prefix
+            )
+        return formsets
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["assetid"] = self.request.GET.get("assetid", None)
+        context.update(self.get_formsets())
+        return context
+
     def form_valid(self, form):
         context = self.get_context_data()
 
@@ -122,11 +138,9 @@ class JobUpdateView(
         else:
             return self.form_invalid(form)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["assetid"] = self.request.GET.get("assetid", None)
-        context.update(get_formsets())
-        return context
+    def form_invalid(self, form):
+        context = self.get_context_data(form=form)
+        return self.render_to_response(context)
 
 
 class JobBulkUpdateView(BulkUpdateView, CustomerJobPermissionMixin):
@@ -236,6 +250,26 @@ FORMSET_CONFIG = {
             "quantity": 1,
         },
     },
+    "test_eq": {
+        "prefix": "test_eq",
+        "formset": TestEqFormset,
+        "lookup_param": "assetid",
+        "model": Tblassets,
+        "pk_field": "assetid",
+        "initial": lambda obj: {
+            "test_eq": obj.pk,
+        },
+    },
+    "checklist": {
+        "prefix": "checklist",
+        "formset": ChecklistFormset,
+        "lookup_param": "testid",
+        "model": Tblcheckslists,
+        "pk_field": "testid",
+        "initial": lambda obj: {
+            "checkid": obj.pk,
+        },
+    },
 }
 
 
@@ -249,17 +283,17 @@ class AddFormsetRowView(TemplateView):
         prefix = config["prefix"]
         total_forms = int(self.request.GET[f"{prefix}-TOTAL_FORMS"])
 
-        formset = config["formset"].form
-        form = formset(prefix=f"{prefix}-{total_forms}")
-
         # prefill form before rendering
-        lookup_param = self.request.GET.get(config["lookup_param"], None)
+        lookup_param = 10  # self.request.GET.get(config["lookup_param"], None)
         if lookup_param:
             obj = get_object_or_404(
                 config["model"],
                 **{config["pk_field"]: lookup_param},
             )
-            form.initial.update(config["initial"](obj))
+            initial = config["initial"](obj)
+
+        formset = config["formset"].form
+        form = formset(prefix=f"{prefix}-{total_forms}", initial=initial)
 
         context["prefix"] = prefix
         context["total_forms"] = total_forms

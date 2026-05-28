@@ -19,32 +19,61 @@
 
               
                       <h3>Checklist</h3>
-                      <div id="checklist_formset">
+                      <button type="button"
+                        class='btn btn-primary btn-sm'
+                        hx-get="{% url 'jobs:add_formset_row' formset_type='checklist' %}"
+                        hx-include="#{{checklist.prefix}}-management input"
+                        hx-target="#{{checklist.prefix}}-container"
+                        hx-swap="beforeend">
+                        Add Test Eq
+                      </button>
+                        <div id='{{checklist.prefix}}-management'>
+                        {{ checklist.management_form }}
+                        </div>
+                      <div id="{{ checklist.prefix }}-container" class='d-flex flex-column'>
                         {{ checklist.media}}
-                        {% bootstrap_formset checklist layout='horizontal' %}
+                        {% for form in checklist %}
+                          <div>
+                          {% bootstrap_form form layout='horizontal' %}
+                          </div>
+                        {% endfor %}
                       </div>
 
                       <h3>Test Eq</h3>
-                      <div id="test_eq_formset">
+                      <button type="button"
+                        class='btn btn-primary btn-sm'
+                        hx-get="{% url 'jobs:add_formset_row' formset_type='test_eq' %}"
+                        hx-include="#{{test_eq.prefix}}-management input"
+                        hx-target="#{{test_eq.prefix}}-container"
+                        hx-swap="beforeend">
+                        Add Test Eq
+                      </button>
+                        <div id='{{test_eq.prefix}}-management'>
+                        {{ test_eq.management_form }}
+                        </div>
+                      <div id="{{ test_eq.prefix }}-container" class='d-flex flex-column'>
                         {{ test_eq.media}}
-                        {% bootstrap_formset test_eq layout='horizontal' %}
+                        {% for form in test_eq %}
+                          {% bootstrap_form form %}
+                        {% endfor %}
                       </div>
   
                       <h3>Parts</h3>
                       <button type="button"
-                      hx-get="{% url 'jobs:add_formset_row' formset_type='parts_used' %}"
-                      hx-include="#{{parts_used.prefix}}-management input"
-                              hx-target="#{{parts_used.prefix}}-container"
-                              hx-swap="beforeend">
-                        Add Part 
+                        class='btn btn-primary btn-sm'
+                        hx-get="{% url 'jobs:add_formset_row' formset_type='parts_used' %}"
+                        hx-include="#{{parts_used.prefix}}-management"
+                        hx-target="#{{parts_used.prefix}}-container"
+                        hx-swap="beforeend">
+                        Add Part
                       </button>
-                      <div id="{{ parts_used.prefix }}-management" hx-swap-oob='true'>
+                        <div id='{{parts_used.prefix}}-management'>
                         {{ parts_used.management_form }}
-                      </div>
-                      <div id="{{ parts_used.prefix }}-container">
+                        </div>
+                      <div id="{{ parts_used.prefix }}-container" class='d-flex flex-column'>
                         {{ parts_used.media}}
                         {% for form in parts_used %}
-                          {% bootstrap_form parts_used.form %}
+                          {% bootstrap_form form %}
                         {% endfor %}
                       </div>
             </form>

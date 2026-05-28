@@ -162,7 +162,9 @@ class TempUploadMixin:
 
     def after_save(self, form):
         self.save_temp_files(form, self.object)
-        temp_group_resolver(self.get_temp_group_id())
+        temp_id = self.get_temp_group_id()
+        if temp_id:
+            temp_group_resolver(temp_id)
 
 
 class TempUploadUpdateFormMixin:
