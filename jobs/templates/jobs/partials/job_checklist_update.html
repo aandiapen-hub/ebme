@@ -1,0 +1,59 @@
+{% load django_bootstrap5 %}
+    <h3>Checklist</h3>
+    <button type="button"
+    id='add_check_button'
+      class='btn btn-primary btn-sm'
+      hx-get="{% url 'jobs:add_formset_row' formset_type='checklist' %}"
+      hx-include="#{{checklist.prefix}}-management input"
+      hx-target="#{{ checklist.prefix }}-rows"
+      hx-push-url='false'
+      hx-swap="afterbegin">
+      Add check 
+    </button>
+    <div id='{{checklist.prefix}}-management'>
+      {{ checklist.management_form }}
+    </div>
+    <div id="{{ checklist.prefix }}-container" class='d-flex flex-column'>
+      {{ checklist.media}}
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Check</th>
+            <th scope="col">Result</th>
+            <th scope="col">Delete</th>
+          </tr>
+        </thead>
+        <tbody id="{{ checklist.prefix }}-rows">
+          {% for form in checklist %}
+            <tr>
+              <td>{{form.checkid.label }}</td>
+              <td>{% bootstrap_field form.resultid %}</td>
+              <td><input type="checkbox" name="{{ form.DELETE.html_name }}"></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+
+{% partialdef row %} 
+    <tr class='formset-row'>
+      <td>{{form.checkid.label }}</td>
+      <td>{% bootstrap_field form.resultid %}</td>
+      <td>
+          <button
+              type="button"
+              class="btn btn-danger align-self-middle"
+              onclick="this.closest('.formset-row').remove()"
+          >remove</button>
+      </td>
+    <input
+        type="hidden"
+        name="{{ prefix }}-TOTAL_FORMS"
+        id="id_{{ prefix }}-TOTAL_FORMS"
+        value="{{ total_forms|add:1 }}"
+        hx-swap-oob="true"
+    />
+    </tr>
+
+{% endpartialdef %}

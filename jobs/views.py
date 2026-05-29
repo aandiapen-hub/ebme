@@ -25,7 +25,7 @@ from assets.models import (
 )
 from documents.mixins import TempUploadMixin
 from documents.services.documents import delete_object_document_links
-from parts.models import Tblpartsprice
+from parts.models import Tblpartslist
 from utils.generic_views import BulkUpdateView, FilteredTableView
 
 from .forms import (
@@ -240,18 +240,20 @@ class JobCreateView(
 FORMSET_CONFIG = {
     "parts_used": {
         "prefix": "parts_used",
+        "row_template_name":"jobs/partials/job_parts_used.html#row",
         "formset": PartsUsedFormset,
         "lookup_param": "sparepartid",
-        "model": Tblpartsprice,
-        "pk_field": "sparepartid",
+        "model": Tblpartslist,
+        "pk_field": "partid",
         "initial": lambda obj: {
-            "sparepartid": obj.pk,
-            "unitprice": obj.effectiveprice,
+            "partid": obj.pk,
+            "unitprice": None,
             "quantity": 1,
         },
     },
     "test_eq": {
         "prefix": "test_eq",
+        "row_template_name":"jobs/partials/job_test_eq.html#row",
         "formset": TestEqFormset,
         "lookup_param": "assetid",
         "model": Tblassets,
@@ -262,6 +264,7 @@ FORMSET_CONFIG = {
     },
     "checklist": {
         "prefix": "checklist",
+        "row_template_name":"jobs/partials/job_checklist_update.html#row",
         "formset": ChecklistFormset,
         "lookup_param": "testid",
         "model": Tblcheckslists,
@@ -274,7 +277,10 @@ FORMSET_CONFIG = {
 
 
 class AddFormsetRowView(TemplateView):
-    template_name = "jobs/partials/single_row_formset.html"
+    def get_template_names(self):
+        formset_type = self.kwargs["formset_type"]
+        config = FORMSET_CONFIG[formset_type]
+        return [config.get('row_template_name')]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -283,9 +289,16 @@ class AddFormsetRowView(TemplateView):
         prefix = config["prefix"]
         total_forms = int(self.request.GET[f"{prefix}-TOTAL_FORMS"])
 
+
         # prefill form before rendering
         lookup_param = 10  # self.request.GET.get(config["lookup_param"], None)
         if lookup_param:
+            #check if row already exists
+            existing_ids = set()
+            for key, value in self.request.GET.items():
+                if key.endswith("-id") and value:
+                    existing_ids.add(value)
+                    return HttpResponse("")  # or return 204 / empty fragment
             obj = get_object_or_404(
                 config["model"],
                 **{config["pk_field"]: lookup_param},

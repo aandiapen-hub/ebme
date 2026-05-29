@@ -1,12 +1,13 @@
 {% load django_bootstrap5 %}
-    <div class='d-flex flex-row justify-content-between align-items-end'>
-      <input
-          type="hidden"
-          name="{{ prefix }}-TOTAL_FORMS"
-          id="id_{{ prefix }}-TOTAL_FORMS"
-          value="{{ total_forms|add:1 }}"
-      />
-    <p>{{form.test_eq.label }}</p>
+<input
+    type="hidden"
+    name="{{ prefix }}-TOTAL_FORMS"
+    id="id_{{ prefix }}-TOTAL_FORMS"
+    value="{{ total_forms|add:1 }}"
+    hx-swap-oob="true"
+/>
+    <div class='.formset-row d-flex flex-row justify-content-around align-items-end'>
+    <p>{{form.checkid.label }}</p>
     {% bootstrap_form form %}
     <button
         type="button"

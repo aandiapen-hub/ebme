@@ -147,6 +147,8 @@ class ChecklistForm(forms.ModelForm):
             self.fields['checkid'].label = self.instance.checkid
             self.fields['resultid'].label = ''
 
+        self.fields["resultid"].empty_label = None
+
 ChecklistFormset = forms.inlineformset_factory(
     Tbljob, Tbltestscarriedout, form=ChecklistForm, extra=0, can_delete=True
 )
@@ -157,7 +159,7 @@ class PartsUsedForm(forms.ModelForm):
         model = Tblpartsused
         fields = ("partid", "quantity", "unitprice")  # Specify the fields to include in the form
         widgets = {
-            "partid": forms.HiddenInput
+            'partid':forms.HiddenInput
         }
 
     def __init__(self, *args, **kwargs):
@@ -177,6 +179,12 @@ class PartsUsedForm(forms.ModelForm):
 
         '''
         part = getattr(self.instance, "partid", None)
+
+        if not part:
+            part_id = self.initial.get("partid")
+            if part_id:
+                obj = Tblpartslist.objects.filter(pk=part_id).first()
+                self.fields['partid'].label = obj
         if part:
             self.fields['partid'].label = (
                     f"{self.instance.partid.short_name}- "

@@ -1,0 +1,38 @@
+{% load django_bootstrap5 %}
+  <h3>Parts</h3>
+  <button type="button"
+    id='add_part_button'
+    class='btn btn-primary btn-sm'
+    hx-get="{% url 'jobs:add_formset_row' formset_type='parts_used' %}"
+    hx-include="#{{parts_used.prefix}}-management"
+    hx-target="#{{parts_used.prefix}}-container"
+    hx-swap="beforeend">
+    Add Part
+  </button>
+    <div id='{{parts_used.prefix}}-management'>
+    {{ parts_used.management_form }}
+    </div>
+  <div id="{{ parts_used.prefix }}-container" class='d-flex flex-column'>
+    {{ parts_used.media}}
+    {% for form in parts_used %}
+      <div class='d-flex flex-row justify-content-between align-items-end'>
+      <p>{{form.partid.label }}</p>
+      {% bootstrap_form form %}
+      </div>
+    {% endfor %}
+  </div>
+
+
+
+{% partialdef row %} 
+      <div class='formset-row d-flex flex-row justify-content-between align-items-end'>
+      <p>{{form.partid.label}}</p>
+      {% bootstrap_form form %}
+      <button
+          type="button"
+          class="btn btn-danger align-self-middle"
+          onclick="this.closest('.formset-row').remove()"
+          >remove</button>
+      </div>
+
+{% endpartialdef %}

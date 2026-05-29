@@ -17,91 +17,20 @@
                 <i class="bi bi-backspace"> </i>Cancel
             </button>
 
-            <button id='submit_button' class='btn btn-outline-primary'>Save Changes</button>
         </div>
     
     <div class="row">
         <div class='col'>
             
-            <form hx-post='{{request.path}}'
-            hx-target='#job_details'
-            hx-swap='innerHTML'
-            hx-select='#job_details'
-            hx-push-url='true'
-            hx-trigger="click from:#submit_button">
+            <form method='post' action='{{request.path}}' novalidate>
+            <button id='submit_button' class='btn btn-outline-primary'>Save Changes</button>
                 {{form.media}}
                 {% csrf_token %}
               {% include 'partials/form_with_comparison.html' %}
 
-                <h3>Checklist</h3>
-                <button type="button"
-                  class='btn btn-primary btn-sm'
-                  hx-get="{% url 'jobs:add_formset_row' formset_type='checklist' %}"
-                  hx-include="#{{checklist.prefix}}-management input"
-                  hx-target="#{{ checklist.prefix }}-container"
-                  hx-push-url='false'
-                  hx-swap="afterstart">
-                  Add check 
-                </button>
-                <div id='{{checklist.prefix}}-management'>
-                  {{ checklist.management_form }}
-                </div>
-                <div id="{{ checklist.prefix }}-container" class='d-flex flex-column'>
-                  {{ checklist.media}}
-                  {% for form in checklist %}
-                    <div class='d-flex flex-row justify-content-between align-items-start'>
-                      <p>{{form.checkid.label }}</p>
-                          {% bootstrap_form form %}
-                    
-                    </div>
-                  {% endfor %}
-                </div>
-<div id='testid'></div>
-                <h3>Test Eq</h3>
-                <button type="button"
-                  class='btn btn-primary btn-sm'
-                  hx-get="{% url 'jobs:add_formset_row' formset_type='test_eq' %}"
-                  hx-include="#{{test_eq.prefix}}-management input"
-                  hx-target="testid"
-                  hx-swap="innerHTML">
-                  Add Test Eq
-                </button>
-                  <div id='{{test_eq.prefix}}-management'>
-                  {{ test_eq.management_form }}
-                  </div>
-                <div id="{{ test_eq.prefix }}-container" class='d-flex flex-column'>
-                  {{ test_eq.media}}
-                  {% for form in test_eq %}
-                    <div class='d-flex flex-row justify-content-between align-items-end'>
-                    <p>{{form.test_eq.label }}</p>
-                    {% bootstrap_form form %}
-                    </div>
-                  {% endfor %}
-                </div>
-
-                <h3>Parts</h3>
-                <button type="button"
-                  class='btn btn-primary btn-sm'
-                  hx-get="{% url 'jobs:add_formset_row' formset_type='parts_used' %}"
-                  hx-include="#{{parts_used.prefix}}-management"
-                  hx-target="#{{parts_used.prefix}}-container"
-                  hx-swap="beforeend">
-                  Add Part
-                </button>
-                  <div id='{{parts_used.prefix}}-management'>
-                  {{ parts_used.management_form }}
-                  </div>
-                <div id="{{ parts_used.prefix }}-container" class='d-flex flex-column'>
-                  {{ parts_used.media}}
-                  {% for form in parts_used %}
-                    <div class='d-flex flex-row justify-content-between align-items-end'>
-                    <p>{{form.partid.label }}</p>
-                    {% bootstrap_form form %}
-                    </div>
-                  {% endfor %}
-                </div>
-
-
+              {% include 'jobs/partials/job_checklist_update.html' %}
+              {% include 'jobs/partials/job_test_eq.html' %}
+              {% include 'jobs/partials/job_parts_used.html' %}
 
             </form>
         </div>
