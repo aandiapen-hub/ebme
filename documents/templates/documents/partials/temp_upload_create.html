@@ -19,9 +19,13 @@
         trigger click on #scanner_input_button_{{group_id}}
       end
   ">
-        {% if form %}
-        {% bootstrap_form_errors form %}
+        
+        {% if not quick_scanner %}
+          {% if form %}
+            {% bootstrap_form_errors form %}
+          {% endif %}
         {% endif %}
+
           {% csrf_token %}
         <div class='d-flex gap-3' id='inputs_{{group_id}}'>
 

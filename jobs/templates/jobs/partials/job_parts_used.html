@@ -1,12 +1,30 @@
 {% load django_bootstrap5 %}
   <h3>Parts</h3>
+
+
+<button id='parts_list_button' class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#parts_canvas" aria-controls="parts_canvas">Add Parts</button>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="parts_canvas" aria-labelledby="parts_canvas_label">
+  <div class="offcanvas-header">
+    <h5 id="parts_canvas_label">Test Eq</h5>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+      <div hx-get='{% url "jobs:parts_list" %}?modelid={{object.assetid.modelid.pk}}'
+        hx-trigger='click once from:#parts_list_button'
+        hx-swap='innerHTML'
+      hx-target='this'></div>
+  </div>
+</div>
+
+
   <button type="button"
     id='add_part_button'
     class='btn btn-primary btn-sm'
     hx-get="{% url 'jobs:add_formset_row' formset_type='parts_used' %}"
-    hx-include="#{{parts_used.prefix}}-management"
+    hx-include="#{{parts_used.prefix}}-management input, #{{ parts_used.prefix }}-container input"
     hx-target="#{{parts_used.prefix}}-container"
-    hx-swap="beforeend">
+    hx-swap="afterbegin">
     Add Part
   </button>
     <div id='{{parts_used.prefix}}-management'>
@@ -17,6 +35,7 @@
     {% for form in parts_used %}
       <div class='d-flex flex-row justify-content-between align-items-end'>
       <p>{{form.partid.label }}</p>
+  <input type='hidden' name='input_{{form.partid.value}}_input_id' value='{{form.partid.value}}'> 
       {% bootstrap_form form %}
       </div>
     {% endfor %}
@@ -25,9 +44,18 @@
 
 
 {% partialdef row %} 
+      <input
+          type="hidden"
+          name="{{ prefix }}-TOTAL_FORMS"
+          id="id_{{ prefix }}-TOTAL_FORMS"
+          value="{{ total_forms|add:1 }}"
+          hx-swap-oob="true"
+      />
       <div class='formset-row d-flex flex-row justify-content-between align-items-end'>
       <p>{{form.partid.label}}</p>
+
       {% bootstrap_form form %}
+      <input type='hidden' name='input_{{form.partid.value}}_input_id' value='{{form.partid.value}}'> 
       <button
           type="button"
           class="btn btn-danger align-self-middle"

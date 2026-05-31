@@ -2,7 +2,7 @@
 {% load custom_tags %}
 
 {% for field in form %}
-  {% bootstrap_field field %}
+  {% bootstrap_field field layout='horizontal' %}
   {% with original=form.original|get_original:field.html_name %}
     {% if original %}
         <p class='text-danger text-small'>Original value: {{ original.value }}</p>

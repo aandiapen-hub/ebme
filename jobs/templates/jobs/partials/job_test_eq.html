@@ -1,16 +1,23 @@
 
 {% load django_bootstrap5 %}
 <h3>Test Eq</h3>
-<button type="button"
-  id='add_test_eq_button'
-  class='btn btn-primary btn-sm'
-  hx-get="{% url 'jobs:add_formset_row' formset_type='test_eq' %}"
-  hx-include="#{{test_eq.prefix}}-management input"
-  hx-swap="afterbegin"
-  hx-target="#{{ test_eq.prefix }}-container"
-  >
-  Add Test Eq
-</button>
+
+<button id='test_eq_list_button' class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#test_eq_canvas" aria-controls="test_eq_canvas">Add Test Equipment</button>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="test_eq_canvas" aria-labelledby="test_eq_canvas_Label">
+  <div class="offcanvas-header">
+    <h5 id="test_eq_canvas_Label">Test Eq</h5>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <div hx-get='{% url "jobs:test_eq_list" %}'
+        hx-trigger='click once from:#test_eq_list_button'
+        hx-swap='innerHTML'
+      hx-target='this'></div>
+  </div>
+</div>
+
+
   <div id='{{test_eq.prefix}}-management'>
   {{ test_eq.management_form }}
   </div>
@@ -19,14 +26,24 @@
   {% for form in test_eq %}
     <div class='d-flex flex-row justify-content-between align-items-end'>
     <p>{{form.test_eq.label }}</p>
+    <input type='hidden' name='input_{{form.test_eq.value}}_input_id' value='{{form.test_eq.value}}'> 
     {% bootstrap_form form %}
     </div>
   {% endfor %}
 </div>
 
 {% partialdef row %} 
+    <input
+        type="hidden"
+        name="{{ prefix }}-TOTAL_FORMS"
+        id="id_{{ prefix }}-TOTAL_FORMS"
+        value="{{ total_forms|add:1 }}"
+        hx-swap-oob="true"
+    />
     <div class='formset-row d-flex flex-row justify-content-between align-items-end'>
     <p>{{form.test_eq.label }}</p>
+    <input type='hidden' name='input_{{form.test_eq.value}}_input_id' value='{{form.test_eq.value}}'> 
+    {% bootstrap_form form %}
     <button
         type="button"
         class="btn btn-danger align-self-middle"

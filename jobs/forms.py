@@ -70,10 +70,21 @@ class TestEqUsedForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         readonly_fields = [
             'test_eq',
-            
         ]
 
         test_eq = getattr(self.instance, "test_eq", None)
+        if not test_eq:
+            test_eq_id = (
+                self.data.get(self.add_prefix('test_eq'))
+                or self.initial.get("test_eq")
+            )
+            if test_eq_id:
+                obj = Tblassets.objects.get(pk=test_eq_id)
+                self.fields['test_eq'].label = (
+                f"{obj.modelid.categoryid}-"
+                f"{obj.modelid}: "
+                f"{obj.serialnumber}"
+            )
 
         if test_eq:
             self.fields['test_eq'].label = (
@@ -122,7 +133,7 @@ class JobCreateForm(forms.ModelForm):
 class ChecklistForm(forms.ModelForm):
     class Meta:
         model = Tbltestscarriedout
-        fields = ("checkid", "resultid")  # Specify the fields to include in the form
+        fields = ("testid", "checkid", "resultid")  # Specify the fields to include in the form
         widgets = {
             "checkid": forms.HiddenInput,
             "resultid": RadioSelectButtonGroup,
@@ -137,13 +148,15 @@ class ChecklistForm(forms.ModelForm):
         check = getattr(self.instance, "checkid", None)
 
         if not check:
-            check_id = self.initial.get("checkid")
+            check_id = (
+                self.data.get(self.add_prefix('checkid'))
+                or self.initial.get("checkid")
+            )
             if check_id:
                 obj = Tblcheckslists.objects.filter(pk=check_id).first()
                 self.fields['checkid'].label = obj
 
         if check:
-            print('labels being added')
             self.fields['checkid'].label = self.instance.checkid
             self.fields['resultid'].label = ''
 
@@ -159,7 +172,7 @@ class PartsUsedForm(forms.ModelForm):
         model = Tblpartsused
         fields = ("partid", "quantity", "unitprice")  # Specify the fields to include in the form
         widgets = {
-            'partid':forms.HiddenInput
+            'partid':forms.HiddenInput,
         }
 
     def __init__(self, *args, **kwargs):
@@ -168,23 +181,17 @@ class PartsUsedForm(forms.ModelForm):
             'partid',
         ]
 
-        '''
-        if self.modelid:
-            parts_ids = TblPartModel.objects.filter(model=self.modelid).values_list(
-                "part"
-            )
-            parts = Tblpartslist.objects.filter(partid__in=parts_ids)
-            active_parts = parts.filter(~Q(inactive=True) | Q(inactive__isnull=True))
-            self.fields["partid"].queryset = active_parts
-
-        '''
         part = getattr(self.instance, "partid", None)
+        
 
         if not part:
-            part_id = self.initial.get("partid")
+            part_id = (
+                self.data.get(self.add_prefix('partid'))
+                or self.initial.get("partid")
+            )
             if part_id:
                 obj = Tblpartslist.objects.filter(pk=part_id).first()
-                self.fields['partid'].label = obj
+                self.fields['partid'].label = str(obj)
         if part:
             self.fields['partid'].label = (
                     f"{self.instance.partid.short_name}- "

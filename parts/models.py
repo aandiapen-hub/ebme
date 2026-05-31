@@ -55,7 +55,7 @@ class Tblpartsprice(models.Model):
 class TblPartModel(models.Model):
     part_model_id = models.BigAutoField(primary_key=True)
     model = models.ForeignKey('assets.Tblmodel', models.PROTECT,db_column='model_id')
-    part = models.ForeignKey(Tblpartslist, models.DO_NOTHING, db_column='part_id')
+    part = models.ForeignKey(Tblpartslist, models.DO_NOTHING, db_column='part_id', related_name='part_model')
 
     class Meta:
         managed = False  

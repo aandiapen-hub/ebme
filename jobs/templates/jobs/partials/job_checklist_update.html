@@ -20,15 +20,17 @@
           <tr>
             <th scope="col">Check</th>
             <th scope="col">Result</th>
-            <th scope="col">Delete</th>
           </tr>
         </thead>
         <tbody id="{{ checklist.prefix }}-rows">
           {% for form in checklist %}
             <tr>
               <td>{{form.checkid.label }}</td>
-              <td>{% bootstrap_field form.resultid %}</td>
-              <td><input type="checkbox" name="{{ form.DELETE.html_name }}"></td>
+                {% for field in form %}
+                    <td>
+                        {% bootstrap_field field %}
+                    </td>
+                {% endfor %}
             </tr>
           {% endfor %}
         </tbody>
@@ -39,8 +41,7 @@
 {% partialdef row %} 
     <tr class='formset-row'>
       <td>{{form.checkid.label }}</td>
-      <td>{% bootstrap_field form.resultid %}</td>
-      <td>
+      <td>{% bootstrap_form form %}
           <button
               type="button"
               class="btn btn-danger align-self-middle"
