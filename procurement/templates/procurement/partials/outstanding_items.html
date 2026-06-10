@@ -1,7 +1,7 @@
 {% block content %}
 
 <h4>Items</h4>
-{% if outstanding_items %}
+{% if po.outstanding_item.all %}
     <table id='outstanding-table' class='table table-hover table-bordered'>
         <thead>
             <tr>
@@ -14,7 +14,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for line in outstanding_items %}
+            {% for line in po.outstanding_item.all %}
                     {% partial line %}
                 {% endfor %}
         </tbody>
@@ -26,7 +26,7 @@
     {% endblock %}
 
 
-    {% partialdef line %}
+{% partialdef line %}
     <tr {% if line.outstanding != 0 %}class="table-warning" {% else %}class="table-success" {% endif %}>
         <td>{{ line.item }}</td>
         <td>{{ line.qty_ordered }}</td>

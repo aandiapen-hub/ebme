@@ -1,6 +1,7 @@
 import pytest
+from django.contrib.auth.models import Permission
 from django.urls import reverse
-from assets.models import Tblcustomer
+from assets.models import Tblcustomer, AssetView
 from pytest_django.asserts import assertTemplateUsed
 
 
@@ -20,22 +21,16 @@ def test_model_compliance_view_requires_permission(client, user_setup):
     assert response.status_code == 403  # Forbidden if user does not have permission
 
 @pytest.mark.django_db
-def test_model_compliance_view_renders(client, user_setup, mocker):
+def test_model_compliance_view_renders(client, user, customer, assets):
     url = reverse('dashboards:model_compliance')
-    user = user_setup
-    
-    user.customerid = Tblcustomer.objects.first()
+    customer = customer()
+    assets = assets(count=200, customerid=customer)
+    user = user()
+    user.customerid = customer
     user.save()
-    mocker.patch('assets.mixins.CustomerAssetPermissionMixin.has_permission', return_value=True)
 
-    client.force_login(user)
-    response = client.get(url)
-    assert response.status_code == 200
-
-
-    user.customerid = Tblcustomer.objects.create(customer_name='Test Customer')
-    user.save()
-    mocker.patch('assets.mixins.CustomerAssetPermissionMixin.has_permission', return_value=True)
+    permission = Permission.objects.get(codename="view_assetview")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
     response = client.get(url)
@@ -61,13 +56,20 @@ def test_asset_compliance_view_requires_permission(client, user_setup):
     assert response.status_code == 403 # Forbidden if user does not have permission 
 
 @pytest.mark.django_db
-def test_asset_compliance_view_renders(client, user_setup, mocker):
+def test_asset_compliance_view_renders(client, user,assets, jobs, customer):
     url = reverse('dashboards:asset_compliance')
-    user = user_setup
+    customer = customer()
     
-    user.customerid = Tblcustomer.objects.first()
+    assets = assets(count=50)
+    for asset in assets:
+        asset_jobs = jobs(count=4, assetid=asset)
+
+    user = user()
+    user.is_staff=True
     user.save()
-    mocker.patch('assets.mixins.CustomerAssetPermissionMixin.has_permission', return_value=True)
+
+    permission = Permission.objects.get(codename="view_assetview")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
     response = client.get(url)
@@ -90,13 +92,19 @@ def test_open_jobs_view_requires_permission(client, user_setup):
     assert response.status_code == 403 # Forbidden if user does not have permission
 
 @pytest.mark.django_db
-def test_open_jobs_view_renders(client, user_setup, mocker):
+def test_open_jobs_view_renders(client, user, assets, jobs):
     url = reverse('dashboards:open_jobs')
-    user = user_setup
     
-    user.customerid = Tblcustomer.objects.first()
+    assets = assets(count=50)
+    for asset in assets:
+        asset_jobs = jobs(count=4, assetid=asset)
+
+    user = user()
+    user.is_staff=True
     user.save()
-    mocker.patch('jobs.mixins.CustomerJobListPermissionMixin.has_permission', return_value=True)
+
+    permission = Permission.objects.get(codename="view_jobview")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
     response = client.get(url)

@@ -1,7 +1,6 @@
 
 <h4>Deliveries</h4>
-{{existing_delivery}}
-        {% for delivery in deliveries  %}
+        {% for delivery in po.delivery.all  %}
             <div class="accordion" id="accordionExample">
             <div class="accordion-item">
                 <h2 class="accordion-header">
@@ -36,12 +35,7 @@
                         <div class='row'>
                             <!--List Lines in the delivery -->
                             <div class='col'>
-                                <div id="delivery_lines-{{delivery.delivery_id}}"
-                                        hx-get="{% url 'procurement:del_lines' %}?delivery_id={{delivery.delivery_id}}"
-                                        hx-trigger="intersect"
-                                        hx-target="this"
-                                        hx-swap='innerHTML'>'
-                                </div>
+                              {% include 'procurement/partials/delivery_lines.html' %}
                             </div>
                             <!--Documents -->
                             <div class='col text-end'>  

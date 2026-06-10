@@ -158,7 +158,8 @@ class ChecklistForm(forms.ModelForm):
 
         if check:
             self.fields['checkid'].label = self.instance.checkid
-            self.fields['resultid'].label = ''
+
+        self.fields['resultid'].label = ''
 
         self.fields["resultid"].empty_label = None
 
@@ -177,9 +178,6 @@ class PartsUsedForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        readonly_fields = [
-            'partid',
-        ]
 
         part = getattr(self.instance, "partid", None)
         

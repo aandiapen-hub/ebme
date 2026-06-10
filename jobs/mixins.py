@@ -10,17 +10,8 @@ class CustomerJobPermissionMixin(PermissionRequiredMixin):
 
         # Fetch jobid from URL kwargs
         jobid = self.kwargs.get('jobid') or request.GET.get("jobid") or self.kwargs.get('pk')
-        assetid = self.request.GET.get('assetid')   # for create view
+        assetid = self.request.POST.get('assetid') or self.request.GET.get('assetid')   # for create view
         if request.user.is_staff:
-            # You can fetch the related Tbljob object here
-            
-            if jobid:
-                job = get_object_or_404(Tbljob,jobid=jobid)
-
-            elif assetid:
-                asset = get_object_or_404(Tblassets,assetid=assetid)
-                
-            # If all good, continue normally
             return super().dispatch(request, *args, **kwargs)
 
         else:
@@ -36,7 +27,6 @@ class CustomerJobPermissionMixin(PermissionRequiredMixin):
                     raise PermissionDenied("You don't have permission for this job.")
 
             elif assetid:
-                
                 try:
                     asset = Tblassets.objects.get(assetid=assetid)
                 except Tblassets.DoesNotExist:
@@ -56,17 +46,14 @@ class CustomerJobPermissionMixin(PermissionRequiredMixin):
             return qs
         else:
             customerid = getattr(self.request.user, 'customerid', None)
-            if customerid is None:
-                return self.model.objects.none()
+            # customer cannot be none because of permission filtering
+            # for non staff users in dispatch
             return qs.filter(assetid__customerid=customerid)
     
     
-
+"""
 
 class CustomerJobChildPermissionMixin(PermissionRequiredMixin):
-    """
-    Combines permission checking with queryset filtering by customer_id.
-    """
     
     def dispatch(self, request, *args, **kwargs):
         try:
@@ -86,9 +73,7 @@ class CustomerJobChildPermissionMixin(PermissionRequiredMixin):
         else:
             # Get customerid from logged-in user
             customerid = getattr(request.user, 'customerid', None)
-            print('jobid', jobid)
-            
-            
+
             if customerid is None or jobid is None:
                 raise PermissionDenied("Invalid access - missing customer or job.")
 
@@ -99,9 +84,7 @@ class CustomerJobChildPermissionMixin(PermissionRequiredMixin):
             
             # If all good, continue normally
             return super().dispatch(request, *args, **kwargs)
-
-
-
+"""
 
 class CustomerJobListPermissionMixin(PermissionRequiredMixin):
     """

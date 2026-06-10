@@ -65,7 +65,7 @@
 
         </div>
         <div class="col-12" id="document_div">
-            {% include "documents/partials/generic_document_partial.html" with object=asset.assetid content_type="assets.tblAssets" %}   
+            {% include "documents/partials/generic_document_partial.html" with object_id=asset.assetid content_type="assets.tblAssets" %}   
         </div>
       </div>
 
@@ -97,17 +97,7 @@
         {% endif %}
       </div>    
 
-      <div id="job-history" class='col-12'
-        hx-get="{% url 'assets:asset_jobs' assetid=asset.assetid %}"
-        hx-trigger="load"
-        hx-target="#job-history"
-        hx-swap='innerHTML'>
-      </div>
-
-  
-
-
-        
+      {% include 'assets/partials/job_summary.html' %}
 
 </div>
 

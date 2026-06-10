@@ -1,14 +1,15 @@
 import os
+from django.contrib.auth.models import Permission
 from urllib.parse import urlencode
+
+from django.db.models import query
+from documents.tests.conftest import document
 import pytest
 from pytest_django.asserts import assertTemplateUsed
-from django.contrib.messages import get_messages
 from django.urls import reverse
 
-from assets.models import Tblassets, Tbljob, Tblmodel, Tbltesteqused
 from documents.models import (
     DocumentsView,
-    TblDocTableRef,
     TblDocumentLinks,
     TblDocuments,
     TemporaryUpload,
@@ -39,47 +40,41 @@ def test_document_create_view_requires_permission(client, user_setup):
 
 #
 @pytest.mark.django_db
-def test_document_create_view_renders(client, user_setup, mocker):
+def test_document_create_view_renders(client, user_setup, asset):
     user = user_setup
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
-
+    asset=asset
+    content_type = asset._meta.label
+    permission = Permission.objects.get(codename="add_tbldocuments")
+    user.user_permissions.add(permission)
     client.force_login(user)
 
     base_url = reverse("documents:create_document_link")
-    link_row = 0
-    link_table = 0
-    query_params = urlencode({"link_row": link_row, "link_table": link_table})
+    query_params = urlencode({"object_id": asset.pk, "content_type": content_type})
     url = f"{base_url}?{query_params}"
     response = client.get(url)
 
     assert response.status_code == 200
-    form = response.context["form"]
-    assert form.initial["link_row"] == str(link_row)
-    assert form.initial["link_table"] == str(link_table)
 
 
 @pytest.mark.django_db
-def test_document_create_view_post_successfully(client, user_setup, mocker):
+def test_document_create_view_post_successfully(client, user_setup, asset, document_type):
     user = user_setup
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
-
+    permission = Permission.objects.get(codename="add_tbldocuments")
+    user.user_permissions.add(permission)
     client.force_login(user)
 
-    url = reverse("documents:create_document_link")
-    link_row = 0
-    link_table = "tblAssets"
+    content_type = asset._meta.label
+
+    base_url = reverse("documents:create_document_link")
+    query_params = urlencode({"object_id": asset.pk, "content_type": content_type})
+    url = f"{base_url}?{query_params}"
 
     # test html
     test_file = SimpleUploadedFile(
         "test.txt", b"Test content", content_type="text/plain"
     )
     form = {
-        "link_row": link_row,
-        "link_table": link_table,
+        "document_type_id": document_type(),
         "document_name": "test_document",
         "document_description": "test_document_description",
         "document_bytea": test_file,
@@ -95,10 +90,9 @@ def test_document_create_view_post_successfully(client, user_setup, mocker):
     )
 
     form2 = {
-        "link_row": link_row,
-        "link_table": link_table,
+        "document_type_id": document_type(),
         "document_name": "test_document2",
-        "document_description": "test_document_description2",
+        "document_description": "test_document_description",
         "document_bytea": test_file2,
     }
 
@@ -108,57 +102,52 @@ def test_document_create_view_post_successfully(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_document_create_view_post_dubplicated_document(client, user_setup, mocker):
+def test_document_create_view_post_duplicated_document(client, user_setup, asset, document_type):
     user = user_setup
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
-
+    permission = Permission.objects.get(codename="add_tbldocuments")
+    user.user_permissions.add(permission)
     client.force_login(user)
 
-    url = reverse("documents:create_document_link")
-    link_row = 0
-    link_table = "tblAssets"
+    asset=asset
+    content_type = asset._meta.label
+
+    base_url = reverse("documents:create_document_link")
+    query_params = urlencode({"object_id": asset.pk, "content_type": content_type})
+    url = f"{base_url}?{query_params}"
 
     # test html
     test_file = SimpleUploadedFile(
         "test.txt", b"Test content", content_type="text/plain"
     )
     form = {
-        "link_row": link_row,
-        "link_table": link_table,
+        "document_type_id": document_type(),
         "document_name": "test_document",
         "document_description": "test_document_description",
         "document_bytea": test_file,
     }
-    response = client.post(url, data=form, HTTP_HX_REQUEST="true")
+    response = client.post(url, data=form)
     link1_document = TblDocumentLinks.objects.last().documentid
 
-    test_file2 = SimpleUploadedFile(
-        "test.txt", b"Test content", content_type="text/plain"
-    )
 
     form2 = {
-        "link_row": link_row + 1,
-        "link_table": link_table,
+        "document_type_id": document_type(),
         "document_name": "test_document2",
-        "document_description": "test_document_description2",
-        "document_bytea": test_file2,
+        "document_description": "test_document_description",
+        "document_bytea": test_file,
     }
 
-    response2 = client.post(url, data=form2, HTTP_HX_REQUEST="true")
+    response = client.post(url, data=form2)
 
     link2_document = TblDocumentLinks.objects.last().documentid
 
     assert link1_document == link2_document
 
-
 # test DocumentDeleteView
 @pytest.mark.django_db
-def test_document_delete_view_requires_login(client):
-    last_document = TblDocumentLinks.objects.last()
-    last_document_id = last_document.documentid.document_id
-    url = reverse("documents:delete_document_link", kwargs={"pk": last_document_id})
+def test_document_delete_view_requires_login(client, document_link):
+    document_link = document_link() 
+    document_link_id = document_link.pk
+    url = reverse("documents:delete_document_link", kwargs={"pk": document_link_id})
 
     response = client.get(url)
     assert response.status_code == 302
@@ -166,91 +155,91 @@ def test_document_delete_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_document_delete_view_requires_permission(client, user_setup):
+def test_document_delete_view_requires_permission(client, user_setup, document_link):
     user = user_setup
     client.force_login(user)
 
-    last_document = TblDocumentLinks.objects.last()
-    last_document_id = last_document.documentid.document_id
-    url = reverse("documents:delete_document_link", kwargs={"pk": last_document_id})
+    document_link = document_link() 
+    document_link_id = document_link.pk
+    url = reverse("documents:delete_document_link", kwargs={"pk": document_link_id})
 
     response = client.get(url)
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_document_delete_view_renders(client, user_setup, mocker):
-    last_document = DocumentsView.objects.filter(customerid__isnull=False).last()
-    last_document_id = last_document.document_link_id
-    customerid = last_document.customerid
-    url = reverse("documents:delete_document_link", kwargs={"pk": last_document_id})
+def test_document_delete_view_renders(client, user_setup, document_link, customer):
+    document_link = document_link() 
+    document_link_id = document_link.pk
+    url = reverse("documents:delete_document_link", kwargs={"pk": document_link_id})
+    customer = customer()
+
+    document_link.customer_id = customer.pk
+    document_link.save()
 
     user = user_setup
-    user.customerid = customerid
+    permission = Permission.objects.get(codename="delete_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.customerid = customer
     user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
 
     client.force_login(user)
 
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "documents/partials/document_crud_modal.html")
+    assertTemplateUsed(response, "documents/partials/document_link_delete_view.html")
 
 
 @pytest.mark.django_db
-def test_document_delete_view_post_successfully(client, user_setup, mocker):
-    last_link = DocumentsView.objects.filter(customerid__isnull=False).last()
-    last_link_id = last_link.document_link_id
-    last_document_id = last_link.document_id
-    customerid = last_link.customerid
-    url = reverse("documents:delete_document_link", kwargs={"pk": last_link_id})
+def test_document_delete_view_post_successfully(client, user_setup, document_link, customer):
+
+    document_link = document_link() 
+    document_link_id = document_link.pk
+    url = reverse("documents:delete_document_link", kwargs={"pk": document_link_id})
+    customer = customer()
+
+    document_link.customer_id = customer.pk
+    document_link.save()
 
     user = user_setup
-    user.customerid = customerid
+    permission = Permission.objects.get(codename="delete_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.customerid = customer
     user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
-
     client.force_login(user)
 
-    response = client.post(
-        url,
-    )
+    response = client.post(url)
     assert response.status_code == 302
-    assert not TblDocumentLinks.objects.filter(document_link_id=last_link_id).exists()
-
+    assert not TblDocumentLinks.objects.filter(document_link_id=document_link_id).exists()
 
 @pytest.mark.django_db
-def test_document_delete_view_post_successfully_htmx(client, user_setup, mocker):
-    last_link = DocumentsView.objects.filter(customerid__isnull=False).last()
-    last_link_id = last_link.document_link_id
-    last_document_id = last_link.document_id
-    customerid = last_link.customerid
-    url = reverse("documents:delete_document_link", kwargs={"pk": last_link_id})
+def test_document_delete_view_post_successfully_htmx(client, user_setup, document_link, customer):
+    document_link = document_link() 
+    document_link_id = document_link.pk
+    url = reverse("documents:delete_document_link", kwargs={"pk": document_link_id})
+    customer = customer()
+
+    document_link.customer_id = customer.pk
+    document_link.save()
 
     user = user_setup
-    user.customerid = customerid
+    permission = Permission.objects.get(codename="delete_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.customerid = customer
     user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
-
     client.force_login(user)
 
     response = client.post(url, HTTP_HX_REQUEST="true")
     assert response.status_code == 204
-    assert not TblDocuments.objects.filter(document_id=last_document_id).exists()
+    assert not TblDocuments.objects.filter(document_id=document_link_id).exists()
 
 
 # test DocumentLinkUpdateView
 @pytest.mark.django_db
-def test_document_link_update_view_requires_login(client):
-    last_document = TblDocumentLinks.objects.last()
-    last_document_id = last_document.documentid.document_id
-    url = reverse("documents:update_document_link", kwargs={"pk": last_document_id})
+def test_document_link_update_view_requires_login(client, document_link):
+    document_link = document_link() 
+    document_link_id = document_link.pk
+    url = reverse("documents:update_document_link", kwargs={"pk": document_link_id})
 
     response = client.get(url)
     assert response.status_code == 302
@@ -258,144 +247,111 @@ def test_document_link_update_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_document_link_update_view_requires_permission(client, user_setup):
+def test_document_link_update_view_requires_permission(client, user_setup, document_link):
     user = user_setup
     client.force_login(user)
 
-    last_document = TblDocumentLinks.objects.last()
-    last_document_id = last_document.documentid.document_id
-    url = reverse("documents:update_document_link", kwargs={"pk": last_document_id})
+    document_link = document_link() 
+    document_link_id = document_link.pk
+    url = reverse("documents:update_document_link", kwargs={"pk": document_link_id})
 
     response = client.get(url)
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_document_link_update_view_renders(client, user_setup, mocker):
-    last_document = DocumentsView.objects.filter(customerid__isnull=False).last()
-    last_document_id = last_document.document_link_id
-    customerid = last_document.customerid
-    url = reverse("documents:update_document_link", kwargs={"pk": last_document_id})
+def test_document_link_update_view_renders(client, user_setup, document_link, customer):
+    document_link = document_link() 
+    document_link_id = document_link.pk
+    customer = customer()
+
+    document_link.customer_id = customer.pk
+    document_link.save()
 
     user = user_setup
-    user.customerid = customerid
+    permission = Permission.objects.get(codename="change_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.customerid = customer
     user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
+    client.force_login(user)
+
 
     client.force_login(user)
 
+    url = reverse("documents:update_document_link", kwargs={"pk": document_link_id})
     response = client.get(url)
     assert response.status_code == 200
     assertTemplateUsed(response, "documents/partials/document_crud_modal.html")
 
 
 @pytest.mark.django_db
-def test_document_link_update_view_post_successfully(client, user_setup, mocker):
-    last_link = DocumentsView.objects.filter(customerid__isnull=False).last()
-    last_link_id = last_link.document_link_id
-    last_document_id = last_link.document_id
-    customerid = last_link.customerid
-    url = reverse("documents:update_document_link", kwargs={"pk": last_link_id})
+def test_document_link_update_view_post_successfully(client, user_setup, document_link, customer):
+    document_link = document_link() 
+    document_link_id = document_link.pk
+    customera = customer(customer_name='a')
+
+    document_link.customer_id = customera.pk
+    document_link.save()
 
     user = user_setup
-    user.customerid = customerid
+    permission = Permission.objects.get(codename="change_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.customerid = customera
     user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
+    client.force_login(user)
+
 
     client.force_login(user)
 
+    url = reverse("documents:update_document_link", kwargs={"pk": document_link_id})
+
+    customer2 = customer(customer_name='b')
     form = {
-        "document_link_id": last_link.document_link_id,
-        "document_id": last_link.document_id,
-        "link_row": last_link.link_row,
-        "link_table": last_link.link_table.table_id,
-        "document_name": last_link.document_name,
-        "customerid": last_link.customerid.customerid,
-        "document_description": "test_description",
+        "customer": customer2.pk,
+        "documentid": document_link.documentid.pk,
+        "object_id": document_link.object_id,
+        "content_type": document_link.content_type.pk,
     }
 
     response = client.post(url, data=form)
     assert response.status_code == 302
-    last_link.refresh_from_db()
-    assert last_link.document_description == "test_description"
+    document_link.refresh_from_db()
+    assert document_link.customer_id == customer2.pk
 
 
 @pytest.mark.django_db
-def test_document_link_update_view_post_successfully_htmx(client, user_setup, mocker):
-    last_link = DocumentsView.objects.filter(customerid__isnull=False).last()
-    last_link_id = last_link.document_link_id
-    last_document_id = last_link.document_id
-    customerid = last_link.customerid
-    url = reverse("documents:update_document_link", kwargs={"pk": last_link_id})
+def test_document_link_update_view_post_successfully_htmx(client, user_setup, document_link, customer):
+    document_link = document_link() 
+    document_link_id = document_link.pk
+    customera = customer(customer_name='a')
+
+    document_link.customer_id = customera.pk
+    document_link.save()
 
     user = user_setup
-    user.customerid = customerid
+    permission = Permission.objects.get(codename="change_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.customerid = customera
     user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
+    client.force_login(user)
+
 
     client.force_login(user)
-    form = {
-        "document_link_id": last_link.document_link_id,
-        "document_id": last_link.document_id,
-        "link_row": last_link.link_row,
-        "link_table": last_link.link_table.table_id,
-        "document_name": last_link.document_name,
-        "customerid": last_link.customerid.customerid,
-        "document_description": "test_description2",
-    }
 
+    url = reverse("documents:update_document_link", kwargs={"pk": document_link_id})
+
+    customer2 = customer(customer_name='b')
+    form = {
+        "customer": customer2.pk,
+        "documentid": document_link.documentid.pk,
+        "object_id": document_link.object_id,
+        "content_type": document_link.content_type.pk,
+    }
     response = client.post(url, data=form, HTTP_HX_REQUEST="true")
     assert response.status_code == 204
-    last_link.refresh_from_db()
-    assert last_link.document_description == "test_description2"
+    document_link.refresh_from_db()
+    assert document_link.customer_id == customer2.pk
 
-
-@pytest.mark.django_db
-def test_document_link_update_view_post_unsuccessful(client, user_setup, mocker):
-    last_link = DocumentsView.objects.filter(customerid__isnull=False).last()
-    last_link_id = last_link.document_link_id
-    last_document_id = last_link.document_id
-    customerid = last_link.customerid
-    url = reverse("documents:update_document_link", kwargs={"pk": last_link_id})
-
-    user = user_setup
-    user.customerid = customerid
-    user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
-
-    client.force_login(user)
-
-    form = {
-        "document_link_id": last_link.document_link_id,
-        "document_id": last_link.document_id,
-        "link_row": last_link.link_row,
-    }
-
-    response = client.post(url, data=form)
-    assert "The form contains invalid data" in response.context["error_message"]
-
-    form2 = {
-        "document_link_id": last_link.document_link_id,
-        "document_id": last_link.document_id,
-        "link_row": last_link.link_row,
-        "link_table": last_link.link_table.table_id,
-        "document_name": "",
-        "customerid": last_link.customerid.customerid,
-        "document_description": "test_description2",
-    }
-    response = client.post(url, data=form2)
-    assert (
-        "An error occurred while updating the document"
-        in response.context["error_message"]
-    )
 
 
 # test FilteredDocumentTableView
@@ -417,17 +373,15 @@ def test_document_link_table_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_document_link_table_view_renders(client, user_setup, mocker):
-    last_document = DocumentsView.objects.filter(customerid__isnull=False).last()
-    customerid = last_document.customerid
+def test_document_link_table_view_renders(client, user_setup, customer):
+    customer = customer()
     url = reverse("documents:table_document_links")
 
     user = user_setup
-    user.customerid = customerid
+    permission = Permission.objects.get(codename="view_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.customerid = customer
     user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
 
     client.force_login(user)
 
@@ -435,15 +389,11 @@ def test_document_link_table_view_renders(client, user_setup, mocker):
     assert response.status_code == 200
     assertTemplateUsed(response, "documents/documents_links.html")
 
-    query_params = urlencode({"universal_search": "bla bla bla"})
-    filtered_respose = client.get(f"{url}?{query_params}", HTTP_HX_REQUEST="true")
-    assert filtered_respose.status_code == 200
-
 
 # test DocumentDownloadView
 @pytest.mark.django_db
-def test_download_document_view_requires_login(client):
-    documentid = DocumentsView.objects.last().document_id
+def test_download_document_view_requires_login(client, document_link):
+    documentid = document_link().pk
     url = reverse("documents:download_document", kwargs={"pk": documentid})
     response = client.get(url)
     assert response.status_code == 302
@@ -451,8 +401,8 @@ def test_download_document_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_download_document_view_requires_permission(client, user_setup):
-    documentid = DocumentsView.objects.last().document_id
+def test_download_document_view_requires_permission(client, document_link, user_setup):
+    documentid = document_link().pk 
     url = reverse("documents:download_document", kwargs={"pk": documentid})
 
     user = user_setup
@@ -463,20 +413,20 @@ def test_download_document_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_download_document_view_renders(client, user_setup, mocker):
-    last_document = DocumentsView.objects.filter(customerid__isnull=False).last()
-    last_document_id = last_document.document_link_id
-    customerid = last_document.customerid
-    url = reverse("documents:download_document", kwargs={"pk": last_document_id})
+def test_download_document_view_renders(client, user_setup, document_link, customer):
+    document_link = document_link()
+    customer1 = customer()
+    document_link.customerid = customer1
+    document_link.save()
 
     user = user_setup
-    user.customerid = customerid
+    user.customerid = customer1
+    permission = Permission.objects.get(codename="view_tbldocuments")
+    user.user_permissions.add(permission)
     user.save()
     client.force_login(user)
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
 
+    url = reverse("documents:download_document", kwargs={"pk": document_link.documentid.pk})
     response = client.get(url)
     assert response.status_code == 200
 
@@ -502,24 +452,26 @@ def test_document_list_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_document_list_view_renders(client, user_setup, mocker):
-    asset = Tblassets.objects.first()
-    customerid = asset.customerid
+def test_document_list_view_renders(client,asset, user_setup, obj_document_link, customer):
+    asset = asset
+    document_link = obj_document_link(obj=asset)
+    customer1 = customer()
+    document_link.customerid = customer1
+    document_link.save()
+
+    user = user_setup
+    user.customerid = customer1
+    permission = Permission.objects.get(codename="view_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.save()
+    client.force_login(user)
     url = reverse("documents:list_documents")
 
     query_param = urlencode(
         {
-            "link_row": asset.pk,
-            "link_table": "tblAssets",
-            "app_model": "assets.Tblassets",
+            "object_id": document_link.object_id,
+            "content_type": asset._meta.label
         }
-    )
-
-    user = user_setup
-    user.customerid = customerid
-    user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
     )
 
     client.force_login(user)
@@ -531,8 +483,8 @@ def test_document_list_view_renders(client, user_setup, mocker):
 
 # test DocumentLinkDeleteView
 @pytest.mark.django_db
-def test_document_link_delete_view_requires_login(client):
-    link = DocumentsView.objects.last()
+def test_document_link_delete_view_requires_login(client, document_link):
+    link = document_link()
     url = reverse("documents:delete_document_link", kwargs={"pk": link.pk})
     response = client.get(url)
     assert response.status_code == 302
@@ -540,8 +492,8 @@ def test_document_link_delete_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_document_link_delete_view_requires_permission(client, user_setup):
-    link = DocumentsView.objects.last()
+def test_document_link_delete_view_requires_permission(client, user_setup, document_link):
+    link = document_link()
     url = reverse("documents:delete_document_link", kwargs={"pk": link.pk})
     user = user_setup
     client.force_login(user)
@@ -551,16 +503,19 @@ def test_document_link_delete_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_document_link_delete_view_renders(client, user_setup, mocker):
-    link = DocumentsView.objects.filter(customerid__isnull=False).last()
+def test_document_link_delete_view_renders(client, user_setup, document_link, customer):
+    link = document_link()
+    customer = customer()
+    link.customer_id = customer
+    link.save()
+
     url = reverse("documents:delete_document_link", kwargs={"pk": link.pk})
 
     user = user_setup
-    user.customerid = link.customerid
+    permission = Permission.objects.get(codename="delete_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.customerid = customer
     user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
 
     client.force_login(user)
 
@@ -570,20 +525,19 @@ def test_document_link_delete_view_renders(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_document_link_delete_post_successful(client, user_setup, mocker):
-    link = DocumentsView.objects.filter(customerid__isnull=False).last()
+def test_document_link_delete_post_successful(client, user_setup, document_link, customer):
+    link = document_link()
+    customer = customer()
+    link.customer_id = customer
+    link.save()
+
     url = reverse("documents:delete_document_link", kwargs={"pk": link.pk})
-    document = TblDocuments.objects.get(document_id=link.document_id)
-    TblDocumentLinks.objects.create(
-        link_table=link.link_table, link_row=link.link_row + 1, documentid=document
-    )
 
     user = user_setup
-    user.customerid = link.customerid
+    permission = Permission.objects.get(codename="delete_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.customerid = customer
     user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
 
     client.force_login(user)
 
@@ -596,89 +550,52 @@ def test_document_link_delete_post_successful(client, user_setup, mocker):
 
 # test DocumentPreView
 @pytest.mark.django_db
-def test_document_pre_view_requires_login(client):
-    documentid = DocumentsView.objects.last().document_id
-    url = reverse("documents:load_image") + f"?pk={documentid})"
+def test_document_pre_view_requires_login(client, temp_document):
+    test_doc = temp_document('equipment_gs1.jpg')
+
+    url = reverse("documents:load_image", kwargs={'pk':test_doc.pk})
     response = client.get(url)
     assert response.status_code == 302
     assert "/login" in response.url.lower()
 
 
-@pytest.mark.django_db
-def test_document_pre_view_renders_pdf(client, user_setup):
+def test_document_pre_view_requires_permission(client, user_setup, temp_document):
+    test_doc = temp_document('equipment_gs1.jpg')
     user = user_setup
     client.force_login(user)
 
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "service_report.pdf")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="service_report.pdf")
-        image = TemporaryUpload.objects.create(
-            user=user,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="application/pdf",
-        )
-    temp_document = TemporaryUpload.objects.last()
-    temp_document_id = temp_document.pk
-    base_url = reverse("documents:load_image")
-    query_params = urlencode({"pk": temp_document_id})
-    url = f"{base_url}?{query_params}"
+    url = reverse("documents:load_image", kwargs={'pk':test_doc.pk})
+    response = client.get(url)
+    assert response.status_code == 403
 
+@pytest.mark.django_db
+def test_document_pre_view_renders_pdf(client, user_setup, temp_document):
+    test_doc = temp_document('service_report.pdf')
+    user = user_setup
+    client.force_login(user)
+
+    permission = Permission.objects.get(codename="view_temporaryupload")
+    user.user_permissions.add(permission)
+    user.save() 
+
+    url = reverse("documents:load_image", kwargs={'pk':test_doc.pk})
     response = client.get(url)
     assert response["Content-Type"] == "image/png"  # or expected mime type
     assert isinstance(response, type(response))  # FileResponse
 
 
 @pytest.mark.django_db
-def test_document_pre_view_renders_use_specific_file(client, user_setup):
+def test_document_pre_view_renders_image(client, user_setup, temp_document):
+
+    test_doc = temp_document('equipment_gs1.jpg')
     user = user_setup
     client.force_login(user)
 
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "service_report.pdf")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="service_report.pdf")
-        image = TemporaryUpload.objects.create(
-            user=user,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="application/pdf",
-        )
-    temp_document = TemporaryUpload.objects.last()
-    temp_document_id = temp_document.pk
-    base_url = reverse("documents:load_image")
-    query_params = urlencode({"pk": temp_document_id})
-    url = f"{base_url}?{query_params}"
+    permission = Permission.objects.get(codename="view_temporaryupload")
+    user.user_permissions.add(permission)
+    user.save() 
 
-    user2 = user_setup
-    user2.pk = 9999
-    user.email = "test@test.com"
-    user2.save(force_insert=True)
-    temp_document.user = user2
-    temp_document.save()
-
-    response = client.get(url)
-    assert response.status_code == 404
-
-
-@pytest.mark.django_db
-def test_document_pre_view_renders_image(client, user_setup):
-    user = user_setup
-    client.force_login(user)
-
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user, file=testFile, file_size=testFile.size, mime_type="image/jpeg"
-        )
-    temp_document = TemporaryUpload.objects.last()
-    temp_document_id = temp_document.pk
-    base_url = reverse("documents:load_image")
-    query_params = urlencode({"pk": temp_document_id})
-    url = f"{base_url}?{query_params}"
+    url = reverse("documents:load_image", kwargs={'pk':test_doc.pk})
 
     response = client.get(url)
     assert response["Content-Type"] == "image/jpeg"  # or expected mime type
@@ -695,63 +612,94 @@ def test_temp_files_delete_all_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_temp_files_delete_all_view_posts(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
+def test_temp_files_delete_all_view_posts_requires_permission(client, user, temp_document, temp_group):
+    user1 = user(user_name='userA')
 
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user, file=testFile, file_size=testFile.size, mime_type="image/jpeg"
-        )
-    temp_document = TemporaryUpload.objects.last()
-    assert TemporaryUpload.objects.filter(user=user).exists()
+    client.force_login(user1)
+
+    group1 = temp_group(user=user1)
+    group2 = temp_group(user=user1)
+    user1_file1 = temp_document(group=group1)
+    user1_file2 = temp_document(group=group1)
+    user1_file3 = temp_document(group=group2)
+    user1_file4 = temp_document(group=group2)
+
+    assert TemporaryUpload.objects.filter(group__user=user1).exists() 
+    assert user1.temp_upload_group.all().exists()
+
+    url = reverse("documents:delete_all_temp_files")
+    response = client.post(url)
+    assert response.status_code == 403
+
+@pytest.mark.django_db
+def test_temp_files_delete_all_view_posts_successfully(client, user, temp_document, temp_group):
+    user1 = user(user_name='userA')
+    user2 = user(user_name='userB')
+    permission = Permission.objects.get(codename="delete_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.save() 
+
+    client.force_login(user1)
+
+    group1 = temp_group(user=user1)
+    group2 = temp_group(user=user1)
+    group3 = temp_group(user=user2)
+    group4 = temp_group(user=user2)
+    user1_file1 = temp_document(group=group1)
+    user1_file2 = temp_document(group=group1)
+    user1_file3 = temp_document(group=group2)
+    user1_file4 = temp_document(group=group2)
+
+    user2_file1 = temp_document(group=group3)
+    user2_file2 = temp_document(group=group3)
+    user2_file3 = temp_document(group=group4)
+    user2_file4 = temp_document(group=group4)
+
+    assert TemporaryUpload.objects.filter(group__user=user1).exists() 
+    assert user1.temp_upload_group.all().exists()
 
     url = reverse("documents:delete_all_temp_files")
     response = client.post(url)
     assert response.status_code == 302
-    assert not TemporaryUpload.objects.filter(user=user).exists()
+    assert not TemporaryUpload.objects.filter(group__user=user1).exists() 
+    assert not user1.temp_upload_group.all().exists()
 
+    # check that other users' files still exisits
+    assert TemporaryUpload.objects.filter(group__user=user2).exists() 
+    assert user2.temp_upload_group.all().exists()
 
 # Test TempFilesDeleteView
 @pytest.mark.django_db
-def test_temp_file_delete_view_requires_login(user_setup, client):
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user_setup,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="image/jpeg",
-        )
-    temp_file = TemporaryUpload.objects.last()
-    url = reverse("documents:delete_temp_file", kwargs={"pk": temp_file.pk})
+def test_temp_file_delete_view_requires_login(temp_document, client):
+    temp_document = temp_document()
+
+    url = reverse("documents:delete_temp_file", kwargs={"pk": temp_document.pk})
     response = client.get(url)
     assert response.status_code == 302
     assert "/login" in response.url.lower()
 
+@pytest.mark.django_db
+def test_temp_file_delete_view_requires_permission(client, temp_document):
+    temp_document = temp_document()
+    user1 = temp_document.group.user
+    user1.save() 
+
+    client.force_login(user1)
+
+    url = reverse("documents:delete_temp_file", kwargs={"pk": temp_document.pk})
+    response = client.post(url)
+    assert response.status_code == 403 
 
 @pytest.mark.django_db
-def test_temp_file_delete_view_posts(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
+def test_temp_file_delete_view_posts(client, temp_document):
+    temp_document = temp_document()
+    user1 = temp_document.group.user
 
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user, file=testFile, file_size=testFile.size, mime_type="image/jpeg"
-        )
-    temp_document = TemporaryUpload.objects.filter(user=user).last()
-    assert TemporaryUpload.objects.filter(user=user).exists()
+    permission = Permission.objects.get(codename="delete_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.save() 
+
+    client.force_login(user1)
 
     url = reverse("documents:delete_temp_file", kwargs={"pk": temp_document.pk})
     response = client.post(url)
@@ -760,19 +708,16 @@ def test_temp_file_delete_view_posts(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_temp_file_delete_view_posts_htmx(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
+def test_temp_file_delete_view_posts_htmx(client, temp_document):
+    temp_document = temp_document()
+    user1 = temp_document.group.user
 
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user, file=testFile, file_size=testFile.size, mime_type="image/jpeg"
-        )
-    temp_document = TemporaryUpload.objects.filter(user=user).last()
-    assert TemporaryUpload.objects.filter(user=user).exists()
+    permission = Permission.objects.get(codename="delete_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.save() 
+
+    client.force_login(user1)
+
 
     url = reverse("documents:delete_temp_file", kwargs={"pk": temp_document.pk})
     response = client.post(url, HTTP_HX_REQUEST="true")
@@ -791,276 +736,99 @@ def test_temporary_upload_create_view_requires_login(user_setup, client):
 
 
 @pytest.mark.django_db
-def test_temporary_upload_create_view_renders(client, user_setup, mocker):
-    user = user_setup
+def test_temporary_upload_create_view_requires_permission(client, user):
+    user = user()
     client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
 
-    url = reverse("documents:create_temp_files")
+    url = reverse("documents:create_temp_file")
+    response = client.get(url, HTTP_HX_REQUEST="true")
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_temporary_upload_create_view_renders(client, user):
+    user = user()
+    client.force_login(user)
+
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user.user_permissions.add(permission)
+    user.save() 
+
+    url = reverse("documents:create_temp_file")
     response = client.get(url, HTTP_HX_REQUEST="true")
     assert response.status_code == 200
-    assertTemplateUsed(response, "documents/partials/temp_document_create.html")
+    assertTemplateUsed(response, "documents/partials/temp_upload_create.html")
+
 
 
 @pytest.mark.django_db
-def test_temporary_upload_create_view_post_new_group(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-    test_file = SimpleUploadedFile(
-        "test.pdf", b"test image data", content_type="application/pdf"
-    )
+def test_temporary_upload_create_view_post_specific_group(client, test_file, temp_document, user):
 
+    temp_document = temp_document()
+    user1 = temp_document.group.user
+
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.is_staff = True
+    user1.save() 
+
+    client.force_login(user1)
+
+    test_file = test_file('delivery_note.jpeg')
     data = {"files": [test_file]}
 
-    url = reverse("documents:create_temp_files")
+    base_url = reverse("documents:create_temp_file")
+    query_params = urlencode({'group': temp_document.group.pk})
+    url = f"{base_url}?{query_params}"
     response = client.post(url, data, format="multipart")
     assert response.status_code == 302
-    assert TemporaryUpload.objects.filter(user=user, group=0).exists()
-
+    assert TemporaryUpload.objects.filter(group=temp_document.group).exists()
 
 @pytest.mark.django_db
-def test_temporary_upload_create_view_post_specific_group(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
+def test_temporary_upload_create_view_post_non_staff(client, test_file, temp_document, user):
 
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    temp_document = temp_document()
+    user1 = temp_document.group.user
 
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user, file=testFile, file_size=testFile.size, mime_type="image/jpeg"
-        )
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.save() 
 
-    test_file = SimpleUploadedFile(
-        "test.pdf", b"test image data", content_type="application/pdf"
-    )
+    client.force_login(user1)
 
-    data = {"group": "2", "files": [test_file]}
+    test_file = test_file('delivery_note.jpeg')
+    data = {"files": [test_file]}
 
-    url = reverse("documents:create_temp_files")
+    base_url = reverse("documents:create_temp_file")
+    query_params = urlencode({'group': temp_document.group.pk})
+    url = f"{base_url}?{query_params}"
     response = client.post(url, data, format="multipart")
     assert response.status_code == 302
-    assert TemporaryUpload.objects.filter(user=user, group=2).exists()
-
-
-@pytest.mark.django_db
-def test_temporary_upload_create_view_post_specific_group_htmx(
-    client, user_setup, mocker
-):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-
-    test_file = SimpleUploadedFile(
-        "test.pdf", b"test image data", content_type="application/pdf"
-    )
-
-    data = {"group": "2", "files": [test_file]}
-
-    url = reverse("documents:create_temp_files")
-    response = client.post(url, data, format="multipart", HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
-    assert TemporaryUpload.objects.filter(user=user, group=2).exists()
-
+    assert not TemporaryUpload.objects.filter(group=temp_document.group).exists()
+    assert TemporaryUpload.objects.all().count() == 1
 
 @pytest.mark.django_db
-def test_temporary_upload_create_view_post_new_group_htmx(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_temporary_upload_create_view_post_specific_group_htmx( client, temp_document, test_file):
+    temp_document = temp_document()
+    user1 = temp_document.group.user
 
-    test_file = SimpleUploadedFile(
-        "test.pdf", b"test image data", content_type="application/pdf"
-    )
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.is_staff = True
+    user1.save() 
 
-    data = {"group": "new", "files": [test_file]}
-    url = reverse("documents:create_temp_files")
-    response = client.post(url, data, format="multipart", HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
-    assert TemporaryUpload.objects.filter(user=user, group=1).exists()
+    client.force_login(user1)
 
+    test_file = test_file('delivery_note.jpeg')
+    data = {"files": [test_file]}
 
-@pytest.mark.django_db
-def test_temporary_upload_create_view_post_rejects_dissimilar_file_format(
-    client, user_setup, mocker
-):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="image/jpeg",
-            group=1,
-        )
-
-    test_file = SimpleUploadedFile(
-        "test.pdf", b"test image data", content_type="application/pdf"
-    )
-
-    data = {"group": "1", "files": [test_file]}
-
-    url = reverse("documents:create_temp_files")
-    response = client.post(url, data, format="multipart", HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
-    assert TemporaryUpload.objects.filter(user=user, group=1).count() == 1
-
-
-@pytest.mark.django_db
-def test_temporary_upload_create_view_poKst_existing_group_htmx(
-    client, user_setup, mocker
-):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="image/jpeg",
-            group=1,
-        )
-
-    test_file = SimpleUploadedFile(
-        "test.pdf", b"test image data", content_type="image/jpeg"
-    )
-
-    data = {"group": "1", "files": [test_file]}
-
-    url = reverse("documents:create_temp_files")
-    response = client.post(url, data, format="multipart", HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
-    assert TemporaryUpload.objects.filter(user=user, group=1).count() == 2
-
-
-@pytest.mark.django_db
-def test_temporary_upload_create_view_post_invalid(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-
-    test_file = SimpleUploadedFile(
-        "test.pdf", b"test image data", content_type="text/plain"
-    )
-
-    data = {"group": "1", "files": [test_file]}
-
-    url = reverse("documents:create_temp_files")
-    response = client.post(url, data, format="multipart", HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
-    assert response["HX-Retarget"] == "this"
-
-
-# test TempUploadDetailView
-@pytest.mark.django_db
-def test_temp_file_detail_view_requires_login(user_setup, client):
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user_setup,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="image/jpeg",
-        )
-    temp_file = TemporaryUpload.objects.last()
-    url = reverse("documents:temp_file", kwargs={"pk": temp_file.pk})
-    response = client.get(url)
-    assert response.status_code == 302
-    assert "/login" in response.url.lower()
-
-
-@pytest.mark.django_db
-def test_temp_file_detail_view_renders(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user, file=testFile, file_size=testFile.size, mime_type="image/jpeg"
-        )
-    temp_document = TemporaryUpload.objects.filter(user=user).last()
-
-    url = reverse("documents:temp_file", kwargs={"pk": temp_document.pk})
-    response = client.get(url)
+    base_url = reverse("documents:create_temp_file")
+    query_params = urlencode({'group': temp_document.group.pk})
+    url = f"{base_url}?{query_params}"
+    response = client.post(url, data, format="multipart", HTTP_HX_REQUEST='true')
     assert response.status_code == 200
     assertTemplateUsed(response, "documents/partials/temp_file.html")
-
-
-@pytest.mark.django_db
-def test_temp_file_detail_view_renders_not_your_file(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user, file=testFile, file_size=testFile.size, mime_type="image/jpeg"
-        )
-    temp_document = TemporaryUpload.objects.filter(user=user).last()
-    user2 = user_setup
-    user2.pk = 9999
-    user2.email = "test@test.com"
-
-    user2.save(force_insert=True)
-    client.force_login(user2)
-
-    url = reverse("documents:temp_file", kwargs={"pk": temp_document.pk})
-    response = client.get(url)
-    assert response.status_code == 404
+    assert TemporaryUpload.objects.filter(group=temp_document.group).exists()
 
 
 # test TempUploadListView
@@ -1072,44 +840,51 @@ def test_temp_file_list_view_requires_login(client):
     assert "/login" in response.url.lower()
 
 
+# test TempUploadListView
 @pytest.mark.django_db
-def test_temp_file_list_view_renders(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_temp_file_list_view_requires_permission(client, temp_document):
+    
+    temp_document = temp_document()
+    user1 = temp_document.group.user
 
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "service_report.pdf")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="service_report.pdf")
-        image = TemporaryUpload.objects.create(
-            user=user,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="application/pdf",
-        )
-    temp_document = TemporaryUpload.objects.filter(user=user).last()
+    user1.save() 
+
+    client.force_login(user1)
 
     url = reverse("documents:user_temp_files")
     response = client.get(url)
-    assert response.status_code == 200
-    assertTemplateUsed(response, "documents/temp_files_list.html")
+    assert response.status_code == 403
 
-    query_params = urlencode({"group": temp_document.group, "success_url": "testurl"})
-    filtered_respose = client.get(f"{url}?{query_params}")
-    assert filtered_respose.status_code == 200
-    assert "testurl" in filtered_respose.context["success_url"]
+@pytest.mark.django_db
+def test_temp_file_list_view_renders(client, user, temp_document, temp_group):
+    user1 = user(user_name='userA')
+    permission = Permission.objects.get(codename="view_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.save() 
+
+    client.force_login(user1)
+
+    group1 = temp_group(user=user1)
+    group2 = temp_group(user=user1)
+    user1_file1 = temp_document(group=group1)
+    user1_file2 = temp_document(group=group1)
+    user1_file3 = temp_document(group=group2)
+    user1_file4 = temp_document(group=group2)
+
+    query_params = urlencode({"group": group1, "success_url": "testurl"})
+    base_url = reverse("documents:user_temp_files")
+    url = f"{base_url}?{query_params}"
+    response = client.get(url)
+    assert response.status_code == 200
+    assert 'testurl' in response.context['success_url']
+    assertTemplateUsed(response, "documents/temp_group_list.html")
 
 
 # test DocumentUpdateView
 @pytest.mark.django_db
-def test_document_update_view_requires_login(client):
-    last_document = TblDocumentLinks.objects.last()
-    last_document_id = last_document.documentid.document_id
-    url = reverse("documents:update_document", kwargs={"pk": last_document_id})
+def test_document_update_view_requires_login(client, document):
+    document = document()
+    url = reverse("documents:update_document", kwargs={"pk": document.pk})
 
     response = client.get(url)
     assert response.status_code == 302
@@ -1117,34 +892,27 @@ def test_document_update_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_document_update_view_requires_permission(client, user_setup):
-    user = user_setup
+def test_document_update_view_requires_permission(client, document, user):
+    document = document()
+    user = user()
     client.force_login(user)
 
-    last_document = TblDocumentLinks.objects.last()
-    last_document_id = last_document.documentid.document_id
-    url = reverse("documents:update_document", kwargs={"pk": last_document_id})
+    url = reverse("documents:update_document", kwargs={"pk": document.pk})
 
     response = client.get(url)
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_document_update_view_renders(client, user_setup, mocker):
-    document_link = DocumentsView.objects.filter(customerid__isnull=False).first()
-    customerid = document_link.customerid
-    last_document = TblDocuments.objects.filter(
-        document_id=document_link.document_id
-    ).first()
+def test_document_update_view_renders(client, user, document):
+    document = document()
+    user = user()
 
-    url = reverse("documents:update_document", kwargs={"pk": last_document.document_id})
+    permission = Permission.objects.get(codename="change_tbldocuments")
 
-    user = user_setup
-    user.customerid = customerid
+    user.user_permissions.add(permission)
     user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
+    url = reverse("documents:update_document", kwargs={"pk": document.pk})
 
     client.force_login(user)
 
@@ -1154,21 +922,22 @@ def test_document_update_view_renders(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_document_update_view_post(client, user_setup, mocker):
-    document_link = DocumentsView.objects.filter(customerid__isnull=False).first()
-    customerid = document_link.customerid
-    last_document = TblDocuments.objects.filter(
-        document_id=document_link.document_id
-    ).first()
-    url = reverse("documents:update_document", kwargs={"pk": last_document.document_id})
+def test_document_update_view_post(client, user, document_link, customer):
+    document_link = document_link()
+    last_document = document_link.documentid
+    user = user()
 
-    user = user_setup
-    user.customerid = customerid
+    permission = Permission.objects.get(codename="change_tbldocuments")
+    user.user_permissions.add(permission)
+
+    customer = customer()
+    document_link.customerid = customer.pk
+    user.customerid = customer
     user.save()
-    mocker.patch(
-        "documents.mixins.DocumentPermissionMixin.has_permission", return_value=True
-    )
     client.force_login(user)
+
+    url = reverse("documents:update_document", kwargs={"pk": document_link.documentid.pk})
+
 
     test_file = SimpleUploadedFile(
         "test.txt", b"Test content", content_type="text/plain"
@@ -1185,478 +954,3 @@ def test_document_update_view_post(client, user_setup, mocker):
     last_document.refresh_from_db()
     assert last_document.document_name == "test_document"
 
-
-
-
-# test LinkTemporaryDocumentView
-@pytest.mark.django_db
-def test_link_temporary_document_view_requires_login(client):
-    url = reverse("documents:link_temporary_document")
-
-    response = client.get(url)
-    assert response.status_code == 302
-    assert "/login" in response.url.lower()
-
-
-@pytest.mark.django_db
-def test_link_temporary_document_view_requires_permission(client, user_setup):
-    user = user_setup
-    client.force_login(user)
-
-    url = reverse("documents:link_temporary_document")
-
-    response = client.get(url)
-    assert response.status_code == 403
-
-
-@pytest.mark.django_db
-def test_link_temporary_document_view_renders(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-
-    url = reverse("documents:link_temporary_document")
-
-    response = client.get(url)
-    assert response.status_code == 200
-
-
-@pytest.mark.django_db
-def test_link_temporary_document_view_post_successfully(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-
-    link_table = TblDocTableRef.objects.first()
-    link_row = 1
-    group = 1
-
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="image/jpeg",
-            group=group,
-            original_name="delivery_note.jpeg",
-        )
-
-    form_data = {
-        "group": "1",
-        "link_row": link_row,
-        "link_table": link_table.table_name,
-        "document_type": 0,
-    }
-
-    url = reverse("documents:link_temporary_document")
-
-    response = client.post(url, form_data)
-    assert response.status_code == 302
-    assert "delivery_note.jpeg" in DocumentsView.objects.filter(
-        link_table=link_table,
-        link_row=link_row,
-    ).values_list("document_name", flat=True)
-
-
-@pytest.mark.django_db
-def test_link_temporary_document_view_post_successfully_htmx(
-    client, user_setup, mocker
-):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-
-    link_table = TblDocTableRef.objects.first()
-    link_row = 1
-    group = 1
-
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="image/jpeg",
-            group=group,
-            original_name="delivery_note.jpeg",
-        )
-
-    form_data = {
-        "group": "1",
-        "link_row": link_row,
-        "link_table": link_table.table_name,
-        "document_type": 0,
-    }
-
-    url = reverse("documents:link_temporary_document")
-
-    response = client.post(url, form_data, HTTP_HX_REQUEST="true")
-    assert response.status_code == 204
-    assert "delivery_note.jpeg" in DocumentsView.objects.filter(
-        link_table=link_table,
-        link_row=link_row,
-    ).values_list("document_name", flat=True)
-
-
-@pytest.mark.django_db
-def test_link_temporary_document_view_post_successfully_multiple_images(
-    client, user_setup, mocker
-):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-
-    link_table = TblDocTableRef.objects.first()
-    link_row = 1
-    group = 1
-
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="image/jpeg",
-            group=group,
-            original_name="delivery_note.jpeg",
-        )
-
-    image2_path = os.path.join(base_dir, "test_files", "equipment_gs1.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="image/jpeg",
-            group=group,
-            original_name="delivery_note.jpeg",
-        )
-
-    form_data = {
-        "group": "1",
-        "link_row": link_row,
-        "link_table": link_table.table_name,
-        "document_type": 0,
-    }
-
-    url = reverse("documents:link_temporary_document")
-
-    TblDocumentLinks.objects.filter(link_row=link_row, link_table=link_table).delete()
-
-    response = client.post(url, form_data)
-    assert response.status_code == 302
-    filenames = DocumentsView.objects.filter(
-        link_table=link_table,
-        link_row=link_row,
-    ).values_list("document_name", flat=True)
-    assert any(name.endswith(".pdf") for name in filenames)
-
-
-@pytest.mark.django_db
-def test_link_temporary_document_view_post_invalid(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-
-    link_table = TblDocTableRef.objects.first()
-    link_row = 1
-    group = 1
-
-    base_dir = os.path.dirname(__file__)
-    image1_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-    with open(image1_path, "rb") as f:
-        testFile = File(f, name="delivery_note.jpeg")
-        image = TemporaryUpload.objects.create(
-            user=user,
-            file=testFile,
-            file_size=testFile.size,
-            mime_type="image/jpeg",
-            group=group,
-            original_name="delivery_note.jpeg",
-        )
-
-    form_data = {
-        "group": "1",
-        "link_row": link_row,
-        "link_table": link_table.table_name,
-    }
-
-    url = reverse("documents:link_temporary_document")
-
-    response = client.post(url, form_data)
-    assert response.status_code == 200
-
-    messages = list(get_messages(response.wsgi_request))
-
-    messages_list = [m.message for m in messages]
-    assert any("Failed" in msg for msg in messages_list)
-
-
-# test QuickScanner
-@pytest.mark.django_db
-def test_quick_scanner_requires_login(client):
-    url = reverse("documents:quick_scanner")
-
-    response = client.get(url)
-    assert response.status_code == 302
-    assert "/login" in response.url.lower()
-
-
-# test QuickScanner
-@pytest.mark.django_db
-def test_quick_scanner_renders(client, user_setup):
-    user = user_setup
-    client.force_login(user)
-    url = reverse("documents:quick_scanner")
-    response = client.get(url)
-    assert response.status_code == 200
-    assertTemplateUsed("documents/quick_scanner.html")
-
-
-@pytest.mark.django_db
-def test_quick_scanner_post_unknown_gtin(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-
-    Tbltesteqused.objects.filter(jobid__assetid__serialnumber="S00455524").delete()
-    Tbljob.objects.filter(assetid__serialnumber="S00455524").delete()
-    Tblassets.objects.filter(serialnumber="S00455524").delete()
-    model = Tblmodel.objects.filter(gtin="00885403497233").first()
-    model.gtin = ""
-    model.save()
-
-    base_dir = os.path.dirname(__file__)
-
-    image2_path = os.path.join(base_dir, "test_files", "equipment_gs1.jpg")
-
-    with open(image2_path, "rb") as f:
-        test_file = SimpleUploadedFile(
-            name="equipment_gs1.jpg", content=f.read(), content_type="image/jpg"
-        )
-
-    data = {"file": [test_file]}
-    url = reverse("documents:quick_scanner")
-    response = client.post(url, data, format="multipart")
-    assert response.status_code == 200
-    assertTemplateUsed("documents/partials/quick_scan/unknown_gtin.html")
-
-
-@pytest.mark.django_db
-def test_quick_scanner_post_known_equipment_model(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-
-    Tbltesteqused.objects.filter(jobid__assetid__serialnumber="S00455524").delete()
-    Tbljob.objects.filter(assetid__serialnumber="S00455524").delete()
-    Tblassets.objects.filter(serialnumber="S00455524").delete()
-
-    base_dir = os.path.dirname(__file__)
-
-    image2_path = os.path.join(base_dir, "test_files", "equipment_gs1.jpg")
-
-    with open(image2_path, "rb") as f:
-        test_file = SimpleUploadedFile(
-            name="equipment_gs1.jpg", content=f.read(), content_type="image/jpg"
-        )
-
-    data = {"file": [test_file]}
-    url = reverse("documents:quick_scanner")
-    response = client.post(url, data, format="multipart")
-    assert response.status_code == 302
-    assertTemplateUsed("assets/create_form.html")
-
-
-@pytest.mark.django_db
-def test_quick_scanner_post_known_equipment(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-
-    base_dir = os.path.dirname(__file__)
-
-    image2_path = os.path.join(base_dir, "test_files", "equipment_gs1.jpg")
-
-    with open(image2_path, "rb") as f:
-        test_file = SimpleUploadedFile(
-            name="equipment_gs1.jpg", content=f.read(), content_type="image/jpg"
-        )
-
-    data = {"file": [test_file]}
-    url = reverse("documents:quick_scanner")
-    response = client.post(url, data, format="multipart")
-    assert response.status_code == 302
-    assertTemplateUsed("assets/assetview.html")
-
-
-@pytest.mark.django_db
-def test_quick_scanner_post_no_information(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-
-    base_dir = os.path.dirname(__file__)
-
-    image2_path = os.path.join(base_dir, "test_files", "delivery_note.jpeg")
-
-    with open(image2_path, "rb") as f:
-        test_file = SimpleUploadedFile(
-            name="delivery_note.jpeg", content=f.read(), content_type="image/jpeg"
-        )
-
-    data = {}
-    url = reverse("documents:quick_scanner")
-    response = client.post(url, data, format="multipart")
-    assert response.status_code == 200
-
-    messages = list(get_messages(response.wsgi_request))
-    messages_list = [m.message for m in messages]
-
-    assert any("No information" in msg for msg in messages_list)
-
-
-@pytest.mark.django_db
-def test_quick_scanner_post_incorrect_filetype(client, user_setup, mocker):
-    user = user_setup
-    client.force_login(user)
-
-    Tbltesteqused.objects.filter(jobid__assetid__serialnumber="S00455524").delete()
-    Tbljob.objects.filter(assetid__serialnumber="S00455524").delete()
-    Tblassets.objects.filter(serialnumber="S00455524").delete()
-
-    base_dir = os.path.dirname(__file__)
-
-    image2_path = os.path.join(base_dir, "test_files", "service_report.pdf")
-
-    with open(image2_path, "rb") as f:
-        test_file = SimpleUploadedFile(
-            name="service_report.pdf", content=f.read(), content_type="application/pdf"
-        )
-
-    data = {"file": [test_file]}
-    url = reverse("documents:quick_scanner")
-    response = client.post(url, data, format="multipart")
-    assert response.status_code == 200
-
-    messages = list(get_messages(response.wsgi_request))
-
-    messages_list = [m.message for m in messages]
-    assert any("Incorrect" in msg for msg in messages_list)
-
-
-#-----------------------------test readers-----------------
-
-@pytest.mark.django_db
-def test_bar_code_reader_post_with_ai(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "assets.mixins.CustomerAssetPermissionMixin.has_permission", return_value=True
-    )
-    user.customerid = Tblassets.objects.first().customerid
-    user.save()
-    client.force_login(user)
-    import os
-
-    base_dir = os.path.dirname(__file__)
-
-    image1_path = os.path.join(base_dir, "test_images", "gs1_id_label.jpg")
-
-    with open(image1_path, "rb") as f:
-        testfile = File(f)
-        testFile = File(f, name="test_img1.jpg")
-        image = TemporaryUpload.objects.create(
-            user=user, file=testFile, file_size=testFile.size, mime_type="image/jpg"
-        )
-    group = image.group
-
-    url = reverse("assets:barcode_scanner", kwargs={"temp_file_group": 0})
-    query_params = urlencode({"use_ai": "true"})
-    full_url = f"{url}?{query_params}"
-    response = client.post(full_url)
-    assert response.status_code == 200
-    assertTemplateUsed("assets/partials/barcode_scanner_output.html")
-
-
-@pytest.mark.django_db
-def test_bar_code_reader_post_incorrect_document_type(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "assets.mixins.CustomerAssetPermissionMixin.has_permission", return_value=True
-    )
-    user.customerid = Tblassets.objects.first().customerid
-    user.save()
-    client.force_login(user)
-    import os
-
-    base_dir = os.path.dirname(__file__)
-
-    image1_path = os.path.join(base_dir, "test_images", "delivery_note.jpeg")
-
-    with open(image1_path, "rb") as f:
-        testfile = File(f)
-        testFile = File(f, name="test_img1.jpg")
-        image = TemporaryUpload.objects.create(
-            user=user, file=testFile, file_size=testFile.size, mime_type="image/jpg"
-        )
-    group = image.group
-
-    url = reverse("assets:barcode_scanner", kwargs={"temp_file_group": group})
-    response = client.post(url)
-    assert response.status_code == 200
-    assertTemplateUsed("partials/messages.html")
-    error_messages = list(get_messages(response.wsgi_request))
-    assert any(
-        "No barcodes recognised from these images" in str(message)
-        for message in error_messages
-    )
-
-
-@pytest.mark.django_db
-def test_bar_code_reader_post_incorrect_document_format(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "assets.mixins.CustomerAssetPermissionMixin.has_permission", return_value=True
-    )
-    user.customerid = Tblassets.objects.first().customerid
-    user.save()
-    client.force_login(user)
-    import os
-
-    base_dir = os.path.dirname(__file__)
-
-    image1_path = os.path.join(base_dir, "test_images", "filter.svg")
-
-    with open(image1_path, "rb") as f:
-        testfile = File(f)
-        testFile = File(f, name="filter.svg")
-        image = TemporaryUpload.objects.create(
-            user=user, file=testFile, file_size=testFile.size, mime_type="svg"
-        )
-    group = image.group
-
-    url = reverse("assets:barcode_scanner", kwargs={"temp_file_group": group})
-    response = client.post(url)
-    assert response.status_code == 200
-    assertTemplateUsed("partials/messages.html")
-    error_messages = list(get_messages(response.wsgi_request))
-    assert any("Incorrect file type" in str(message) for message in error_messages)

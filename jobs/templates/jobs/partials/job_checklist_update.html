@@ -1,53 +1,53 @@
 {% load django_bootstrap5 %}
+
+  <div class='d-flex flex-row gap-3'>
     <h3>Checklist</h3>
-    <button type="button"
-    id='add_check_button'
-      class='btn btn-primary btn-sm'
-      hx-get="{% url 'jobs:add_formset_row' formset_type='checklist' %}"
-      hx-include="#{{checklist.prefix}}-management input"
-      hx-target="#{{ checklist.prefix }}-rows"
-      hx-push-url='false'
-      hx-swap="afterbegin">
-      Add check 
-    </button>
+    <button id='check_list_button' class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#checklist_canvas" aria-controls="checklist_canvas">Add Checks</button>
+  </div>
+
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="checklist_canvas" aria-labelledby="checklist_canvas_Label">
+    <div class="offcanvas-header">
+      <h5 id="checklist_canvas_Label">Checklist</h5>
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div hx-get='{% url "jobs:check_list" modelid=object.assetid.modelid.pk %}?formset_type={{checklist.prefix}}'
+          hx-trigger='click once from:#check_list_button'
+          hx-swap='innerHTML'
+        hx-target='this'></div>
+    </div>
+  </div>
+
     <div id='{{checklist.prefix}}-management'>
       {{ checklist.management_form }}
     </div>
     <div id="{{ checklist.prefix }}-container" class='d-flex flex-column'>
       {{ checklist.media}}
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">Check</th>
-            <th scope="col">Result</th>
-          </tr>
-        </thead>
-        <tbody id="{{ checklist.prefix }}-rows">
+        <div  id="{{ checklist.prefix }}-rows">
           {% for form in checklist %}
-            <tr>
-              <td>{{form.checkid.label }}</td>
-                {% for field in form %}
-                    <td>
-                        {% bootstrap_field field %}
-                    </td>
-                {% endfor %}
-            </tr>
+              <div class='d-flex flex-row justify-content-between'>
+                <p>{{form.checkid.label }}</p>
+                <div class='d-flex flex-row'>{% bootstrap_form form  %}</div>
+              <input type='hidden' name='input_{{form.checkid.value}}_input_id' value='{{form.checkid.value}}'> 
+              </div>
           {% endfor %}
-        </tbody>
-      </table>
+        </div>
     </div>
 
 
 {% partialdef row %} 
-    <tr class='formset-row'>
-      <td>{{form.checkid.label }}</td>
-      <td>{% bootstrap_form form %}
+    <div class='d-flex flex-row justify-content-between formset-row'>
+      {{form.checkid.label }}
+      <div class='d-flex flex-row'>{% bootstrap_form form  %}
           <button
               type="button"
-              class="btn btn-danger align-self-middle"
+              class="btn btn-danger align-self-middle btn-sm"
               onclick="this.closest('.formset-row').remove()"
           >remove</button>
-      </td>
+          <input type='hidden' name='input_{{form.checkid.value}}_input_id' value='{{form.checkid.value}}'> 
+      </div>
+    </div>
+
     <input
         type="hidden"
         name="{{ prefix }}-TOTAL_FORMS"
@@ -55,6 +55,5 @@
         value="{{ total_forms|add:1 }}"
         hx-swap-oob="true"
     />
-    </tr>
 
 {% endpartialdef %}

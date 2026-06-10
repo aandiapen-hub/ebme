@@ -53,7 +53,10 @@ class TblInvoices(models.Model):
     invoice_id = models.BigAutoField(primary_key=True)
     invoice_no = models.CharField()
     invoice_date = models.DateField()
-    po = models.ForeignKey("TblPurchaseOrder", models.PROTECT, blank=True, null=True)
+    po = models.ForeignKey(
+        "TblPurchaseOrder", models.PROTECT, blank=True, null=True,
+        related_name='invoice'
+    )
     invoice_due_date = models.DateField(blank=True, null=True)
     invoice_status = models.ForeignKey(TblInvoiceStatus, models.PROTECT)
     fully_paid_date = models.DateField(blank=True, null=True)
@@ -242,7 +245,7 @@ class TblSuppliers(models.Model):
 class TblDeliveries(models.Model):
     delivery_id = models.BigAutoField(primary_key=True)
     po = models.ForeignKey(
-        "TblPurchaseOrder", models.PROTECT, db_column="po_id", related_name="deliveries"
+        "TblPurchaseOrder", models.PROTECT, db_column="po_id", related_name="delivery"
     )
     delivery_date = models.DateField()
     delivery_note_number = models.CharField(unique=True, blank=True, null=True)
@@ -277,7 +280,7 @@ class TblDeliveryAddresses(models.Model):
 class TblDeliveryLines(models.Model):
     line_id = models.BigAutoField(primary_key=True)
     delivery = models.ForeignKey(
-        "TblDeliveries", models.CASCADE, db_column="delivery_id"
+        "TblDeliveries", models.CASCADE, db_column="delivery_id", related_name='line'
     )
     item = models.ForeignKey(
         "parts.Tblpartslist",
@@ -322,7 +325,9 @@ class Deliverylineview(models.Model):
 
 class Outstandngdeliveriesview(models.Model):
     outstanding_id = models.BigIntegerField(primary_key=True)
-    po_id = models.BigIntegerField(blank=True, null=True)
+    po_id = models.ForeignKey(
+        "TblPurchaseOrder", models.PROTECT, db_column="po_id", related_name="outstanding_item"
+    )
     item = models.ForeignKey(
         "parts.Tblpartslist", models.PROTECT, db_column="item_id", blank=True, null=True
     )

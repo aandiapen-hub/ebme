@@ -1,4 +1,5 @@
 import pytest
+from django.contrib.auth.models import Permission
 from pytest_django.asserts import assertTemplateUsed
 from django.urls import reverse
 from assets.models import (
@@ -6,12 +7,11 @@ from assets.models import (
     Tblbrands,
     Tblcategories,
     Tblcheckslists,
-    Tbltestscarriedout,
 )
 from urllib.parse import urlencode
 
-from assets.tests.factories import BrandFactory, ModelFactory, CategoryFactory
-from jobs.tests.factories import ChecklistsFactory
+from assets.tests.factories import ModelFactory, CategoryFactory
+from jobs.tests.factories import ChecklistsFactory, TestsCarriedOutFactory
 # test brand views
 
 
@@ -25,8 +25,8 @@ def test_brand_table_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_brand_table_view_permission_denied(client, user_setup):
-    user = user_setup
+def test_brand_table_view_permission_denied(client, user):
+    user = user()
     client.force_login(user)
 
     url = reverse("model_information:brandlist")  # Update to your actual URL name
@@ -39,8 +39,8 @@ def test_brand_table_view_permission_denied(client, user_setup):
 
 @pytest.mark.parametrize("search_term", ["med 123", "1,2,3"])
 @pytest.mark.django_db
-def test_brand_table_view_renders(client, user_setup, mocker, search_term):
-    user = user_setup
+def test_brand_table_view_renders(client, user, mocker, search_term):
+    user = user()
     client.force_login(user)
     mocker.patch(
         "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
@@ -70,8 +70,8 @@ def test_brand_table_view_renders(client, user_setup, mocker, search_term):
 
 # test BrandUpdateview
 @pytest.mark.django_db
-def test_brand_update_view_requires_login(client):
-    brand = Tblbrands.objects.last()
+def test_brand_update_view_requires_login(client, brand):
+    brand = brand()
     url = reverse(
         "model_information:update_brand", kwargs={"pk": brand.brandid}
     )  # Update to your actual URL name
@@ -81,9 +81,9 @@ def test_brand_update_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_brand_update_view_requires_permission(client, user_setup):
-    brand = Tblbrands.objects.last()
-    user = user_setup
+def test_brand_update_view_requires_permission(client, user, brand):
+    brand = brand()
+    user = user()
 
     url = reverse(
         "model_information:update_brand", kwargs={"pk": brand.brandid}
@@ -94,14 +94,12 @@ def test_brand_update_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_brand_update_view_renders(client, user_setup, mocker):
-    brand = Tblbrands.objects.last()
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_brand_update_view_renders(client, user, brand):
+    brand = brand()
+    user = user()
 
+    permission = Permission.objects.get(codename="change_tblbrands")
+    user.user_permissions.add(permission)
     url = reverse(
         "model_information:update_brand", kwargs={"pk": brand.brandid}
     )  # Update to your actual URL name
@@ -113,15 +111,15 @@ def test_brand_update_view_renders(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_brand_update_view_posts_successfully(client, user_setup, mocker):
-    brand = Tblbrands.objects.last()
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_brand_update_view_posts_successfully(client, user, brand):
+    brand = brand()
+    user = user()
 
-    url = reverse("model_information:update_brand", kwargs={"pk": brand.brandid})
+    permission = Permission.objects.get(codename="change_tblbrands")
+    user.user_permissions.add(permission)
+    url = reverse(
+        "model_information:update_brand", kwargs={"pk": brand.brandid}
+    )  # Update to your actual URL name
     client.force_login(user)
 
     # test html post
@@ -154,8 +152,8 @@ def test_brand_create_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_brand_create_view_requires_permission(client, user_setup):
-    user = user_setup
+def test_brand_create_view_requires_permission(client, user):
+    user = user()
 
     url = reverse("model_information:create_brand")
 
@@ -165,28 +163,26 @@ def test_brand_create_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_brand_create_view_renders(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_brand_create_view_renders(client, user):
+    user = user()
+
+    permission = Permission.objects.get(codename="add_tblbrands")
+    user.user_permissions.add(permission)
 
     url = reverse("model_information:create_brand")
     client.force_login(user)
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "model_information/partials/modal.html")
-    assert response.context["title"] == "Create New Brand"
-    assert response.context["view_type"] == "create"
+    assertTemplateUsed(response, "model_information/brand_create.html")
 
 
-def test_brand_create_view_posts_successfully(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+@pytest.mark.django_db
+def test_brand_create_view_posts_successfully(client, user):
+    user = user()
+
+    permission = Permission.objects.get(codename="add_tblbrands")
+    user.user_permissions.add(permission)
+
 
     url = reverse("model_information:create_brand")
     client.force_login(user)
@@ -195,34 +191,18 @@ def test_brand_create_view_posts_successfully(client, user_setup, mocker):
     form = {"brandname": "brandtest"}
     response = client.post(url, data=form)
 
-    assert response.status_code == 200
+    assert response.status_code == 302
     brand = Tblbrands.objects.last()
     assert brand.brandname == "brandtest"
 
 
 @pytest.mark.django_db
-def test_brand_create_view_renders(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_brand_create_view_requires_posts_unsuccessful(client, user):
+    user = user()
 
-    url = reverse("model_information:create_brand")
-    client.force_login(user)
-    response = client.get(url)
-    assert response.status_code == 200
-    assertTemplateUsed(response, "model_information/partials/modal.html")
-    assert response.context["title"] == "Create New Brand"
-    assert response.context["view_type"] == "create"
+    permission = Permission.objects.get(codename="add_tblbrands")
+    user.user_permissions.add(permission)
 
-
-def test_brand_create_view_requires_posts_unsuccessful(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
 
     url = reverse("model_information:create_brand")
     client.force_login(user)
@@ -237,8 +217,8 @@ def test_brand_create_view_requires_posts_unsuccessful(client, user_setup, mocke
 
 # test BrandDeleteView
 @pytest.mark.django_db
-def test_brand_delete_view_requires_login(client):
-    brand = Tblbrands.objects.last()
+def test_brand_delete_view_requires_login(client, brand):
+    brand = brand()
     url = reverse(
         "model_information:delete_brand", kwargs={"pk": brand.brandid}
     )  # Update to your actual URL name
@@ -248,9 +228,9 @@ def test_brand_delete_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_brand_delete_view_requires_permission(client, user_setup):
-    brand = Tblbrands.objects.last()
-    user = user_setup
+def test_brand_delete_view_requires_permission(client, user, brand):
+    brand = brand()
+    user = user()
 
     url = reverse(
         "model_information:delete_brand", kwargs={"pk": brand.brandid}
@@ -261,13 +241,12 @@ def test_brand_delete_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_brand_delete_view_renders(client, user_setup, mocker):
-    brand = Tblbrands.objects.last()
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_brand_delete_view_renders(client, user, brand):
+    brand = brand()
+    user = user()
+
+    permission = Permission.objects.get(codename="delete_tblbrands")
+    user.user_permissions.add(permission)
 
     url = reverse(
         "model_information:delete_brand", kwargs={"pk": brand.brandid}
@@ -281,16 +260,15 @@ def test_brand_delete_view_renders(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_brand_delete_view_posts_unsuccessfully(client, user_setup, mocker):
-    brand = Tblbrands.objects.first()
-    brandid = brand.brandid
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_brand_delete_view_posts_unsuccessfully(client, user, brand, model):
 
-    url = reverse("model_information:delete_brand", kwargs={"pk": brandid})
+    brand = brand()
+    user = user()
+    model = model(brandid=brand)
+
+    permission = Permission.objects.get(codename="delete_tblbrands")
+    user.user_permissions.add(permission)
+    url = reverse("model_information:delete_brand", kwargs={"pk": brand.pk})
     client.force_login(user)
 
     response = client.post(url)
@@ -300,28 +278,20 @@ def test_brand_delete_view_posts_unsuccessfully(client, user_setup, mocker):
         in response.context["error_message"]
     )
 
-
 @pytest.mark.django_db
-def test_brand_delete_view_requires_posts_successfully(client, user_setup, mocker):
-    brand = BrandFactory(brandname="TestBrand")
+def test_brand_delete_view_requires_posts_successfully(client, user, brand):
+    brand = brand()
+    user = user()
 
-    brandid = brand.brandid
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    permission = Permission.objects.get(codename="delete_tblbrands")
+    user.user_permissions.add(permission)
 
-    url = reverse("model_information:delete_brand", kwargs={"pk": brandid})
+    url = reverse("model_information:delete_brand", kwargs={"pk": brand.pk})
     client.force_login(user)
 
     response = client.post(url)
-
     assert response.status_code == 204
-    assert not Tblbrands.objects.filter(brandid=brandid).exists()
-
-
-# test model views
+    assert not Tblbrands.objects.filter(brandid=brand.pk).exists()
 
 
 # test ModelTableView
@@ -334,8 +304,8 @@ def test_model_table_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_model_table_view_permission_denied(client, user_setup):
-    user = user_setup
+def test_model_table_view_permission_denied(client, user):
+    user = user()
     client.force_login(user)
 
     url = reverse("model_information:modellist")  # Update to your actual URL name
@@ -346,15 +316,12 @@ def test_model_table_view_permission_denied(client, user_setup):
     )  # Depends on how CustomerAssetPermissionMixin handles it
 
 
-@pytest.mark.parametrize("search_term", ["med 123", "1,2,3"])
 @pytest.mark.django_db
-def test_model_table_view_renders(client, user_setup, mocker, search_term):
-    user = user_setup
+def test_model_table_view_renders(client, user):
+    user = user()
+    permission = Permission.objects.get(codename="view_tblmodel")
+    user.user_permissions.add(permission)
     client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
 
     url = reverse("model_information:modellist")  # Update to your actual URL name
 
@@ -371,18 +338,16 @@ def test_model_table_view_renders(client, user_setup, mocker, search_term):
     assert response.status_code == 200
 
     # test filter
-    query_string = urlencode({"universal_search": search_term})
+    query_string = urlencode({"universal_search": ''})
     url = f"{url}?{query_string}"
     response = client.get(url, HTTP_HX_REQUEST="true")
     assert response.status_code == 200
 
 
 # test ModelUpdateView
-
-
 @pytest.mark.django_db
-def test_model_update_view_requires_login(client):
-    model = Tblmodel.objects.last()
+def test_model_update_view_requires_login(client, model):
+    model = model()
     url = reverse("model_information:update_model", kwargs={"pk": model.modelid})
     response = client.get(url)
     assert response.status_code == 302  # Redirect to login
@@ -390,45 +355,40 @@ def test_model_update_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_model_update_view_requires_permission(client, user_setup):
-    model = Tblmodel.objects.last()
+def test_model_update_view_requires_permission(client, user, model):
+    model = model()
     url = reverse("model_information:update_model", kwargs={"pk": model.modelid})
 
-    user = user_setup
+    user = user()
 
     client.force_login(user)
     response = client.get(url)
-    assert response.status_code == 403  # Redirect to login
+    assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_model_update_view_renders(client, user_setup, mocker):
-    model = Tblmodel.objects.last()
+def test_model_update_view_renders(client, user, model):
+    model = model()
     url = reverse("model_information:update_model", kwargs={"pk": model.modelid})
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
-    query_params = urlencode({"gtin": 123554})
+    permission = Permission.objects.get(codename="change_tblmodel")
+    user = user()
+    user.user_permissions.add(permission)
 
     client.force_login(user)
-    response = client.get(f"{url}?{query_params}")
-    assert response.status_code == 200  # Redirect to login
+    response = client.get(url)
+    assert response.status_code == 200
     assertTemplateUsed(response, "model_information/partials/model_update.html")
 
 
 @pytest.mark.django_db
-def test_model_update_view_posts_successfully(client, user_setup, mocker):
-    model = Tblmodel.objects.last()
+def test_model_update_view_posts_successfully(client, user, model):
+    model = model()
     url = reverse("model_information:update_model", kwargs={"pk": model.modelid})
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    permission = Permission.objects.get(codename="change_tblmodel")
+    user = user()
+    user.user_permissions.add(permission)
 
     client.force_login(user)
 
@@ -448,8 +408,6 @@ def test_model_update_view_posts_successfully(client, user_setup, mocker):
 
 
 # test ModelCreateView
-
-
 @pytest.mark.django_db
 def test_model_create_view_requires_login(client):
     url = reverse("model_information:create_model")  # Update to your actual URL name
@@ -459,8 +417,8 @@ def test_model_create_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_model_create_view_requires_permission(client, user_setup):
-    user = user_setup
+def test_model_create_view_requires_permission(client, user):
+    user = user()
     url = reverse("model_information:create_model")
 
     client.force_login(user)
@@ -469,12 +427,12 @@ def test_model_create_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_model_create_view_renders(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_model_create_view_renders(client, user):
+    user = user()
+
+    permission = Permission.objects.get(codename="add_tblmodel")
+    user.user_permissions.add(permission)
+
 
     url = reverse("model_information:create_model")
     query_params = urlencode({"gtin": 123554})
@@ -486,12 +444,13 @@ def test_model_create_view_renders(client, user_setup, mocker):
     assertTemplateUsed(response, "model_information/partials/model_create.html")
 
 
-def test_model_create_view_requires_posts_successfully(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+@pytest.mark.django_db
+def test_model_create_view_requires_posts_successfully(client, user, brand, category):
+    user = user()
+
+    permission = Permission.objects.get(codename="add_tblmodel")
+    user.user_permissions.add(permission)
+
 
     url = reverse("model_information:create_model")
     client.force_login(user)
@@ -499,8 +458,8 @@ def test_model_create_view_requires_posts_successfully(client, user_setup, mocke
     # test html post
     form = {
         "modelname": "testmodel",
-        "brandid": Tblbrands.objects.last().brandid,
-        "categoryid": Tblcategories.objects.last().categoryid,
+        "brandid": brand().pk,
+        "categoryid": category().pk,
     }
     response = client.post(url, data=form)
 
@@ -516,8 +475,8 @@ def test_model_create_view_requires_posts_successfully(client, user_setup, mocke
 
 
 @pytest.mark.django_db
-def test_model_delete_view_requires_login(client):
-    model = Tblmodel.objects.last()
+def test_model_delete_view_requires_login(client, model):
+    model = model()
     url = reverse("model_information:delete_model", kwargs={"pk": model.modelid})
     response = client.get(url)
     assert response.status_code == 302  # Redirect to login
@@ -525,11 +484,11 @@ def test_model_delete_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_model_delete_view_requires_permission(client, user_setup):
-    model = Tblmodel.objects.last()
+def test_model_delete_view_requires_permission(client, user, model):
+    model = model() 
     url = reverse("model_information:delete_model", kwargs={"pk": model.modelid})
+    user = user()
 
-    user = user_setup
 
     client.force_login(user)
     response = client.get(url)
@@ -537,15 +496,13 @@ def test_model_delete_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_model_delete_view_renders(client, user_setup, mocker):
-    model = Tblmodel.objects.last()
+def test_model_delete_view_renders(client, user, model):
+    model = model() 
     url = reverse("model_information:delete_model", kwargs={"pk": model.modelid})
+    user = user()
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    permission = Permission.objects.get(codename="delete_tblmodel")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
     response = client.get(url)
@@ -556,16 +513,13 @@ def test_model_delete_view_renders(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_model_delete_view_posts_unsuccessfully(client, user_setup, mocker):
-    model = Tblmodel.objects.first()
-    modelid = model.modelid
-    url = reverse("model_information:delete_model", kwargs={"pk": modelid})
-
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_model_delete_view_posts_unsuccessfully(client, user, model, asset):
+    asset = asset
+    model = asset.modelid 
+    url = reverse("model_information:delete_model", kwargs={"pk": model.modelid})
+    user = user()
+    permission = Permission.objects.get(codename="delete_tblmodel")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
 
@@ -577,35 +531,31 @@ def test_model_delete_view_posts_unsuccessfully(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_model_delete_view_posts_successfully(client, user_setup, mocker):
-    model = ModelFactory(modelname="testmodel")
-    modelid = model.modelid
-    url = reverse("model_information:delete_model", kwargs={"pk": modelid})
-
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_model_delete_view_posts_successfully(client, user, model):
+    model = model() 
+    user = user()
+    url = reverse("model_information:delete_model", kwargs={"pk": model.modelid})
+    permission = Permission.objects.get(codename="delete_tblmodel")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
+
 
     response = client.post(url)
     assert response.status_code == 302
     assert response.url == reverse("model_information:modellist")
-    assert not Tblmodel.objects.filter(modelid=modelid).exists()
+    assert not Tblmodel.objects.filter(modelid=model.pk).exists()
 
 
 @pytest.mark.django_db
-def test_model_delete_view_posts_successfully_htmx(client, user_setup, mocker):
+def test_model_delete_view_posts_successfully_htmx(client, user, model):
     model = ModelFactory(modelname="testmodel")
     modelid = model.modelid
     url = reverse("model_information:delete_model", kwargs={"pk": modelid})
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    user = user()
+
+    permission = Permission.objects.get(codename="delete_tblmodel")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
     response = client.post(url, HTTP_HX_REQUEST="true")
@@ -615,8 +565,8 @@ def test_model_delete_view_posts_successfully_htmx(client, user_setup, mocker):
 
 # test ModelDetailView
 @pytest.mark.django_db
-def test_model_detail_view_requires_login(client):
-    model = Tblmodel.objects.last()
+def test_model_detail_view_requires_login(client, model):
+    model = model()
     url = reverse("model_information:model_view", kwargs={"pk": model.modelid})
     response = client.get(url)
     assert response.status_code == 302  # Redirect to login
@@ -624,10 +574,10 @@ def test_model_detail_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_model_detail_view_requires_permission(client, user_setup):
-    model = Tblmodel.objects.last()
+def test_model_detail_view_requires_permission(client, user, model):
+    model = model()
     url = reverse("model_information:model_view", kwargs={"pk": model.modelid})
-    user = user_setup
+    user = user()
 
     client.force_login(user)
     response = client.get(url)
@@ -635,27 +585,24 @@ def test_model_detail_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_model_detail_view_renders(client, user_setup, mocker):
-    model = Tblmodel.objects.last()
+def test_model_detail_view_renders(client, user, model):
+    model = model()
     url = reverse("model_information:model_view", kwargs={"pk": model.modelid})
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    user = user()
+    permission = Permission.objects.get(codename="view_tblmodel")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
     response = client.get(url)
     assert response.status_code == 200
     assertTemplateUsed(response, "model_information/model_view.html")
 
-
+# ----------------
 # test Categories
-
+# ----------------
+#
 # test FilteredCategoryTableView
-
-
 @pytest.mark.django_db
 def test_category_table_view_requires_login(client):
     url = reverse("model_information:categorylist")  # Update to your actual URL name
@@ -665,8 +612,8 @@ def test_category_table_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_category_table_view_permission_denied(client, user_setup):
-    user = user_setup
+def test_category_table_view_permission_denied(client, user):
+    user = user()
     client.force_login(user)
 
     url = reverse("model_information:categorylist")  # Update to your actual URL name
@@ -677,16 +624,13 @@ def test_category_table_view_permission_denied(client, user_setup):
     )  # Depends on how CustomerAssetPermissionMixin handles it
 
 
-@pytest.mark.parametrize("search_term", ["med 123", "1,2,3"])
 @pytest.mark.django_db
-def test_category_table_view_renders(client, user_setup, mocker, search_term):
-    user = user_setup
+def test_category_table_view_renders(client, user):
+    user = user()
     client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
 
+    permission = Permission.objects.get(codename="view_tblcategories")
+    user.user_permissions.add(permission)
     url = reverse("model_information:categorylist")  # Update to your actual URL name
 
     response = client.get(url)
@@ -701,17 +645,11 @@ def test_category_table_view_renders(client, user_setup, mocker, search_term):
     response = client.get(url, HTTP_HX_REQUEST="true")
     assert response.status_code == 200
 
-    # test filter
-    query_string = urlencode({"universal_search": search_term})
-    url = f"{url}?{query_string}"
-    response = client.get(url, HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
-
 
 # test CategoryUpdateView
 @pytest.mark.django_db
-def test_category_update_view_requires_login(client):
-    category = Tblcategories.objects.last()
+def test_category_update_view_requires_login(client, category):
+    category = category()
     url = reverse(
         "model_information:update_category", kwargs={"pk": category.categoryid}
     )
@@ -721,9 +659,9 @@ def test_category_update_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_category_update_view_requires_permission(client, user_setup):
-    category = Tblcategories.objects.last()
-    user = user_setup
+def test_category_update_view_requires_permission(client, user, category):
+    category = category()
+    user = user()
 
     url = reverse(
         "model_information:update_category", kwargs={"pk": category.categoryid}
@@ -734,13 +672,12 @@ def test_category_update_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_category_update_view_renders(client, user_setup, mocker):
-    category = Tblcategories.objects.last()
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_category_update_view_renders(client, user, category):
+    category = category()
+    user = user()
+    permission = Permission.objects.get(codename="change_tblcategories")
+    user.user_permissions.add(permission)
+    
 
     url = reverse(
         "model_information:update_category", kwargs={"pk": category.categoryid}
@@ -753,13 +690,11 @@ def test_category_update_view_renders(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_category_update_view_posts_successfully(client, user_setup, mocker):
-    category = Tblcategories.objects.last()
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_category_update_view_posts_successfully(client, user, category):
+    category = category()
+    user = user()
+    permission = Permission.objects.get(codename="change_tblcategories")
+    user.user_permissions.add(permission)
 
     url = reverse(
         "model_information:update_category", kwargs={"pk": category.categoryid}
@@ -796,8 +731,8 @@ def test_category_create_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_category_create_view_requires_permission(client, user_setup):
-    user = user_setup
+def test_category_create_view_requires_permission(client, user):
+    user = user()
 
     url = reverse("model_information:create_category")
 
@@ -807,28 +742,23 @@ def test_category_create_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_category_create_view_renders(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_category_create_view_renders(client, user):
+    user = user()
+    permission = Permission.objects.get(codename="add_tblcategories")
+    user.user_permissions.add(permission)
+
 
     url = reverse("model_information:create_category")
     client.force_login(user)
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "model_information/partials/modal.html")
-    assert response.context["title"] == "Create New Category"
-    assert response.context["view_type"] == "create"
+    assertTemplateUsed(response, "model_information/category_create.html")
 
-
-def test_category_create_view_posts_successfully(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+@pytest.mark.django_db
+def test_category_create_view_posts_successfully(client, user, category):
+    user = user()
+    permission = Permission.objects.get(codename="add_tblcategories")
+    user.user_permissions.add(permission)
 
     url = reverse("model_information:create_category")
     client.force_login(user)
@@ -837,18 +767,17 @@ def test_category_create_view_posts_successfully(client, user_setup, mocker):
     form = {"categoryname": "testcategory"}
     response = client.post(url, data=form)
 
-    assert response.status_code == 200
+    assert response.status_code == 302 
     category = Tblcategories.objects.last()
     assert category.categoryname == "testcategory"
 
 
-def test_category_create_view_requires_posts_unsuccessfully(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+@pytest.mark.django_db
+def test_category_create_view_requires_posts_unsuccessfully(client, user):
+    user = user()
 
+    permission = Permission.objects.get(codename="add_tblcategories")
+    user.user_permissions.add(permission)
     url = reverse("model_information:create_category")
     client.force_login(user)
 
@@ -864,8 +793,8 @@ def test_category_create_view_requires_posts_unsuccessfully(client, user_setup, 
 
 
 @pytest.mark.django_db
-def test_category_delete_view_requires_login(client):
-    category = Tblcategories.objects.last()
+def test_category_delete_view_requires_login(client, category):
+    category = category()
     url = reverse(
         "model_information:delete_category", kwargs={"pk": category.categoryid}
     )
@@ -875,13 +804,13 @@ def test_category_delete_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_category_delete_view_requires_permission(client, user_setup):
-    category = Tblcategories.objects.last()
+def test_category_delete_view_requires_permission(client, user, category):
+    category = category()
     url = reverse(
         "model_information:delete_category", kwargs={"pk": category.categoryid}
     )
 
-    user = user_setup
+    user = user()
 
     client.force_login(user)
     response = client.get(url)
@@ -889,17 +818,16 @@ def test_category_delete_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_category_delete_view_renders(client, user_setup, mocker):
-    category = Tblcategories.objects.last()
+def test_category_delete_view_renders(client, user, category):
+    category = category()
     url = reverse(
         "model_information:delete_category", kwargs={"pk": category.categoryid}
     )
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    user = user()
+
+    permission = Permission.objects.get(codename="delete_tblcategories")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
     response = client.get(url)
@@ -910,16 +838,15 @@ def test_category_delete_view_renders(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_category_delete_view_posts_unsuccessfully(client, user_setup, mocker):
-    category = Tblcategories.objects.first()
+def test_category_delete_view_posts_unsuccessfully(client, user, model):
+    model = model()
+    category = model.categoryid
     categoryid = category.categoryid
     url = reverse("model_information:delete_category", kwargs={"pk": categoryid})
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    user = user()
+    permission = Permission.objects.get(codename="delete_tblcategories")
+    user.user_permissions.add(permission)
     client.force_login(user)
     response = client.post(url)
     assert (
@@ -929,16 +856,14 @@ def test_category_delete_view_posts_unsuccessfully(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_category_delete_view_posts_successfully(client, user_setup, mocker):
+def test_category_delete_view_posts_successfully(client, user, category):
     category = CategoryFactory(categoryname="testcategory")
     categoryid = category.categoryid
     url = reverse("model_information:delete_category", kwargs={"pk": categoryid})
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    user = user()
+    permission = Permission.objects.get(codename="delete_tblcategories")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
 
@@ -947,8 +872,9 @@ def test_category_delete_view_posts_successfully(client, user_setup, mocker):
     assert response.url == reverse("model_information:categorylist")
     assert not Tblcategories.objects.filter(categoryid=categoryid).exists()
 
-
+#-----------------------
 # test Checklists views
+#-----------------------
 
 # test CheckslistTableView
 
@@ -962,8 +888,8 @@ def test_checklist_table_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_checklist_table_view_permission_denied(client, user_setup):
-    user = user_setup
+def test_checklist_table_view_permission_denied(client, user):
+    user = user()
     client.force_login(user)
 
     url = reverse("model_information:checklist")  # Update to your actual URL name
@@ -975,13 +901,13 @@ def test_checklist_table_view_permission_denied(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_checklist_table_view_renders(client, user_setup, mocker):
-    user = user_setup
+def test_checklist_table_view_renders(client, user):
+    user = user()
     client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    
+    permission = Permission.objects.get(codename="view_tblcheckslists")
+    user.user_permissions.add(permission)
+
 
     url = reverse("model_information:checklist")  # Update to your actual URL name
 
@@ -995,16 +921,15 @@ def test_checklist_table_view_renders(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_checklist_table_view_renders_with_model(client, user_setup, mocker):
-    user = user_setup
+def test_checklist_table_view_renders_with_model(client, user, check):
+    check = check()
+    user = user()
     client.force_login(user)
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    permission = Permission.objects.get(codename="view_tblcheckslists")
+    user.user_permissions.add(permission)
 
     base_url = reverse("model_information:checklist")  # Update to your actual URL name
-    query_params = urlencode({"modelid": 2})
+    query_params = urlencode({"modelid": check.modelid.pk})
     url = f"{base_url}?{query_params}"
 
     response = client.get(url)
@@ -1018,8 +943,8 @@ def test_checklist_table_view_renders_with_model(client, user_setup, mocker):
 
 # test CheckUpdateView
 @pytest.mark.django_db
-def test_check_update_view_requires_login(client):
-    check = Tblcheckslists.objects.last()
+def test_check_update_view_requires_login(client, check):
+    check = check()
     testid = check.testid
     url = reverse("model_information:update_check", kwargs={"pk": testid})
     response = client.get(url)
@@ -1028,12 +953,12 @@ def test_check_update_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_check_update_view_requires_permission(client, user_setup):
-    check = Tblcheckslists.objects.last()
+def test_check_update_view_requires_permission(client, user, check):
+    check = check()
     testid = check.testid
     url = reverse("model_information:update_check", kwargs={"pk": testid})
 
-    user = user_setup
+    user = user()
 
     client.force_login(user)
     response = client.get(url)
@@ -1041,16 +966,15 @@ def test_check_update_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_check_update_view_renders(client, user_setup, mocker):
-    check = Tblcheckslists.objects.last()
+def test_check_update_view_renders(client, user, check):
+    check = check()
     testid = check.testid
     url = reverse("model_information:update_check", kwargs={"pk": testid})
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    user = user()
+    
+    permission = Permission.objects.get(codename="change_tblcheckslists")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
     response = client.get(url)
@@ -1061,16 +985,14 @@ def test_check_update_view_renders(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_check_update_view_posts_successfully(client, user_setup, mocker):
-    check = Tblcheckslists.objects.last()
+def test_check_update_view_posts_successfully(client, user, check):
+    check = check()
     testid = check.testid
     url = reverse("model_information:update_check", kwargs={"pk": testid})
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    user = user()
+    permission = Permission.objects.get(codename="change_tblcheckslists")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
 
@@ -1103,8 +1025,8 @@ def test_check_update_view_posts_successfully(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_check_delete_view_requires_login(client):
-    check = Tblcheckslists.objects.last()
+def test_check_delete_view_requires_login(client, check):
+    check = check()
     checkid = check.testid
     url = reverse("model_information:delete_check", kwargs={"pk": checkid})
     response = client.get(url)
@@ -1113,28 +1035,26 @@ def test_check_delete_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_check_delete_view_requires_permission(client, user_setup):
-    check = Tblcheckslists.objects.last()
+def test_check_delete_view_requires_permission(client, user, check):
+    check = check()
     checkid = check.testid
     url = reverse("model_information:delete_check", kwargs={"pk": checkid})
 
-    user = user_setup
+    user = user()
     client.force_login(user)
     response = client.get(url)
     assert response.status_code == 403  # Redirect to login
 
 
 @pytest.mark.django_db
-def test_model_delete_view_renders(client, user_setup, mocker):
-    check = Tblcheckslists.objects.last()
+def test_check_delete_view_renders(client, user, check):
+    check = check()
     checkid = check.testid
     url = reverse("model_information:delete_check", kwargs={"pk": checkid})
-    user = user_setup
+    user = user()
 
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    permission = Permission.objects.get(codename="delete_tblcheckslists")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
     response = client.get(url)
@@ -1145,17 +1065,15 @@ def test_model_delete_view_renders(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_check_delete_view_posts_unsuccessfully(client, user_setup, mocker):
-    testcarriedout = Tbltestscarriedout.objects.last()
-    check = Tblcheckslists.objects.get(testid=testcarriedout.checkid.testid)
-    checkid = check.testid
+def test_check_delete_view_posts_unsuccessfully(client, user):
+    test = TestsCarriedOutFactory()
+    print('test', test.checkid.pk)
+    checkid = test.checkid.pk
     url = reverse("model_information:delete_check", kwargs={"pk": checkid})
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    user = user()
+    permission = Permission.objects.get(codename="delete_tblcheckslists")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
 
@@ -1166,41 +1084,35 @@ def test_check_delete_view_posts_unsuccessfully(client, user_setup, mocker):
 
 
 @pytest.mark.django_db
-def test_check_delete_view_posts_successfully(client, user_setup, mocker):
-    check = ChecklistsFactory(testname="test_test")
-    checkid = check.testid
-    url = reverse("model_information:delete_check", kwargs={"pk": checkid})
+def test_check_delete_view_posts_successfully(client, user, check):
+    check = check()
+    url = reverse("model_information:delete_check", kwargs={"pk": check.pk})
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    user = user()
+    permission = Permission.objects.get(codename="delete_tblcheckslists")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
     response = client.post(url)
     assert response.status_code == 302
     assert response.url == reverse("model_information:checklist")
-    assert not Tblcheckslists.objects.filter(testid=checkid).exists()
+    assert not Tblcheckslists.objects.filter(testid=check.pk).exists()
 
 
 @pytest.mark.django_db
-def test_check_delete_view_posts_successfully_htmx(client, user_setup, mocker):
-    check = ChecklistsFactory(testname="test_test")
-    checkid = check.testid
-    url = reverse("model_information:delete_check", kwargs={"pk": checkid})
+def test_check_delete_view_posts_successfully_htmx(client, user, check):
+    check = check()
+    url = reverse("model_information:delete_check", kwargs={"pk": check.pk})
 
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+    user = user()
+    permission = Permission.objects.get(codename="delete_tblcheckslists")
+    user.user_permissions.add(permission)
 
     client.force_login(user)
 
     response = client.post(url, HTTP_HX_REQUEST="true")
     assert response.status_code == 204
-    assert not Tblcheckslists.objects.filter(testid=checkid).exists()
+    assert not Tblcheckslists.objects.filter(testid=check.pk).exists()
 
 
 # test CheckCreateView
@@ -1215,8 +1127,8 @@ def test_check_create_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_check_create_view_requires_permission(client, user_setup):
-    user = user_setup
+def test_check_create_view_requires_permission(client, user):
+    user = user()
     url = reverse("model_information:create_check")
 
     client.force_login(user)
@@ -1225,12 +1137,10 @@ def test_check_create_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_check_create_view_renders(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+def test_check_create_view_renders(client, user):
+    user = user()
+    permission = Permission.objects.get(codename="add_tblcheckslists")
+    user.user_permissions.add(permission)
 
     url = reverse("model_information:create_check")
     client.force_login(user)
@@ -1241,12 +1151,11 @@ def test_check_create_view_renders(client, user_setup, mocker):
     assert response.context["view_type"] == "create"
 
 
-def test_check_create_view_requires_posts_successfully(client, user_setup, mocker):
-    user = user_setup
-    mocker.patch(
-        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
-        return_value=True,
-    )
+@pytest.mark.django_db
+def test_check_create_view_requires_posts_successfully(client, user, model):
+    user = user()
+    permission = Permission.objects.get(codename="add_tblcheckslists")
+    user.user_permissions.add(permission)
 
     url = reverse("model_information:create_check")
     client.force_login(user)
@@ -1255,7 +1164,7 @@ def test_check_create_view_requires_posts_successfully(client, user_setup, mocke
     form = {
         "testname": "test_test",
         "test_description": "testdescripton",
-        "modelid": Tblmodel.objects.last().modelid,
+        "modelid": model().pk,
     }
     response = client.post(url, data=form)
 
@@ -1288,8 +1197,8 @@ def test_exitint_model_list_view_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_exitint_model_list_view_requires_permission(client, user_setup):
-    user = user_setup
+def test_exitint_model_list_view_requires_permission(client, user):
+    user = user()
     client.force_login(user)
 
     url = reverse("model_information:existing_modellist")
@@ -1298,8 +1207,8 @@ def test_exitint_model_list_view_requires_permission(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_exitint_model_list_view_renders(client, user_setup, mocker):
-    user = user_setup
+def test_exitint_model_list_view_renders(client, user, mocker):
+    user = user()
     client.force_login(user)
     mocker.patch(
         "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",

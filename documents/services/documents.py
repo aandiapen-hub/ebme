@@ -221,14 +221,16 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
 
     # non staff users can only have 1 scan group
     if not user.is_staff:
-        user.temp_upload_group.temp_uploads.all().delete()
+        user.temp_upload_group.all().delete()
 
     if file:
+        group = None
         if group_id is not None:
             group = TempUploadGroup.objects.filter(pk=group_id).first()
-            if group.user != user:
-                raise ValidationError("Group belongs to another user")
-        else:
+            if group:
+                if group.user != user:
+                    raise ValidationError("Group belongs to another user")
+        if group is None:
             group = TempUploadGroup.objects.create(
                 user=user,
             )
@@ -264,13 +266,11 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
                 user=user,
             )
 
-        print('this is being called')
         scanned = TemporaryUpload.objects.create(
             group=group,
             barcode_data=barcode_data,
         )
 
-        print('this call finished')
         quick_group_processor(scanned)
         return scanned
 

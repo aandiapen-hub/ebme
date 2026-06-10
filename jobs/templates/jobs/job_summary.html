@@ -16,7 +16,7 @@
             <small class="text-muted">Job ID:</small>
             <p>{{ job.jobid}}</p>
             <small class="text-muted">Serial No:</small>
-            <p>{{ job.serialnumber}}</p>
+            <p>{{ job.assetid.serialnumber}}</p>
            
             <small class="text-muted">Asset ID:</small>
             <p><a
@@ -26,20 +26,20 @@
             </a></p>
 
             <small class="text-muted">Model Spec:</small>
-            <p>{{ job.modelid}}</p>
+            <p>{{ job.assetid.modelid}}</p>
 
 
             <small class="text-muted">Customer:</small>
-                <p>{{ job.customerid}}</p>
+                <p>{{ job.assetid.customerid}}</p>
             
             <small class="text-muted">Location:</small>
-            <p>{{ job.locationid}}</p>
+            <p>{{ job.assetid.locationid}}</p>
     
     
           </div>
           <div class="col">
             <small class="text-muted">Job Type:</small>
-            <p>{{ job.jobtypename}}</p>
+            <p>{{ job.jobtypeid}}</p>
             
             <small class="text-muted text-muted ">Job Status:</small>
             <p class='{% if job.jobstatusid.jobstatusid != 1 %} bg-warning {% else %} text-muted {% endif %}'>{{ job.jobstatusid}}</p>
@@ -48,10 +48,10 @@
             <p>{{ job.technicianid}}</p>
 
             <small class="text-muted">Start Date:</small>
-            <p>{{ job.startdate|date:"Y-m-d" }} </p>
+            <p>{{ job.jobstartdate|date:"Y-m-d" }} </p>
 
             <small class="{% if not job.enddate %} bg-warning {% else %} text-muted {% endif %}">End Date:</small>
-            <p>{{ job.enddate|date:"Y-m-d" }} </p>
+            <p>{{ job.jobenddate|date:"Y-m-d" }} </p>
           </div>
           <div class="col text-end">
             <div id="edit_div" class="dropdown">
@@ -88,25 +88,36 @@
             </div>
 
           </div>
-          <div class='col-12' id="document_div">
-              <!--Documents -->
-              {% include "documents/partials/generic_document_partial.html" with object=job.pk content_type="assets.tbljob" %}
-          </div>
-        </div>
 
-        <div class="row bg-white p-4 rounded ">
-          <div class="col-sm">
-                <small class="text-muted">Checklist:</small>
-                <p>{{ job.testsperjob|linebreaksbr }} </p>
-            </div>    
+        <div class="row bg-white rounded ">
             <div class="col-sm">
                 <small class="text-muted">Work Done:</small>
                 <p>{{ job.workdone|linebreaksbr }} </p>
             </div>    
+        </div>
+          <div class='col-12' id="document_div">
+              <!--Documents -->
+              {% include "documents/partials/generic_document_partial.html" with object_id=job.pk content_type="assets.tbljob" %}
+          </div>
+      </div>
+
+        <div class="row bg-white p-4 rounded ">
+          <div class="col-sm">
+                <small class="text-muted">Checklist:</small>
+                <p>{{ job.job_view.testsperjob|linebreaksbr }} </p>
+            </div>    
             <div class="col-sm">
                 <small class="text-muted">Parts Cost:</small> £{{ job.total_cost }}<br>
                 <small class="text-muted">Spare Parts:</small>
-                <p>{{ job.partsperjob|linebreaksbr }} </p>
+                <p>{{ job.job_view.partsperjob|linebreaksbr }} </p>
+            </div>       
+            <div class="col-sm">
+              <small class="text-muted">Test Eq:</small>
+              {% for eq_used in job.test_eq_used.all %}
+              <p>{{eq_used.test_eq.modelid}} - {{eq_used.test_eq.serialnumber}}</p>
+              {% empty %}
+              <p>No test equipment used.</p>
+              {% endfor %}
             </div>       
         </div>
 

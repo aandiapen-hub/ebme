@@ -62,25 +62,15 @@
         </div>
         <div id='child_lines_row' class="row">
           <div class='col-12'
-              id='outstanding_items'            
-              hx-get="{% url 'procurement:outstanding_items' %}?po={{po.po_id}}"
-              hx-trigger="load, deliveries_updated from:body"
-              hx-swap='innerHTML'>
+            {% include 'procurement/partials/outstanding_items.html' %}
           </div>
 
           <div class='col-12'
-                id='delivery_lines'            
-                hx-get="{% url 'procurement:deliveries' %}?po={{po.po_id}}"
-                hx-trigger="load, deliveries_updated from:body"
-                hx-swap='innerHTML'>
+            {% include 'procurement/partials/deliveries.html' %}
           </div>
 
           <div class='col-12'       
-                id='invoices'            
-                hx-get="{% url 'procurement:invoiceslist' %}?po={{po.po_id}}"
-                hx-trigger="load"
-                hx-swap='innerHTML'>
-
+            {% include 'procurement/partials/invoices.html' %}
           </div>
 
         </div>

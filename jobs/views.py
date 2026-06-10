@@ -1,12 +1,11 @@
 import datetime
 import json
-from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.db import transaction, IntegrityError, DatabaseError
+from utils.dynamic_formset import AddFormsetRowView
 
 # import permissions
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import  reverse_lazy
 from django.views.generic import (
@@ -28,7 +27,7 @@ from assets.models import (
 )
 from documents.mixins import TempUploadMixin
 from documents.services.documents import delete_object_document_links
-from parts.models import TblPartModel, Tblpartslist
+from parts.models import Tblpartslist
 from utils.generic_views import BulkUpdateView, FilteredTableView
 
 from .forms import (
@@ -77,7 +76,6 @@ class GenerateReportView(
         if request.htmx:
             # HTMX request – respond with a redirect header
             return HttpResponse(headers={"HX-Redirect": request.get_full_path()})
-        self.object_list = self.get_queryset()
         base_qs = self.get_queryset()
         report_type = request.GET.get("report_type")
         report_generator = REPORT_GENERATORS.get(report_type)
@@ -85,7 +83,7 @@ class GenerateReportView(
         self.filterset = filterclass(self.request.GET, queryset=base_qs)
 
         data = self.filterset.qs.values()
-        if request.user.is_staff and data.count() < 1000:
+        if request.user.is_staff and data.count() < 300:
             return report_generator(data)
         elif data.count() < 200:
             return report_generator(data)
@@ -158,10 +156,6 @@ class JobUpdateView(
             form.add_error(None, f"Database integrity error: {e}")
             return self.form_invalid(form)
 
-        except DatabaseError as e:
-            form.add_error(None, f"Database error: {e}")
-            return self.form_invalid(form)
-
         return HttpResponseRedirect(self.get_success_url())
 
     def form_invalid(self, form):
@@ -185,12 +179,10 @@ class JobDetailView(
     CustomerJobPermissionMixin,
     DetailView,
 ):
-    model = JobView
+    model = Tbljob 
     template_name = "jobs/job_summary.html"
     context_object_name = "job"
     permission_required = "assets.view_jobview"
-
-
 
 
 class JobCreateView(
@@ -222,36 +214,18 @@ class JobCreateView(
 
         return initial
 
-    def get_formsets(self):
-        formsets = {}
-        for prefix, formset in JOB_FORMSETS.items():
-            formsets[prefix] = formset(
-                self.request.POST or None, instance=self.object, prefix=prefix
-            )
-        return formsets
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["assetid"] = self.request.GET.get("assetid", None)
-        context.update(self.get_formsets())
         return context
 
     def form_valid(self, form):
-        context = self.get_context_data()
-
-        formsets = [context[prefix] for prefix in JOB_FORMSETS]
-
-        if all([formset.is_valid for formset in formsets]):
-            with transaction.atomic():
-                self.object = form.save()
-                for formset in formsets:
-                    formset.instance = self.object
-                    formset.save()
-                self.after_save(form)
+        with transaction.atomic():
+            self.object = form.save()
+            self.after_save(form)
 
             return HttpResponseRedirect(self.get_success_url())
-        else:
-            return self.form_invalid(form)
 
     def form_invalid(self, form):
         context = self.get_context_data(form=form)
@@ -264,7 +238,7 @@ class TestEqListView(
     ListView
 ):
     model = Tblassets
-    permission_required = "assets.view_tblassets"
+    permission_required = "assets.change_tbljob"
     template_name = 'jobs/partials/available_test_eq.html'
     context_object_name = 'test_eq'
 
@@ -273,7 +247,7 @@ class TestEqListView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset_type = 'test_eq'
+        formset_type = self.request.GET.get('formset_type') 
         config = FORMSET_CONFIG[formset_type]
         context['prefix'] = config["prefix"]
         return context
@@ -284,8 +258,8 @@ class SparePartsListView(
     ListView
 ):
     model = Tblpartslist 
-    permission_required = "parts.view_tblpartmodel"
     template_name = 'jobs/partials/available_parts.html'
+    permission_required = "assets.change_tbljob"
     context_object_name = 'parts'
 
     def get_queryset(self):
@@ -301,7 +275,36 @@ class SparePartsListView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset_type = 'parts_used'
+        formset_type = self.request.GET.get('formset_type') 
+        
+        config = FORMSET_CONFIG[formset_type]
+        context['prefix'] = config["prefix"]
+        return context
+
+
+class ChecklistListView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    ListView
+):
+    model = Tblcheckslists 
+    permission_required = "assets.change_tbljob"
+    template_name = 'jobs/partials/available_checks.html'
+    context_object_name = 'checks'
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        # qs = qs.filter(Q(inactive=False)|Q(inactive__isnull=True))
+
+        modelid = self.kwargs['modelid']
+        qs = qs.filter(modelid=modelid)
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        formset_type = self.request.GET.get('formset_type')
         config = FORMSET_CONFIG[formset_type]
         context['prefix'] = config["prefix"]
         return context
@@ -346,62 +349,9 @@ FORMSET_CONFIG = {
 }
 
 
-class AddFormsetRowView(TemplateView):
-    def get_template_names(self):
-        formset_type = self.kwargs["formset_type"]
-        config = FORMSET_CONFIG[formset_type]
-        return [config.get('row_template_name')]
-
-
-    def get(self, request, *args, **kwargs):
-        formset_type = self.kwargs["formset_type"]
-        config = FORMSET_CONFIG[formset_type]
-        lookup_param = self.request.GET.get(config["lookup_param"], None)
-
-        existing_ids = {
-            value
-            for key, value in request.GET.items()
-            if key.endswith("_input_id") and value
-        }
-
-        if lookup_param in existing_ids:
-            response = HttpResponse(status=200)
-            response["HX-Trigger"] = json.dumps({
-                "deliveries_updated": True,
-                "show_message": {
-                    "message": "Already added",
-                    "level": "warning",
-                },
-            })
-            return response
-
-        return super().get(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        formset_type = self.kwargs["formset_type"]
-        config = FORMSET_CONFIG[formset_type]
-        prefix = config["prefix"]
-        total_forms = int(self.request.GET[f"{prefix}-TOTAL_FORMS"])
-
-
-        # prefill form before rendering
-        lookup_param = self.request.GET.get(config["lookup_param"], None)
-        if lookup_param:
-            obj = get_object_or_404(
-                config["model"],
-                **{config["pk_field"]: lookup_param},
-
-            )
-            initial = config["initial"](obj)
-
-        formset = config["formset"].form
-        form = formset(prefix=f"{prefix}-{total_forms}", initial=initial)
-
-        context["prefix"] = prefix
-        context["total_forms"] = total_forms
-        context["form"] = form
-        return context
+class JobAddFormsetRowView(AddFormsetRowView):
+    permission_required = "assets.change_tbljob"
+    formset_config = FORMSET_CONFIG
 
 
 class JobDeleteView(

@@ -12,7 +12,6 @@ from django.dispatch import receiver
 # Create your models here.
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
-from django.db import transaction
 
 from io import BytesIO
 from django.core.files.base import ContentFile
@@ -47,9 +46,7 @@ class TblDocuments(models.Model):
     document_description = models.TextField(blank=True, null=True)
     document_bytea = models.BinaryField(blank=True, null=True)
     file_size = models.BigIntegerField(blank=True, null=True)
-    checksum = models.CharField(
-        max_length=64, blank=True, null=True
-    )  # e.g. SHA256 hex digest
+    # checksum = models.CharField( max_length=64, blank=True, null=True)  # e.g. SHA256 hex digest
     mime_type = models.CharField(max_length=100, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     document_type_id = models.IntegerField(
@@ -187,10 +184,34 @@ class TemporaryUpload(models.Model):
 
 @receiver(post_delete, sender=TemporaryUpload)
 def delete_uploaded_file(sender, instance, **kwargs):
-    if instance.file:
-        instance.file.delete(save=False)
-    if TemporaryUpload.objects.filter(group=instance.group.pk).count() == 0:
-        TempUploadGroup.objects.get(pk=instance.group.pk).delete()
+    group_id = instance.group_id
+    file = instance.file
+
+    #
+    # delete physical file
+    #
+    if file:
+        file.delete(save=False)
+
+    #
+    # group already deleted via cascade
+    #
+    if not group_id:
+        return
+
+    #
+    # only continue if group still exists
+    #
+    try:
+        group = TempUploadGroup.objects.get(pk=group_id)
+    except TempUploadGroup.DoesNotExist:
+        return
+
+    #
+    # delete empty group
+    #
+    if not group.temp_uploads.exists():
+        group.delete()
 
 
 class TblDocTableRef(models.Model):

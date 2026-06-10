@@ -10,6 +10,7 @@ from django.utils.timezone import now
 from django.contrib import messages
 
 from documents.models import TblDocumentLinks
+from documents.services.documents import delete_object_document_links
 from utils.generic_views import BulkUpdateView
 
 from .models import (Tblpartslist,
@@ -122,7 +123,7 @@ class PartDeleteView(LoginRequiredMixin, PermissionRequiredMixin,
         self.object = self.get_object()
         try:
             with transaction.atomic():
-                TblDocumentLinks.delete_link_documents(self.object)
+                delete_object_document_links(self.object)
                 self.object.delete()
             response = HttpResponse()
             response['HX-Redirect'] = self.get_success_url()
@@ -255,7 +256,7 @@ class SparePartPriceDeleteView(LoginRequiredMixin, PermissionRequiredMixin,
         self.object = self.get_object()
         
         with transaction.atomic():
-            TblDocumentLinks.delete_link_documents(self.object)
+            delete_object_document_links(self.object)
             self.object.delete()
         if request.htmx:
             return HttpResponse("")

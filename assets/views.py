@@ -4,9 +4,6 @@ from documents.mixins import TempUploadMixin
 from django.http import HttpResponse, HttpResponseRedirect
 import json
 from documents.services.documents import delete_object_document_links
-
-
-from django.shortcuts import render
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
     ListView,
@@ -76,7 +73,7 @@ class FilteredAssetTableView(
     }
 
 
-class Asset(
+class AssetDetailView(
     LoginRequiredMixin,
     CustomerAssetPermissionMixin,
     DetailView,
@@ -85,6 +82,11 @@ class Asset(
     template_name = "assets/assetview.html"
     context_object_name = "asset"
     permission_required = "assets.view_assetview"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["open_jobs"] = self.object.jobs.filter(jobstatusid__in=[0, 2, 3, 5])
+        return context
 
 
 class AssetUpdateView(
@@ -164,7 +166,6 @@ class AssetCreateView(
     def update_form(self):
         form_data = self.request.GET.dict()
         payload = json.loads(self.request.GET.get("payload", None))
-        payload = json.loads(self.request.GET.get("payload", None))
         if payload is not None:
             for field, value in payload.items():
                 if field == "prod_date":
@@ -180,40 +181,6 @@ class AssetCreateView(
         return self.render_to_response(context)
 
 
-class AssetJobsListView(
-    LoginRequiredMixin,
-    CustomerAssetPermissionMixin,
-    ListView,
-):
-    model = AssetView
-    template_name = "assets/partials/job_summary.html"
-    context_object_name = "jobs"
-
-    permission_required = "assets.view_assetview"
-
-    def get_queryset(self):
-        # Get assetid from URL parameters
-        asset_id = self.kwargs.get("assetid")
-        if not asset_id:
-            return (
-                JobView.objects.none()
-            )  # Return an empty queryset if assetid is missing
-
-        try:
-            # Retrieve the asset object
-            asset = super().get_queryset().get(assetid=asset_id)
-        except AssetView.DoesNotExist:
-            return (
-                JobView.objects.none()
-            )  # Return an empty queryset if no asset is found
-
-        # Filter jobs by the asset ID
-        return JobView.objects.filter(assetid=asset.assetid).order_by("-startdate")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["open_jobs"] = context["jobs"].filter(jobstatusid__in=[0, 2, 3, 5])
-        return context
 
 
 class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):

@@ -13,23 +13,29 @@ from django.contrib.contenttypes.fields import GenericRelation
 
 class Tblassets(models.Model):
     assetid = models.BigAutoField(
-        db_column="AssetID", primary_key=True
+        db_column="AssetID", primary_key=True, verbose_name="ID"
     )  # Field name made lowercase.
     customerassetnumber = models.CharField(
-        db_column="CustomerAssetNumber", max_length=255, blank=True, null=True
+        db_column="CustomerAssetNumber",
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Customer Asset",
     )  # Field name made lowercase.
     customerid = models.ForeignKey(
-        "Tblcustomer", models.PROTECT, db_column="CustomerID"
+        "Tblcustomer", models.PROTECT, db_column="CustomerID", verbose_name="Customer"
     )  # Field name made lowercase.
     modelid = models.ForeignKey(
-        "Tblmodel", models.PROTECT, db_column="ModelID"
+        "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model"
     )  # Field name made lowercase.
     serialnumber = models.CharField(
-        db_column="SerialNumber", max_length=255
+        db_column="SerialNumber", max_length=255, verbose_name="Serial No"
     )  # Field name made lowercase.
-    lastppmdate = models.DateField(blank=True, null=True)
-    lastrepairdate = models.DateField(blank=True, null=True)
-    lastjobdate = models.DateField(blank=True, null=True)
+    lastppmdate = models.DateField(blank=True, null=True, verbose_name="Last PPM Date")
+    lastrepairdate = models.DateField(
+        blank=True, null=True, verbose_name="Last Repair Date"
+    )
+    lastjobdate = models.DateField(blank=True, null=True, verbose_name="Last Job Date")
     creationdate = models.DateField(default=now, blank=True)
     contractid = models.ForeignKey(
         "TblmaintContracts",
@@ -38,15 +44,17 @@ class Tblassets(models.Model):
         blank=True,
         null=True,
     )
-    installationdate = models.DateField(default=now, blank=True)
-    unitprice = models.DecimalField(
-        max_digits=12, decimal_places=4, blank=True, null=True
+    installationdate = models.DateField(
+        default=now, blank=True, verbose_name="Installation Date"
     )
-    ordernumber = models.CharField(blank=True, null=True)
+    unitprice = models.DecimalField(
+        max_digits=12, decimal_places=4, blank=True, null=True, verbose_name="Price"
+    )
+    ordernumber = models.CharField(blank=True, null=True, verbose_name="Order No")
     ordervalue = models.DecimalField(
         max_digits=12, decimal_places=4, blank=True, null=True
     )
-    nextppmdate = models.DateField(blank=True, null=True)
+    nextppmdate = models.DateField(blank=True, null=True, verbose_name="Next PPM Date")
     ppmscheduleid = models.ForeignKey(
         "Tblppmschedules",
         models.PROTECT,
@@ -54,8 +62,11 @@ class Tblassets(models.Model):
         default=1,
         blank=True,
         null=True,
+        verbose_name="PPM Schedule",
     )
-    softwareversion = models.CharField(blank=True, null=True)
+    softwareversion = models.CharField(
+        blank=True, null=True, verbose_name="Software Version"
+    )
     locationid = models.ForeignKey(
         "Tbllocations", models.PROTECT, db_column="locationid", blank=True, null=True
     )
@@ -64,12 +75,15 @@ class Tblassets(models.Model):
         models.PROTECT,
         blank=True,
         db_column="asset_status_id",
+        verbose_name="Status",
     )
     support_level = models.ForeignKey(
         "TblSupportLevel", models.PROTECT, blank=True, null=True
     )
-    prod_date = models.DateField(blank=True, null=True)
-    is_test_eq = models.BooleanField(blank=True, null=True, default=False)
+    prod_date = models.DateField(blank=True, null=True, verbose_name="Production Date")
+    is_test_eq = models.BooleanField(
+        blank=True, null=True, default=False, verbose_name="Test Equipment"
+    )
     next_calibration_date = models.DateField(blank=True, null=True)
     document_links = GenericRelation(
         "documents.TblDocumentLinks", related_query_name="assets"
@@ -85,9 +99,6 @@ class Tblassets(models.Model):
 
     def __str__(self):
         return f"{self.assetid}"
-
-    def get_absolute_url(self):
-        return reverse("assets:view_asset", kwargs={"pk": self.pk})
 
 
 class AssetView(models.Model):
@@ -212,13 +223,15 @@ class AssetView(models.Model):
     def __str__(self):
         return f"{self.brandname} - {self.modelname} - {self.serialnumber} ({self.categoryname})"
 
-    def get_absolute_url(self):
-        return reverse("assets:view_asset", kwargs={"pk": self.pk})
-
 
 class JobView(models.Model):
-    jobid = models.BigIntegerField(
-        db_column="JobID", primary_key=True, verbose_name="Job"
+    jobid = models.OneToOneField(
+        "Tbljob",
+        on_delete=models.DO_NOTHING,
+        primary_key=True,
+        db_column='JobID',
+        verbose_name="Job",
+        related_name='job_view'
     )
     startdate = models.DateField(blank=True, null=True, verbose_name="Start Date")
     enddate = models.DateField(blank=True, null=True, verbose_name="End Date")
@@ -352,9 +365,6 @@ class JobView(models.Model):
     def __str__(self):
         return f"{self.jobid} - {self.model} - {self.serialnumber} - {self.jobstatus} - {self.customer} "
 
-    def get_absolute_url(self):
-        return reverse("jobs:job_summary", kwargs={"pk": self.pk})
-
 
 class Tblbrands(models.Model):
     brandid = models.BigAutoField(
@@ -434,30 +444,39 @@ class Tblcustomer(models.Model):
 
 class Tbljob(models.Model):
     jobid = models.BigAutoField(
-        db_column="JobID", primary_key=True
+        db_column="JobID", primary_key=True, verbose_name="Job ID"
     )  # Field name made lowercase.
     jobstartdate = models.DateField(
-        db_column="JobStartDate", blank=True, null=True
+        db_column="JobStartDate", blank=True, null=True, verbose_name="Start Date"
     )  # Field name made lowercase.
     jobenddate = models.DateField(
-        db_column="JobEndDate", blank=True, null=True
+        db_column="JobEndDate", blank=True, null=True, verbose_name="End Date"
     )  # Field name made lowercase.
     comments = models.CharField(
         db_column="Comments", blank=True, null=True
     )  # Field name made lowercase.
     workdone = models.TextField(
-        db_column="WorkDone", blank=True, null=True
+        db_column="WorkDone", blank=True, null=True, verbose_name="Work Done"
     )  # Field name made lowercase.
     jobstatusid = models.ForeignKey(
-        "Tbljobstatus", models.PROTECT, db_column="JobStatusID"
+        "Tbljobstatus", models.PROTECT, db_column="JobStatusID", verbose_name="Status"
     )  # Field name made lowercase.
     technicianid = models.ForeignKey(
-        "Tbltechnicianlist", models.PROTECT, db_column="TechnicianID"
+        "Tbltechnicianlist",
+        models.PROTECT,
+        db_column="TechnicianID",
+        verbose_name="Technician",
     )  # Field name made lowercase.
     assetid = models.ForeignKey(
-        Tblassets, models.PROTECT, db_column="AssetID", related_name='jobs'
+        Tblassets,
+        models.PROTECT,
+        db_column="AssetID",
+        related_name="jobs",
+        verbose_name="Asset",
     )  # Field name made lowercase.
-    jobtypeid = models.ForeignKey("Tbljobtypes", models.PROTECT, db_column="jobtypeid")
+    jobtypeid = models.ForeignKey(
+        "Tbljobtypes", models.PROTECT, db_column="jobtypeid", verbose_name="Job Type"
+    )
     creationdate = models.DateField(blank=True, null=True, default=now)
     document_links = GenericRelation(
         "documents.TblDocumentLinks", related_query_name="assets"
@@ -474,10 +493,6 @@ class Tbljob(models.Model):
 
     def __str__(self):
         return str(self.jobid)
-
-    def get_absolute_url(self):
-        return reverse("jobs:job_summary", kwargs={"pk": self.pk})
-
 
 class Tbljobstatus(models.Model):
     jobstatusname = models.CharField(
@@ -547,15 +562,12 @@ class Tblmodel(models.Model):
     def __str__(self):
         return f"{self.modelname}"
 
-    def get_absolute_url(self):
-        return reverse('model_information:model_view', kwargs={'pk':self.pk})
-
-
 class Tblpartsused(models.Model):
     jobid = models.ForeignKey(
         Tbljob,
         on_delete=models.PROTECT,
         db_column="JobID",
+        related_name='parts_used'
     )  # Field name made lowercase.
     quantity = models.IntegerField(
         db_column="Quantity", default=1
@@ -628,7 +640,7 @@ class Tbltesteqused(models.Model):
         db_column="ID", primary_key=True
     )  # Field name made lowercase.
     jobid = models.ForeignKey(
-        Tbljob, on_delete=models.PROTECT, db_column="JobID"
+        Tbljob, on_delete=models.PROTECT, db_column="JobID", related_name="test_eq_used"
     )  # Field name made lowercase.
     test_eq = models.ForeignKey(
         Tblassets, on_delete=models.PROTECT, limit_choices_to={"is_test_eq": True}
@@ -645,7 +657,7 @@ class Tbltesteqused(models.Model):
 
 class Tbltestscarriedout(models.Model):
     jobid = models.ForeignKey(
-        "Tbljob", on_delete=models.CASCADE, db_column="JobID"
+        "Tbljob", on_delete=models.CASCADE, db_column="JobID", related_name='test_carried_out'
     )  # Field name made lowercase.
     testid = models.BigAutoField(
         db_column="TestID", primary_key=True

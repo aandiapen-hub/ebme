@@ -162,20 +162,7 @@ class PoDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
             return self.render_to_response(context)
 
 
-# PO lines views
-class PoLinesListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
-    model = TblPoLines
-    context_object_name = "po_lines"
-    template_name = "procurement/partials/polines.html"
-    permission_required = "procurement.view_tblpolines"
 
-    def get_queryset(self):
-        po = self.request.GET.get("po")
-        queryset = TblPoLines.objects.filter(po=po)
-        return queryset
-
-
-# PO lines views
 class GeneratePurchaseOrder(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = TblPurchaseOrder
     context_object_name = "po_lines"
@@ -186,59 +173,15 @@ class GeneratePurchaseOrder(LoginRequiredMixin, PermissionRequiredMixin, DetailV
         return print_po(po_lines)
 
 
-# Deliveries
-class DeliveriesListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
-    model = TblDeliveries
-    context_object_name = "deliveries"
-    template_name = "procurement/partials/deliveries.html"
-    permission_required = "procurement.view_tbldeliveries"
-
-    def get_queryset(self):
-        po = self.request.GET.get("po")
-        delivery_id = self.request.GET.get("delivery_id")
-
-        if po:
-            return TblDeliveries.objects.filter(po=po)
-
-        elif delivery_id:
-            return TblDeliveries.objects.filter(delivery_id=delivery_id)
-
-
-class DeliveryLinesListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
-    model = TblDeliveryLines
-    context_object_name = "del_lines"
-    template_name = "procurement/partials/delivery_lines.html"
-    permission_required = "procurement.view_tbldeliveries"
-
-    def get_queryset(self):
-        delivery_id = self.request.GET.get("delivery_id")
-
-        queryset = TblDeliveryLines.objects.filter(delivery=delivery_id)
-        return queryset
-
-
-# Deliveries
-class OutstandingItemsListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
-    model = Outstandngdeliveriesview
-    context_object_name = "outstanding_items"
-    template_name = "procurement/partials/outstanding_items.html"
-    permission_required = [
-        "procurement.view_tbldeliveries",
-        "procurement.view_tblpurchaseorder",
-    ]
-
-    def get_queryset(self):
-        po = self.request.GET.get("po")
-        queryset = Outstandngdeliveriesview.objects.filter(po_id=po)
-        return queryset
-
 
 class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, TempUploadMixin, CreateView):
     model = TblDeliveries
     template_name = "procurement/delivery_create.html"
     form_class = DeliveryCreateForm
     permission_required = "procurement.add_tbldeliveries"
-    success_url_app_view = "procurement:po_detail"
+
+    def get_success_url(self):
+        return reverse("procurement:po_detail", kwargs={'pk':self.object.po_id})
 
     def get_initial(self):
         initial = super().get_initial()
@@ -394,7 +337,6 @@ class InvoicesCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["temp_file_group"] = self.request.GET.get("temp_file_group")
         return context
 
     def get_success_url(self):
@@ -411,7 +353,7 @@ class InvoicesDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
     model = TblInvoices
     template_name = "procurement/invoices_detail.html"
     form_class = InvoiceCreateForm
-    permission_required = "procurement.add_tblinvoices"
+    permission_required = "procurement.view_tblinvoices"
     context_object_name = "invoice"
 
 
@@ -440,7 +382,7 @@ class InvoicesDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
         self.object = self.get_object()
         try:
             with transaction.atomic():
-                TblDocumentLinks.delete_link_documents(self.object)
+                delete_object_document_links(self.object)
                 self.object.delete()
             response = HttpResponseRedirect(self.get_success_url())
             return response
@@ -448,19 +390,4 @@ class InvoicesDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
             context = self.get_context_data(object=self.object)
             messages.warning(request, f"Error Details: {str(e)}")
             return self.render_to_response(context)
-
-
-class InvoicesListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
-    model = TblInvoices
-    context_object_name = "invoices"
-    template_name = "procurement/partials/invoices_list.html"
-    permission_required = "procurement.view_tblinvoices"
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-
-        po = self.request.GET.get("po")
-
-        if po:
-            return qs.filter(po=po)
 

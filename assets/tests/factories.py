@@ -52,19 +52,20 @@ class AssetStatusFactory(DjangoModelFactory):
 
 
     status_name = factory.Iterator(ASSET_STATUS,cycle=True)
+    asset_status_id = factory.Sequence(lambda n: n +1)
 
 
-PPM_SCHEDULES = ['12M','24M','36M','48M']
+PPM_SCHEDULES = ['12M','24M', '35', '48']
 class PpmScheduleFactory(DjangoModelFactory):
     class Meta:
         model = Tblppmschedules
         django_get_or_create = ('schedulename',)
     
     schedulename = factory.Iterator(PPM_SCHEDULES, cycle=True)
-    schedulefrequency = factory.Iterator([1, 3, 6, 12], cycle=True)
+    schedulefrequency = factory.Iterator([12,24,36, 48], cycle=True)
 
 
-
+CUSTOMER_NAME = ['customerA', 'customerB', 'customerC', 'customerD']
 class TblcustomerFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Tblcustomer

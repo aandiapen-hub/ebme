@@ -1,11 +1,7 @@
-
-from django.urls import reverse
 import pytest
+from django.urls import reverse
 from django.contrib.auth.models import Permission
 from assets.models import AssetView
-
-
-
 
 @pytest.mark.django_db
 def test_customer_asse_permission_mixin_list(
@@ -149,5 +145,60 @@ def test_customer_asset_permission_mixin_other_denied(
     client.force_login(user)
     url = reverse('assets:view_asset', kwargs={'pk': assets2[0].pk}) 
     response = client.get(url)
+    assert response.status_code == 404
 
+
+@pytest.mark.django_db
+def test_non_staff_with_no_customer_obj_permission_denied(
+    client,
+    user_setup,
+    customer,
+    create_assets,
+):
+
+    customer1 = customer(customer_name='customerA')
+    customer2 = customer(customer_name='customerb')
+
+    assets1 = create_assets(customerid=customer1, count=10)
+    assets2 = create_assets(customerid=customer2, count=20)
+
+    user = user_setup
+    user.customerid = None
+    user.is_staff = False
+    permission = Permission.objects.get(codename="view_assetview")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+    url = reverse('assets:view_asset', kwargs={'pk': assets2[0].pk}) 
+
+    response = client.get(url)
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_non_staff_with_no_customer_qs_permission_denied(
+    client,
+    user_setup,
+    customer,
+    create_assets,
+):
+
+    customer1 = customer(customer_name='customerA')
+    customer2 = customer(customer_name='customerb')
+
+    assets1 = create_assets(customerid=customer1, count=10)
+    assets2 = create_assets(customerid=customer2, count=20)
+
+    user = user_setup
+    user.customerid = None
+    user.is_staff = False
+    permission = Permission.objects.get(codename="view_assetview")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+    url = reverse('assets:view_asset', kwargs={'pk': assets2[0].pk}) 
+
+    response = client.get(url)
     assert response.status_code == 404

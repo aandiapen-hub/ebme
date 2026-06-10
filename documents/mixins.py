@@ -23,7 +23,7 @@ class DocumentLinkPermissionMixin(PermissionRequiredMixin):
         if not is_user_staff:
             if user_customerid is None:
                 raise PermissionDenied("User not associated with any customer.")
-            if user_customerid != object_customerid:
+            if user_customerid.pk != object_customerid:
                 raise PermissionDenied("User cannot access this document")
 
     def get_object(self, queryset=None):
@@ -33,15 +33,15 @@ class DocumentLinkPermissionMixin(PermissionRequiredMixin):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        user_customerid = getattr(self.request.user, "customerid", None)
 
         if self.request.user.is_staff:
             return qs
 
+        user_customerid = getattr(self.request.user, "customerid", None)
         if user_customerid is None:
             return qs.none()
 
-        return qs.filter(Q(customerid=user_customerid) | Q(customerid__isnull=True))
+        return qs.filter(Q(customer_id=user_customerid) | Q(customer_id__isnull=True))
 
 
 class TempUploadMixin:
@@ -181,7 +181,6 @@ class TempUploadUpdateFormMixin:
             return
 
         self._compute_original_values()
-        print(self.original)
 
     def _get_instance_value(self, field):
         """

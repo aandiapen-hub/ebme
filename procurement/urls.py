@@ -8,18 +8,13 @@ from .views import (
     PoDetailView,
     PoDeleteView,
     PoUpdateView,
-    PoLinesListView,
-    DeliveryLinesListView,
-    OutstandingItemsListView,
     DeliveryCreateView,
     DeliveryUpdateView,
-    DeliveriesListView,
     GeneratePurchaseOrder,
     FilteredInvoiceTableView,
     InvoicesDetailView,
     InvoicesUpdateView,
     InvoicesDeleteView,
-    InvoicesListView,
 )
 
 app_name = "procurement"
@@ -32,11 +27,7 @@ urlpatterns = [
     path(
         "gen_purchase_orders/<int:pk>/", GeneratePurchaseOrder.as_view(), name="gen_po"
     ),
-    # po lines
-    path("po_lines/", PoLinesListView.as_view(), name="po_lines"),
     # del lines
-    path("deliveries/", DeliveriesListView.as_view(), name="deliveries"),
-    path("delivery_lines/", DeliveryLinesListView.as_view(), name="del_lines"),
     path("deliveries/create/<int:po_id>/", DeliveryCreateView.as_view(), name="deliveries_create"),
     path(
         "deliveries/<int:pk>/update/",
@@ -47,12 +38,6 @@ urlpatterns = [
         "deliveries/<int:pk>/delete/",
         DeliveryDeleteView.as_view(),
         name="deliveries_delete",
-    ),
-    # po lines view
-    path(
-        "outstanding_items/",
-        OutstandingItemsListView.as_view(),
-        name="outstanding_items",
     ),
     # invoices
     path("invoices/", FilteredInvoiceTableView.as_view(), name="invoices_table"),
@@ -72,6 +57,5 @@ urlpatterns = [
         InvoicesDeleteView.as_view(),
         name="invoices_delete",
     ),
-    path("invoices/list/", InvoicesListView.as_view(), name="invoiceslist"),
 ]
 

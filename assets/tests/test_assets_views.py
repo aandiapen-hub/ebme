@@ -1,27 +1,54 @@
 import pytest
+import json
 from django.contrib.auth.models import Permission
 from pytest_django.asserts import assertTemplateUsed
 from django.urls import reverse
 from assets.models import (
     Tblassets,
-    Tblmodel,
-    Tblcustomer,
-    Tblbrands,
-    Tblcategories,
-    TblAssetStatus,
-    Tblppmschedules,
-    Tbljob,
 )
-from assets.views import AssetJobsListView
-from django.test import RequestFactory
 from unittest.mock import patch
 
-from documents.models import TemporaryUpload
 from urllib.parse import urlencode
-from django.core.files import File
 
-from django.contrib.messages import get_messages
+# test AssetCreateView
+@pytest.mark.django_db
+def test_asset_detail_view_requires_login(client, asset):
+    asset = asset
+    url = reverse("assets:view_asset", kwargs={'pk':asset.pk} )  # Update to your actual URL name
+    response = client.get(url)
+    assert response.status_code == 302  # Redirect to login
+    assert "/login" in response.url.lower()  # Ensure it's going to the login page
 
+
+@pytest.mark.django_db
+def test_asset_detail_view_permission_denied(client, user, asset):
+    asset = asset
+    url = reverse("assets:view_asset", kwargs={'pk':asset.pk} )  # Update to your actual URL name
+    user = user()
+    client.force_login(user)
+
+    response = client.get(url)
+
+    assert (
+        response.status_code == 403
+    )  # Depends on how CustomerAssetPermissionMixin handles it
+
+@pytest.mark.django_db
+def test_asset_detail_view_renders(client, user, asset, jobs):
+    asset = asset
+    jobs = jobs(count=10, assetid=asset)
+    url = reverse("assets:view_asset", kwargs={'pk':asset.pk} )  # Update to your actual URL name
+    user = user()
+    user.is_staff = True
+    permission = Permission.objects.get(codename="view_assetview")
+    user.user_permissions.add(permission)
+    user.save()
+    client.force_login(user)
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert response.context['open_jobs'].count() > 0
 
 # test AssetCreateView
 @pytest.mark.django_db
@@ -44,6 +71,52 @@ def test_asset_create_view_permission_denied(client, user_setup):
         response.status_code == 403
     )  # Depends on how CustomerAssetPermissionMixin handles it
 
+@pytest.mark.django_db
+def test_asset_create_view_renders(
+    client,
+    user_setup,
+    asset_status,
+):
+    # Create user and force login
+    user = user_setup
+
+    permission = Permission.objects.get(codename="add_tblassets")
+    user.user_permissions.add(permission)
+
+    client.force_login(user)
+
+    # Set up required related objects
+    asset_status = asset_status()
+    # Prepare form data
+    url = reverse("assets:create_asset")
+    response = client.get(url)
+    assert response.status_code == 200
+
+@pytest.mark.django_db
+def test_asset_create_view_with_payload(
+    client,
+    user_setup,
+    asset_status,
+):
+    # Create user and force login
+    user = user_setup
+
+    permission = Permission.objects.get(codename="add_tblassets")
+    user.user_permissions.add(permission)
+
+    client.force_login(user)
+
+    # Set up required related objects
+    asset_status = asset_status()
+    # Prepare form data
+    payload = {
+        "serialnumber": 12332,
+        "prod_date": '200623'
+    }
+    url = reverse("assets:create_asset")
+    query_params = urlencode({'payload':json.dumps(payload)})
+    response = client.get(f"{url}?{query_params}", HTTP_HX_REQUEST='true')
+    assert response.context['form']['serialnumber'].value() == 12332
 
 @pytest.mark.django_db
 def test_asset_create_view_success_post(

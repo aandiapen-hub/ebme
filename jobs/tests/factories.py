@@ -1,6 +1,7 @@
 # tests/factories.py
-
+from datetime import timedelta
 import factory
+import random
 from factory.django import DjangoModelFactory
 from assets.tests.factories import AssetFactory, ModelFactory
 from assets.models import (
@@ -25,7 +26,7 @@ class JobTechnicianFactory(DjangoModelFactory):
 
 
 
-JOB_STATUS = ["Inprogress","Completed","Not Started"]
+JOB_STATUS = ["Inprogress","Completed","Not Started", "Failed"]
 class JobStatusFactory(DjangoModelFactory):
     class Meta:
         model = Tbljobstatus
@@ -33,9 +34,9 @@ class JobStatusFactory(DjangoModelFactory):
 
 
     jobstatusname = factory.Iterator(JOB_STATUS,cycle=True)
-    jobstatusid = factory.Sequence(lambda n: 10000 + n)
+    jobstatusid = factory.Sequence(lambda n: 0 + n)
 
-JOB_TYPES = ["PPM","Repair"]
+JOB_TYPES = ['ACCEPTANCE', "PPM","Repair"]
 class JobTypeFactory(DjangoModelFactory):
     class Meta:
         model = Tbljobtypes
@@ -43,7 +44,7 @@ class JobTypeFactory(DjangoModelFactory):
 
 
     jobtypename = factory.Iterator(JOB_TYPES,cycle=True)
-    jobtypeid = factory.Sequence(lambda n: 10000 + n)
+    jobtypeid = factory.Sequence(lambda n: 0 + n)
 
 
 
@@ -51,8 +52,16 @@ class JobFactory(DjangoModelFactory):
     class Meta:
         model = Tbljob
 
-    jobstartdate = factory.Faker('date_between', start_date='-2y', end_date='-1y')
-    jobenddate = factory.Faker('date_between', start_date='-1y', end_date='today')
+
+    jobenddate = factory.Faker(
+        "date_between",
+        start_date="-3y",
+        end_date="today",
+    )
+
+    jobstartdate = factory.LazyAttribute(
+        lambda obj: obj.jobenddate - timedelta(days=random.randint(1, 14))
+    )
     workdone = factory.Faker('sentence', nb_words=10) 
     jobstatusid = factory.SubFactory(JobStatusFactory)
     technicianid = factory.SubFactory(JobTechnicianFactory)

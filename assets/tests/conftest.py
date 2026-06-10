@@ -1,7 +1,6 @@
 from .factories import(
     AssetFactory,
     ModelFactory,
-    AssetStatusFactory,
 )
 import pytest
 
@@ -10,9 +9,6 @@ import pytest
 def model():
     return ModelFactory
 
-@pytest.fixture
-def asset_status():
-    return AssetStatusFactory
 @pytest.fixture
 def create_assets():
     def _create_assets(count=10, **kwargs):

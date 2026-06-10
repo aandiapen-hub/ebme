@@ -6,7 +6,7 @@
         </tr>
     </thead>
     <tbody id="delivery-lines-table">
-        {% for line in del_lines  %}
+        {% for line in delivery.line.all  %}
             {% partial line%}
         {% endfor %}
     </tbody>

@@ -20,6 +20,7 @@ from django.views.generic import (
 from django_tables2 import tables, SingleTableMixin, columns
 
 from documents.models import TblDocumentLinks
+from documents.services.documents import delete_object_document_links
 from utils.generic_views import BulkUpdateView
 
 # import forms
@@ -131,7 +132,7 @@ class BrandDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
         self.object = self.get_object()
         try:
             with transaction.atomic():
-                TblDocumentLinks.delete_link_documents(self.object)
+                delete_object_document_links(self.object)
                 self.object.delete()
             response = HttpResponse("", status=204)
             # Optional: prevent swapping any content
@@ -194,6 +195,8 @@ class ModelCreateView(
     template_name = "model_information/partials/model_create.html"
     permission_required = "assets.add_tblmodel"
     initial_mapper = 'create_model'
+    success_url_app_view = "model_information:model_view"
+
 
     def form_valid(self, form):
         with transaction.atomic():
@@ -243,7 +246,7 @@ class ModelDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
         success_url = self.get_success_url()
         try:
             with transaction.atomic():
-                TblDocumentLinks.delete_link_documents(self.object)
+                delete_object_document_links(self.object)
                 self.object.delete()
             if self.request.htmx:
                 response = HttpResponse()
@@ -318,6 +321,7 @@ class CategoryCreateView(
     model = Tblcategories
     fields = "__all__"
     template_name = "model_information/category_create.html"
+    permission_required = "assets.add_tblcategories"
     success_url = reverse_lazy("model_information:categorylist")
     success_url_app_view = "model_information:category_detail"
 
@@ -354,7 +358,7 @@ class CategoryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
         success_url = self.get_success_url()
         try:
             with transaction.atomic():
-                TblDocumentLinks.delete_link_documents(self.object)
+                delete_object_document_links(self.object)
                 self.object.delete()
             return HttpResponseRedirect(success_url)
 
@@ -449,14 +453,14 @@ class CheckDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        success_url = self.get_success_url()
         try:
             with transaction.atomic():
-                TblDocumentLinks.delete_link_documents(self.object)
+                delete_object_document_links(self.object)
                 self.object.delete()
+                
             if self.request.htmx:
                 return HttpResponse(status=204)
-            return HttpResponseRedirect(success_url)
+            return HttpResponseRedirect(self.get_success_url())
 
         except Exception as e:
             # Return an error message as plain text (not JSON)

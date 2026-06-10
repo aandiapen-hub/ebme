@@ -1,0 +1,25 @@
+<ul class="list-group"
+
+    _='on load or click
+      wait 400ms
+      set ids to value of <input[name$="input_id"]/> in #{{ prefix }}-container 
+      set buttons to <button/> in me
+      for button in buttons
+      if @data-value of button is in ids
+      add .active to button
+      '
+>
+  {% for check in checks  %}
+    <button type="button"
+      id='add_test_eq_button'
+      class='list-group-item list-group-item-action '
+      data-value='{{check.pk}}'
+      hx-get="{% url 'jobs:add_formset_row' formset_type='checklist' %}?testid={{check.pk}}"
+      hx-include="#{{prefix}}-management input, #{{ prefix }}-container input"
+      hx-swap="afterbegin"
+      hx-target="#{{ prefix }}-container"
+  >
+    {{check.testname}}
+    </button>
+  {% endfor %}
+</ul>

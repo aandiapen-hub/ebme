@@ -12,7 +12,6 @@ from django.contrib.staticfiles import finders
 
 
 from io import BytesIO
-import base64
 import os
 from datetime import datetime
 import uuid
@@ -197,7 +196,9 @@ def gen_purchase_order(data):
     # format text values in table
     data = [
         [
-            Paragraph(cell, textStyle()) if i < 3 else f"{float(cell):.2f}"
+            Paragraph(cell, textStyle())
+            if i < 3
+            else (f"{float(cell):.2f}" if cell not in ['None', None] else "")
             for i, cell in enumerate(row)
         ]
         for row in po_lines

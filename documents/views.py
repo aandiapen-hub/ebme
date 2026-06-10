@@ -335,8 +335,9 @@ class DocumentListView(LoginRequiredMixin, DocumentLinkPermissionMixin, ListView
         return context
 
 
-class DocumentPreView(LoginRequiredMixin, DetailView):
+class DocumentPreView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = TemporaryUpload
+    permission_required = 'documents.view_temporaryupload'
 
     def get(self, request, *args, **kwargs):
         temp_upload = self.get_object()
@@ -355,9 +356,10 @@ class DocumentPreView(LoginRequiredMixin, DetailView):
         return FileResponse(temp_upload.file.open("rb"), content_type='image/jpeg')
 
 
-class TempFilesDeleteAllView(LoginRequiredMixin, FormView):
+class TempFilesDeleteAllView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     success_url = reverse_lazy("documents:user_temp_files")
     form_class = EmptyForm
+    permission_required = 'documents.delete_temporaryupload'
 
     def get_groups(self):
         return TempUploadGroup.objects.filter(user=self.request.user)
@@ -368,8 +370,9 @@ class TempFilesDeleteAllView(LoginRequiredMixin, FormView):
 
 
 
-class TempFilesDeleteView(LoginRequiredMixin, DeleteView):
+class TempFilesDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = TemporaryUpload
+    permission_required = 'documents.delete_temporaryupload'
     success_url = reverse_lazy("documents:user_temp_files")
 
     def post(self, request, *args, **kwargs):
@@ -439,12 +442,12 @@ class GetTaskResult(LoginRequiredMixin, DetailView):
 
 
 class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
-    template_name = "documents/temp_file_group.html#form"
+    template_name = "documents/partials/temp_upload_create.html"
     form_class = TempFileUploadForm
-    permission_required = "documents.add_tbl_temporaryupload"
+    permission_required = "documents.add_temporaryupload"
 
     def get_success_url(self):
-        return reverse("documents:temp_group", kwargs={'pk': self.object.group})
+        return reverse("documents:temp_group", kwargs={'pk': self.object.group.pk})
 
     def form_valid(self, form):
         file = self.request.FILES.get("files")
@@ -567,7 +570,7 @@ class TempUploadListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     model = TempUploadGroup
     template_name = "documents/temp_group_list.html"
     context_object_name = "temp_groups"
-    permission_required = "documents.view_tbl_temporaryupload"
+    permission_required = "documents.view_temporaryupload"
 
     def get_queryset(self):
         return super().get_queryset().filter(user=self.request.user)
