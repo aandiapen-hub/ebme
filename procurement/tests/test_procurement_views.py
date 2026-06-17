@@ -1,19 +1,10 @@
 from urllib.parse import urlencode
-from assets.tests.conftest import model
-from procurement.reports import purchase_order
 import pytest
 from django.urls import reverse
 from pytest_django.asserts import assertTemplateUsed
 from django.contrib.auth.models import Permission
 
-from documents.models import TemporaryUpload
-from procurement.models import TblSuppliers,TblPurchaseOrder, TblPoLines, TblDeliveries, TblDeliveryLines,TblInvoices
-from django.core.files.uploadedfile import SimpleUploadedFile
-
-from parts.models import Tblpartslist
-
-from django.core.files import File
-
+from procurement.models import TblSuppliers,TblPurchaseOrder, TblDeliveries, TblInvoices
 
 #test PoTableView
 @pytest.mark.django_db
@@ -136,15 +127,15 @@ def test_po_update_view_post(client, user, purchase_order, part):
         'supplier': str(item.supplier_id.pk),  
         'date_raised': '2024-10-01',
         
-        'tblpolines_set-TOTAL_FORMS': '1',
-        'tblpolines_set-INITIAL_FORMS': '0',
-        'tblpolines_set-MIN_NUM_FORMS': '0',
-        'tblpolines_set-MAX_NUM_FORMS': '1000',
+        'po_line-TOTAL_FORMS': '1',
+        'po_line-INITIAL_FORMS': '0',
+        'po_line-MIN_NUM_FORMS': '0',
+        'po_line-MAX_NUM_FORMS': '1000',
 
         # One form in the formset
-        'tblpolines_set-0-item': str(item.partid),       
-        'tblpolines_set-0-unit_price': '100.00',
-        'tblpolines_set-0-qty_ordered': '2',
+        'po_line-0-item': str(item.partid),       
+        'po_line-0-unit_price': '100.00',
+        'po_line-0-qty_ordered': '2',
 
     }
     
@@ -512,6 +503,7 @@ def test_delivery_delete_view_post_successful(client, user, delivery):
     response = client.post(url)
     assert response.status_code == 302
     TblDeliveries.objects.filter(delivery_id=delivery.delivery_id).exists() # Ensure the delivery is deleted
+
 
 @pytest.mark.django_db
 def test_delivery_delete_view_post_successful_htmx(client, user, delivery):

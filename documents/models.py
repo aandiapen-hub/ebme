@@ -275,7 +275,7 @@ class DocumentsView(models.Model):
     )
     link_row = models.BigIntegerField(blank=True, null=True)
     table_name = models.CharField(blank=True, null=True)
-    customerid = models.ForeignKey(
+    customer = models.ForeignKey(
         "assets.Tblcustomer", models.DO_NOTHING, db_column="CustomerID"
     )
     document_type_id = models.IntegerField(

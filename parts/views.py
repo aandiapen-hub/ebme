@@ -1,7 +1,6 @@
-
-from django.db import transaction
-from venv import create
+from django.db import transaction, utils
 from django.utils.safestring import mark_safe
+from django.db.utils import IntegrityError
 from urllib.parse import urlencode
 
 from django.http import HttpResponse, HttpResponseRedirect
@@ -9,7 +8,6 @@ from django.urls import reverse_lazy, reverse
 from django.utils.timezone import now
 from django.contrib import messages
 
-from documents.models import TblDocumentLinks
 from documents.services.documents import delete_object_document_links
 from utils.generic_views import BulkUpdateView
 
@@ -153,24 +151,24 @@ class PartCreateView(LoginRequiredMixin, PermissionRequiredMixin,
 
 
     def form_valid(self, form):
-        try:           
-            self.object = form.save()
-            return HttpResponseRedirect(self.get_success_url())
-        except Exception as e:
-            context = self.get_context_data(object=self.object)
+        try:
+            with transaction.atomic():
+                self.object = form.save()
+        except IntegrityError as e:
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
 
-            if 'unique constraint' in str(e):  # your unique constraint name
-                part_number = form['part_number'].value()
-                supplier_id = form['supplier_id'].value()
-                existing_part = Tblpartslist.objects.filter(part_number=part_number).filter(supplier_id=supplier_id)
+        return super().form_valid(form)
 
-                url = reverse('parts:part_detail', kwargs={'pk':existing_part[0].partid})
-                messages.warning(self.request, mark_safe(f'This part number from the same supplier already exists - <a href="{url}">Go to Existing Part</a>'))
-                return self.render_to_response(context)
-            else:
-                messages.warning(self.request, f"an error occurred")
-                return self.render_to_response(context)
-    
+    def form_invalid(self, form):
+        part_number = form.cleaned_data['part_number']
+        supplier_id = form.cleaned_data['supplier_id']
+        existing_part = Tblpartslist.objects.filter(part_number=part_number).filter(supplier_id=supplier_id).first()
+        if existing_part:
+            url = reverse('parts:part_detail', kwargs={'pk':existing_part.partid})
+            form.add_error(None, mark_safe(f'This part number from the same supplier already exists - <a href="{url}">Go to Existing Part</a>'))
+        return super().form_invalid(form)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = 'Create New Part' 
@@ -320,13 +318,6 @@ class LinkModelCreateView(LoginRequiredMixin, PermissionRequiredMixin,
         initial['partid'] = partid
         return initial
 
-    def get_queryset(self):
-        partid = self.request.GET.get('partid', None)
-        qs =  super().get_queryset()
-        linkedmodelids = TblPartModel.objects.filter(part=partid).values_list('model',flat=True)
-        return qs.exclude(modelid__in=(linkedmodelids))    
-
-    
     def form_valid(self,form):
         models = form.cleaned_data['models']
         self.partid = form.cleaned_data['partid']
@@ -341,12 +332,6 @@ class LinkModelCreateView(LoginRequiredMixin, PermissionRequiredMixin,
             with transaction.atomic():
                 TblPartModel.objects.bulk_create(new)
 
-        if self.request.htmx:
-            response = HttpResponse("")
-            url = reverse('parts:linked_models')
-            query_params = urlencode({'partid':self.partid})
-            
-        
         return HttpResponseRedirect(self.get_success_url())
 
 

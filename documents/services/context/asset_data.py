@@ -192,7 +192,8 @@ def get_partially_matched_asset(data, temp_group_id=None):
         asset_ids.remove(asset_id)
 
     if asset_ids:
-        for asset in asset_ids:
+        assets = Tblassets.objects.filter(pk__in=asset_ids)
+        for asset in assets:
             actions = []
             actions.append(
                 Action(
@@ -277,6 +278,10 @@ class AssetDataContext(
             confidence='partial',
             items=[],
             color='secondary')
+
+        partial_matches.items += get_partially_matched_asset(
+                self.resolved_data,  temp_group
+        )
 
         partial_matches.items += get_models_without_gtin(
                 self.resolved_data,  temp_group

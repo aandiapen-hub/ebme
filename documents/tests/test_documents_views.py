@@ -1,22 +1,17 @@
-import os
 from django.contrib.auth.models import Permission
 from urllib.parse import urlencode
 
-from django.db.models import query
-from documents.tests.conftest import document
 import pytest
 from pytest_django.asserts import assertTemplateUsed
 from django.urls import reverse
 
 from documents.models import (
-    DocumentsView,
     TblDocumentLinks,
     TblDocuments,
     TemporaryUpload,
 )
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from django.core.files import File
 
 # test DocumentCreateView
 
@@ -430,6 +425,46 @@ def test_download_document_view_renders(client, user_setup, document_link, custo
     response = client.get(url)
     assert response.status_code == 200
 
+# test DocumentDownloadView
+@pytest.mark.django_db
+def test_download_document_from_link_view_requires_login(client, document_link):
+    documentid = document_link().pk
+    url = reverse("documents:download_document_from_link", kwargs={"pk": documentid})
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_download_document_from_link_view_requires_permission(client, document_link, user_setup):
+    documentid = document_link().pk 
+    url = reverse("documents:download_document_from_link", kwargs={"pk": documentid})
+
+    user = user_setup
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_download_document_from_link_view_renders(client, user_setup, document_link, customer):
+    document_link = document_link()
+    customer1 = customer()
+    document_link.customer = customer1
+    document_link.save()
+
+    user = user_setup
+    user.customerid = customer1
+    permission = Permission.objects.get(codename="view_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.save()
+    client.force_login(user)
+
+    url = reverse("documents:download_document_from_link", kwargs={"pk": document_link.pk})
+    response = client.get(url)
+    assert response.status_code == 200
+
 
 # test DocumentListView
 @pytest.mark.django_db
@@ -583,6 +618,19 @@ def test_document_pre_view_renders_pdf(client, user_setup, temp_document):
     assert response["Content-Type"] == "image/png"  # or expected mime type
     assert isinstance(response, type(response))  # FileResponse
 
+@pytest.mark.django_db
+def test_document_pre_view_renders_barcode_data(client, user_setup, temp_barcode_only):
+    test_doc = temp_barcode_only()
+    user = user_setup
+    client.force_login(user)
+
+    permission = Permission.objects.get(codename="view_temporaryupload")
+    user.user_permissions.add(permission)
+    user.save() 
+
+    url = reverse("documents:load_image", kwargs={'pk':test_doc.pk})
+    response = client.get(url)
+    assert response.status_code == 200
 
 @pytest.mark.django_db
 def test_document_pre_view_renders_image(client, user_setup, temp_document):
@@ -759,7 +807,46 @@ def test_temporary_upload_create_view_renders(client, user):
     assert response.status_code == 200
     assertTemplateUsed(response, "documents/partials/temp_upload_create.html")
 
+@pytest.mark.django_db
+def test_temporary_upload_create_view_post_new_group(client, test_file, temp_document, user):
 
+    user1 = user()
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.is_staff = True
+    user1.save() 
+
+    client.force_login(user1)
+
+    test_file = test_file('delivery_note.jpeg')
+    data = {"files": [test_file]}
+
+    url = reverse("documents:create_temp_file")
+    response = client.post(url, data, format="multipart")
+    assert response.status_code == 302
+    assert TemporaryUpload.objects.filter(group__user=user1.pk).exists()
+
+@pytest.mark.django_db
+def test_temporary_upload_create_view_post_validation_error(client, test_file, temp_document, user):
+    temp_document = temp_document()
+    user1 = temp_document.group.user
+
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.is_staff = True
+    user1.save() 
+
+    client.force_login(user1)
+
+    test_file = test_file('delivery_note.jpeg')
+    data = {"scanned_code" : "12323"}
+
+    base_url = reverse("documents:create_temp_file")
+    query_params = urlencode({'group': temp_document.group.pk})
+    url = f"{base_url}?{query_params}"
+    response = client.post(url, data, format="multipart")
+    assert response.status_code == 200
+    assert response['HX-Reswap'] and response['HX-Retarget']
 
 @pytest.mark.django_db
 def test_temporary_upload_create_view_post_specific_group(client, test_file, temp_document, user):
@@ -783,6 +870,50 @@ def test_temporary_upload_create_view_post_specific_group(client, test_file, tem
     response = client.post(url, data, format="multipart")
     assert response.status_code == 302
     assert TemporaryUpload.objects.filter(group=temp_document.group).exists()
+
+@pytest.mark.django_db
+def test_temporary_upload_create_view_post_htmx(client, test_file, temp_document, user):
+
+    temp_document = temp_document()
+    user1 = temp_document.group.user
+
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.is_staff = True
+    user1.save() 
+
+    client.force_login(user1)
+
+    test_file = test_file('delivery_note.jpeg')
+    data = {"files": [test_file]}
+
+    base_url = reverse("documents:create_temp_file")
+    query_params = urlencode({'group': temp_document.group.pk})
+    url = f"{base_url}?{query_params}"
+    response = client.post(url, data, format="multipart", HTTP_HX_REQUEST='true')
+    assert response.status_code == 200
+    assertTemplateUsed(response,'documents/partials/temp_file.html')
+
+@pytest.mark.django_db
+def test_temporary_upload_create_view_post__new_group_htmx(client, test_file, temp_document, user):
+
+    temp_document = temp_document()
+    user1 = temp_document.group.user
+
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.is_staff = True
+    user1.save() 
+
+    client.force_login(user1)
+
+    test_file = test_file('delivery_note.jpeg')
+    data = {"files": [test_file]}
+
+    url = reverse("documents:create_temp_file")
+    response = client.post(url, data, format="multipart", HTTP_HX_REQUEST='true')
+    assert response.status_code == 200
+    assertTemplateUsed(response,'documents/partials/temp_file.html')
 
 @pytest.mark.django_db
 def test_temporary_upload_create_view_post_non_staff(client, test_file, temp_document, user):
@@ -954,3 +1085,507 @@ def test_document_update_view_post(client, user, document_link, customer):
     last_document.refresh_from_db()
     assert last_document.document_name == "test_document"
 
+@pytest.mark.django_db
+def test_document_update_view_post_htmx(client, user, document_link, customer):
+    document_link = document_link()
+    last_document = document_link.documentid
+    user = user()
+
+    permission = Permission.objects.get(codename="change_tbldocuments")
+    user.user_permissions.add(permission)
+
+    customer = customer()
+    document_link.customerid = customer.pk
+    user.customerid = customer
+    user.save()
+    client.force_login(user)
+
+    url = reverse("documents:update_document", kwargs={"pk": document_link.documentid.pk})
+
+
+    test_file = SimpleUploadedFile(
+        "test.txt", b"Test content", content_type="text/plain"
+    )
+    form = {
+        "document_name": "test_document",
+        "document_description": "test_document_description",
+        "document_bytea": test_file,
+    }
+
+    response = client.post(url, data=form, format="multipart", HTTP_HX_REQUEST='true')
+
+    assert response.status_code == 204
+    last_document.refresh_from_db()
+    assert last_document.document_name == "test_document"
+
+@pytest.mark.django_db
+def test_document_update_view_post_invalid_form(client, test_file, user, document, customer):
+    document1 = document('equipment_gs1.jpg')
+    document2 = document('delivery_note.jpeg')
+    user = user()
+
+    permission = Permission.objects.get(codename="change_tbldocuments")
+    user.user_permissions.add(permission)
+
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+
+    url = reverse("documents:update_document", kwargs={"pk": document1.pk})
+    test_file = test_file('delivery_note.jpeg')
+
+    form = {
+        "document_name": "test_document",
+        "document_description": "test_document_description",
+        "document_bytea": test_file
+    }
+
+    response = client.post(url, data=form, format="multipart")
+
+    assert response.status_code == 200
+
+# test DocumentUpdateView
+@pytest.mark.django_db
+def test_temporary_group_create_view_requires_login(client, temp_document):
+    document = temp_document()
+    url = reverse("documents:temp_group", kwargs={"pk": document.group.pk})
+
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_temp_group_view_requires_permission(client, temp_document, user):
+    document = temp_document()
+    url = reverse("documents:temp_group", kwargs={"pk": document.group.pk})
+    user = user()
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 403
+
+@pytest.mark.django_db
+def test_temp_group_view_renders(client,temp_group, temp_document, user):
+    user = user()
+    permission = Permission.objects.get(codename="view_temporaryupload")
+    user.user_permissions.add(permission)
+
+    group1 = temp_group(user=user)
+    document = temp_document('equipment_gs1.jpg', group=group1)
+    url = reverse("documents:temp_group", kwargs={"pk": document.group.pk})
+
+    client.force_login(user)
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context['group'] is not None
+
+
+
+# test extract information from group
+@pytest.mark.django_db
+def test_temp_group_extract_text_requires_login(client, temp_document):
+    document = temp_document()
+    url = reverse("documents:extract_text", kwargs={"pk": document.group.pk})
+
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_temp_group_extract_text_requires_permission(client, temp_document, user):
+    document = temp_document()
+    url = reverse("documents:extract_text", kwargs={"pk": document.group.pk})
+    user = user()
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 403
+
+@pytest.mark.django_db
+def test_temp_group_extract_text_posts(client, temp_document, user):
+    document = temp_document()
+    url = reverse("documents:extract_text", kwargs={"pk": document.group.pk})
+    user = user()
+    permission = Permission.objects.get(codename="change_tempuploadgroup")
+    user.user_permissions.add(permission)
+    client.force_login(user)
+
+    response = client.post(url)
+    assert response.status_code == 200
+    assert response['HX-Redirect'] == reverse('documents:temp_group', kwargs={'pk': document.group.pk})
+
+
+# test get get task result 
+@pytest.mark.django_db
+def test_get_task_result_requires_login(client, temp_document):
+    document = temp_document()
+    url = reverse("documents:task_progress", kwargs={"pk": document.group.pk})
+
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_get_task_result_requires_permission(client, temp_document, user):
+    document = temp_document()
+    url = reverse("documents:task_progress", kwargs={"pk": document.group.pk})
+    user = user()
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_get_task_result_renders(client, temp_document, user):
+    document = temp_document('equipment_gs1.jpg')
+    
+    user = user()
+    permission1 = Permission.objects.get(codename="view_tempuploadgroup")
+    permission2 = Permission.objects.get(codename="change_tempuploadgroup")
+    user.user_permissions.add(permission1)
+    user.user_permissions.add(permission2)
+    client.force_login(user)
+
+    #start data extraction
+    extract_url = reverse("documents:extract_text", kwargs={"pk": document.group.pk})
+    response = client.post(extract_url)
+    import time
+    time.sleep(4)
+    url = reverse("documents:task_progress", kwargs={"pk": document.group.pk})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_get_extracted_text_renders(client, temp_document, user):
+    document = temp_document()
+    extract_url = reverse("documents:extract_text", kwargs={"pk": document.group.pk})
+    user = user()
+    permission1 = Permission.objects.get(codename="change_tempuploadgroup")
+    permission2 = Permission.objects.get(codename="view_tempuploadgroup")
+    user.user_permissions.add(permission1)
+    user.user_permissions.add(permission2)
+    client.force_login(user)
+
+    #start data extraction
+    response = client.post(extract_url)
+
+    #get extraction result
+    url = reverse("documents:task_progress", kwargs={"pk": document.group.pk})
+    response = client.get(url)
+    assert response.status_code == 200
+    
+
+@pytest.mark.django_db
+def test_get_extracted_text_renders_completed_task(client, temp_document, user):
+    document = temp_document('equipment_gs1.jpg')
+    extract_url = reverse("documents:extract_text", kwargs={"pk": document.group.pk})
+    user = user()
+    permission1 = Permission.objects.get(codename="change_tempuploadgroup")
+    permission2 = Permission.objects.get(codename="view_tempuploadgroup")
+    user.user_permissions.add(permission1)
+    user.user_permissions.add(permission2)
+    client.force_login(user)
+
+    #start data extraction
+    client.post(extract_url)
+
+    #get extraction result
+    url = reverse("documents:task_progress", kwargs={"pk": document.group.pk})
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+
+# test temp_update_group_update 
+@pytest.mark.django_db
+def test_temp_group_update_requires_login(client, temp_document):
+    document = temp_document()
+    url = reverse("documents:temp_group_update", kwargs={"pk": document.group.pk})
+
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_temp_group_update_requires_permission(client, temp_document, user):
+    document = temp_document()
+    url = reverse("documents:temp_group_update", kwargs={"pk": document.group.pk})
+    user = user()
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_temp_group_update__renders(client, temp_document, user):
+    document = temp_document()
+    user = document.group.user
+    permission1 = Permission.objects.get(codename="change_tempuploadgroup")
+    user.user_permissions.add(permission1)
+    url = reverse("documents:temp_group_update", kwargs={"pk": document.group.pk})
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 200
+    assertTemplateUsed(response, 'documents/temp_file_group_update.html')
+
+@pytest.mark.django_db
+def test_temp_group_update_posts(client, temp_document, user):
+    document = temp_document()
+    user = document.group.user
+    permission1 = Permission.objects.get(codename="change_tempuploadgroup")
+    user.user_permissions.add(permission1)
+    url = reverse("documents:temp_group_update", kwargs={"pk": document.group.pk})
+    client.force_login(user)
+    from documents.models import DocumentTypes
+    data = {
+        'document_type_id': DocumentTypes.ASSET_DATA
+    }
+
+    response = client.post(url, data=data)
+    assert response.status_code == 302
+
+
+# test link_temp_document 
+@pytest.mark.django_db
+def test_link_temp_document_requires_login(client):
+    url = reverse("documents:link_temporary_document")
+
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_link_temp_document_requires_permission(client,  user):
+    url = reverse("documents:link_temporary_document")
+    user = user()
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_link_temp_document_renders(client,  user):
+    url = reverse("documents:link_temporary_document")
+    user = user()
+    permission = Permission.objects.get(codename="add_tbldocuments")
+    user.user_permissions.add(permission)
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_link_temp_document_posts(client, temp_document, asset, document_type,  user):
+    asset = asset
+    document_name = 'equipment_gs1.jpg'
+    temp_document = temp_document(document_name)
+    user = user()
+    permission = Permission.objects.get(codename="add_tbldocuments")
+    user.user_permissions.add(permission)
+    client.force_login(user)
+
+    data = {
+        'group':  temp_document.group.pk,
+        'document_type': document_type(),
+    }
+    query_params = urlencode({
+        'object_id': asset.pk,
+        'content_type': 'assets.tblassets'
+    })
+    base_url = reverse("documents:link_temporary_document")
+    full_url = f"{base_url}?{query_params}"
+    response = client.post(full_url, data=data)
+    assert response.status_code == 302
+
+@pytest.mark.django_db
+def test_link_temp_document_posts_htmx(client, temp_document, asset, document_type,  user):
+    asset = asset
+    document_name = 'equipment_gs1.jpg'
+    temp_document = temp_document(document_name)
+    user = user()
+    permission = Permission.objects.get(codename="add_tbldocuments")
+    user.user_permissions.add(permission)
+    client.force_login(user)
+
+    data = {
+        'group':  temp_document.group.pk,
+        'document_type': document_type(),
+    }
+    query_params = urlencode({
+        'object_id': asset.pk,
+        'content_type': 'assets.tblassets'
+    })
+    base_url = reverse("documents:link_temporary_document")
+    full_url = f"{base_url}?{query_params}"
+    response = client.post(full_url, data=data, HTTP_HX_REQUEST='true')
+    assert response.status_code == 204
+
+@pytest.mark.django_db
+def test_link_temp_document_posts_unsuccessful(client, temp_document, asset, document_type,  user):
+    document_name = 'equipment_gs1.jpg'
+    temp_document = temp_document(document_name)
+    user = user()
+    permission = Permission.objects.get(codename="add_tbldocuments")
+    user.user_permissions.add(permission)
+    client.force_login(user)
+
+    data = {
+        'group':  temp_document.group.pk,
+        'document_type': document_type(),
+    }
+    query_params = urlencode({
+        'object_id': 30,
+        'content_type': 'assets.tblassets'
+    })
+    base_url = reverse("documents:link_temporary_document")
+    full_url = f"{base_url}?{query_params}"
+    response = client.post(full_url, data=data, HTTP_HX_REQUEST='true')
+    assert response.status_code == 200
+
+
+# test group_merged_data_update 
+@pytest.mark.django_db
+def test_group_merged_data_requires_login(client, temp_document):
+    document_name = 'equipment_gs1.jpg'
+    temp_document = temp_document(document_name)
+    url = reverse("documents:update_group_data", kwargs={'pk': temp_document.group.pk})
+
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_group_merged_data_requires_permission(client,  user, temp_document):
+    document_name = 'equipment_gs1.jpg'
+    temp_document = temp_document(document_name)
+    url = reverse("documents:update_group_data", kwargs={'pk': temp_document.group.pk})
+    user = user()
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_group_merged_data_renders(client, asset_data_temp_group, user, temp_document):
+    group = asset_data_temp_group
+    document_name = 'equipment_gs1.jpg'
+    temp_document = temp_document(document_name)
+    temp_document.group = group
+    url = reverse("documents:update_group_data", kwargs={'pk': temp_document.group.pk})
+    user = temp_document.group.user
+    permission = Permission.objects.get(codename="change_tempuploadgroup")
+    user.user_permissions.add(permission)
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 200
+
+
+
+@pytest.mark.django_db
+def test_group_merged_data_posts(client, asset_data_temp_group, user, temp_document):
+    group = asset_data_temp_group
+    document_name = 'equipment_gs1.jpg'
+    temp_document = temp_document(document_name)
+    temp_document.group = group
+    url = reverse("documents:update_group_data", kwargs={'pk': temp_document.group.pk})
+    user = temp_document.group.user
+    permission = Permission.objects.get(codename="change_tempuploadgroup")
+    user.user_permissions.add(permission)
+    client.force_login(user)
+    data = {
+        'SERIAL': 'test',
+        'GTIN': 'testGTIN' 
+    }
+
+    response = client.post(url, data=data)
+    assert response.status_code == 302
+
+    group.refresh_from_db()
+    new_data = group.extracted_json['merged_gs1_ai']
+    assert new_data['SERIAL'] == data['SERIAL']
+    assert new_data['GTIN'] == data['GTIN']
+
+
+
+# Test Quick sanner 
+@pytest.mark.django_db
+def test_quick_scanner_requires_login(client):
+    url = reverse("documents:quick_scanner")
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+
+@pytest.mark.django_db
+def test_quick_scanner_renders(client, user):
+    user = user()
+    client.force_login(user)
+
+    url = reverse("documents:quick_scanner")
+    response = client.get(url, HTTP_HX_REQUEST="true")
+    assert response.status_code == 200
+    assertTemplateUsed(response, "documents/quick_scanner.html")
+
+
+@pytest.mark.django_db
+def test_quick_scanner_post(client, test_file, user):
+    user = user()
+    client.force_login(user)
+    test_file = test_file('delivery_note.jpeg')
+    data = {"files": [test_file]}
+    url = reverse("documents:quick_scanner")
+    response = client.post(url, data, format="multipart")
+
+    assert response.status_code == 302
+
+@pytest.mark.django_db
+def test_quick_scanner_post_staff(client, test_file, user):
+    user = user()
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+    test_file = test_file('equipment_gs1.jpg')
+    data = {"files": [test_file]}
+    url = reverse("documents:quick_scanner")
+    response = client.post(url, data, format="multipart")
+
+    assert response.status_code == 302
+
+@pytest.mark.django_db
+def test_quick_scanner_post_non_gs1(client, user):
+    user = user()
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+    data = {"scanned_code": '1234'}
+    url = reverse("documents:quick_scanner")
+    response = client.post(url, data, format="multipart")
+
+    assert response.status_code == 302
+
+@pytest.mark.django_db
+def test_quick_scanner_post_invalid_form(client, user):
+    user = user()
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+    data = {}
+    url = reverse("documents:quick_scanner")
+    response = client.post(url, data, format="multipart")
+
+    assert response.status_code == 302

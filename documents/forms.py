@@ -33,7 +33,7 @@ class DocumentCreateForm(forms.ModelForm):
 
 
 class LinkTemporaryDocumentForm(forms.Form):
-    document_type = forms.ChoiceField(choices=DocumentTypes.choices)
+    pass
 
 
 class DocumentUpdateForm(forms.ModelForm):
@@ -100,48 +100,6 @@ class TempFileUploadForm(forms.ModelForm):
         model = TemporaryUpload
         fields = ()
 
-
-class QuickScannerForm(forms.Form):
-    scanned_code = forms.CharField(
-        required=False,
-        widget=forms.TextInput(
-            attrs={"autofocus": None, "placeholder": "Quick Search"}
-        ),
-    )
-    file = forms.FileField(
-        required=False,
-        widget=forms.FileInput(
-            attrs={
-                "accept": "image/*",  # Accept only images
-                "capture": "environment",  # Suggest rear camera on mobile
-            }
-        ),
-    )
-
-    def clean(self):
-        cleaned_data = super().clean()
-        scanned_code = cleaned_data.get("scanned_code")
-        file = cleaned_data.get("file")
-
-        # allow empty
-        if not file and not scanned_code:
-            raise forms.ValidationError({"__all__": "at least one input required"})
-
-        if file:
-            allowed_types = ["image/jpeg", "image/png", "image/jpg", "application/pdf"]
-            max_size = 5 * 1024 * 1024  # 5 MB
-
-            if file.content_type not in allowed_types:
-                raise forms.ValidationError(
-                    f"{file.name}: Unsupported file type. Allowed: JPEG, PNG."
-                )
-
-            if file.size > max_size:
-                raise forms.ValidationError(
-                    f"{file.name}: File size must be under 5MB."
-                )
-
-        return cleaned_data
 
 
 class DocumentLinkUpdateForm(forms.ModelForm):

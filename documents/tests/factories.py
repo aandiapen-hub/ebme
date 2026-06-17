@@ -41,6 +41,13 @@ class DocumentLinkFactory(DjangoModelFactory):
     )
     object_id = factory.Sequence(lambda n: n + 1)
 
+class TaskFactory(factory.Factory):
+    class Meta:
+        model = dict
+
+    status = "SUCCESSFUL"
+
+
 
 class TempUploadGroupFactory(DjangoModelFactory):
     class Meta:
@@ -53,7 +60,7 @@ class TempUploadGroupFactory(DjangoModelFactory):
 
     combined_ocr_text = "test ocr text"
     extracted_json = factory.LazyFunction(dict)
-    task_result_id = factory.Faker("uuid4")
+    task_result_id = factory.SubFactory(TaskFactory)
 
 
 def fake_test_file(name="test.pdf", content=b"fake file content"):

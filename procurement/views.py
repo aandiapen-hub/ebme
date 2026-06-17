@@ -23,11 +23,8 @@ from documents.services.documents import (
 from .models import (
     TblInvoices,
     TblPurchaseOrder,
-    TblPoLines,
     PoView,
-    Outstandngdeliveriesview,
     TblDeliveries,
-    TblDeliveryLines,
 )
 
 # import class based views
@@ -35,7 +32,6 @@ from django.views.generic import (
     UpdateView,
     CreateView,
     DeleteView,
-    ListView,
     DetailView,
 )
 
@@ -287,29 +283,23 @@ class DeliveryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
 
     def form_valid(self, form):
         self.object = self.get_object()
-        try:
-            with transaction.atomic():
-                delete_object_document_links(self.object)
-                self.object.delete()
-            messages.success(self.request, "Delivery deleted successfully")
-            if self.request.htmx:
-                response = HttpResponse(status=200)
-                response['HX-Trigger'] = json.dumps({
-                        'deliveries_updated': True,
-                        'show_message': {
-                            'message': 'Delivery deleted',
-                            'level': 'warning',
-                        },
-                })
-                return response
+        with transaction.atomic():
+            delete_object_document_links(self.object)
+            self.object.delete()
+        messages.success(self.request, "Delivery deleted successfully")
+        if self.request.htmx:
+            response = HttpResponse(status=200)
+            response['HX-Trigger'] = json.dumps({
+                    'deliveries_updated': True,
+                    'show_message': {
+                        'message': 'Delivery deleted',
+                        'level': 'warning',
+                    },
+            })
+            return response
 
-            # Fallback redirect if not HTMX
-            return HttpResponseRedirect(self.get_success_url())
-
-        except ProtectedError as e:
-            form.add_error(None, e)
-            return self.form_invalid(form)
-
+        # Fallback redirect if not HTMX
+        return HttpResponseRedirect(self.get_success_url())
 
 # invoices
 class FilteredInvoiceTableView(
@@ -378,16 +368,11 @@ class InvoicesDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
     def get_success_url(self):
         return reverse("procurement:invoices_table")
 
-    def post(self, request, *args, **kwargs):
+    def form_valid(self, form):
         self.object = self.get_object()
-        try:
-            with transaction.atomic():
-                delete_object_document_links(self.object)
-                self.object.delete()
-            response = HttpResponseRedirect(self.get_success_url())
-            return response
-        except Exception as e:
-            context = self.get_context_data(object=self.object)
-            messages.warning(request, f"Error Details: {str(e)}")
-            return self.render_to_response(context)
+        with transaction.atomic():
+            delete_object_document_links(self.object)
+            self.object.delete()
+        response = HttpResponseRedirect(self.get_success_url())
+        return response
 

@@ -26,6 +26,12 @@ def delivery():
 def delivery_line():
     return TblDeliveryLinesFactory
 
+@pytest.fixture
+def delivery_lines():
+    def _generate_lines(count=5, **kwargs):
+        return TblDeliveryLinesFactory.create_batch(size=count, **kwargs)
+    return _generate_lines
+
 
 @pytest.fixture
 def invoice():

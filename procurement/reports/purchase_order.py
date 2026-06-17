@@ -33,15 +33,6 @@ def draw_paragraph(canvas, msg, x, y, max_width, max_height):
     message.drawOn(canvas, x, y - h)
 
 
-def footer(canvas, doc):
-    canvas.saveState()
-    canvas.setFont("Helvetica", 30)
-    text_width = stringWidth(doc, "Helvetica", 30)
-    xstart = page_width / 2 - text_width / 2
-    canvas.drawString(xstart, margin, doc)
-    canvas.restoreState()
-
-
 # list lines in PO
 def listPolines(data):
     po_lines_headers = [
@@ -271,19 +262,9 @@ def gen_purchase_order(data):
     return buff
 
 
-def generate_n_char_id(n: int):
-    unique_id = uuid.uuid4()
-    short_id = str(unique_id)[:n]
-    return short_id
-
-
 def print_po(data):
-    if data is None or len(data) == 0:
-        raise ValueError("No data provided to generate purchase order.")
     pdf = gen_purchase_order(data)
 
-    dt = datetime.now().strftime("%Y%m%d-%H%M%S")
-    uuid = generate_n_char_id(8)
     filename = f"purchase_orders/{gen_purchase_order.po_id}.pdf"
 
     return FileResponse(pdf, as_attachment=True, filename=filename)

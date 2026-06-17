@@ -105,7 +105,8 @@ class TblOrderUnit(models.Model):
 
 class TblPoLines(models.Model):
     line_id = models.BigAutoField(primary_key=True)
-    po = models.ForeignKey("TblPurchaseOrder", models.PROTECT, db_column="po_id")
+    po = models.ForeignKey(
+        "TblPurchaseOrder", models.PROTECT, db_column="po_id", related_name='po_line')
     item = models.ForeignKey(
         "parts.Tblpartslist", models.PROTECT, db_column="item_id", blank=True, null=True
     )

@@ -7,8 +7,7 @@ from pytest_django.asserts import assertTemplateUsed
 
 from parts.models import Tblpartslist, Tblpartsprice, TblPartModel
 
-from assets.models import Tbljob, Tblmodel, Tblpartsused
-from procurement.models import TblSuppliers
+from assets.models import Tblpartsused
 from django.db import IntegrityError, transaction
 #test parts table view
 
@@ -178,7 +177,8 @@ def test_part_create_view_renders(client, user):
     user.user_permissions.add(permission)
     client.force_login(user)
     url = reverse('parts:create_part')
-    response = client.get(url)
+    query_params = urlencode({'part_number': 'test'})
+    response = client.get(f"{url}?{query_params}")
     assert response.status_code == 200
     assertTemplateUsed(response, 'parts/update_part.html')
 
@@ -223,12 +223,10 @@ def test_part_create_view_post_unsuccessful_duplicate_record(client, user, part)
         'supplier_id': supplier,
         'order_unit': part.order_unit.pk 
     }
-    with pytest.raises(transaction.TransactionManagementError):
-            # Simulate failure: duplicate part number
-            response = client.post(url, data)
-
-            messages = [m.message for m in get_messages(response.wsgi_request)]
-            assert 'already exists' in messages
+    # Simulate failure: duplicate part number
+    response = client.post(url, data)
+    assert response.context['form'].errors
+    assert response.status_code == 200
 
 
 #test Spare Parts Price List View
@@ -510,15 +508,17 @@ def test_link_model_create_view_authentication_required(client, user):
     assert response.status_code == 403
 
 @pytest.mark.django_db
-def test_link_model_create_view_renders(client, user):
+def test_link_model_create_view_renders(client, user, part):
     user = user()
     permission = Permission.objects.get(codename="add_tblpartmodel")
     user.user_permissions.add(permission)
     client.force_login(user)
     url = reverse('parts:linked_models_create')
-    response = client.get(url)
+    query_params = urlencode({'partid': part().pk})
+    response = client.get(f"{url}?{query_params}")
     assert response.status_code == 200
     assertTemplateUsed(response, "parts/partials/linked_model_create.html")
+
 
 @pytest.mark.django_db
 def test_link_model_create_view_post_successful(client, user, part, assets):
