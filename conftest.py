@@ -1,5 +1,10 @@
 import pytest
-from assets.tests.factories import AssetFactory, CustomerFactory, AssetStatusFactory
+from assets.tests.factories import(
+    AssetFactory,
+    CustomerFactory,
+    AssetStatusFactory,
+    ModelFactory,
+)
 from parts.tests.factories import PartFactory
 from users.tests.factories import UserFactory
 from jobs.tests.factories import JobFactory
@@ -49,8 +54,11 @@ def customer():
 
 @pytest.fixture
 def asset():
-    return AssetFactory()
+    return AssetFactory
 
+@pytest.fixture
+def model():
+    return ModelFactory
 
 @pytest.fixture
 def active_spare_part():

@@ -40,6 +40,7 @@ def asset_data_builder(
     part_id=None,
     suggested_new_part_names=None,
 ):
+    print('using asset data biulder')
     return {
         "gtin": {
             "value": gtin,
@@ -107,6 +108,7 @@ def job_data_builder(
     jobstatusid=None,
     create_job=False,
 ):
+    print('using job data biulder')
     return {
         "gtin": {
             "value": gtin,
@@ -149,6 +151,7 @@ def delivery_data_builder(
     delivery_date=None,
     items=None,
 ):
+    print('using delivery data biulder')
     return {
         "delivery": {
             "delivery_note_number": delivery_note_number,
@@ -162,6 +165,7 @@ def delivery_data_builder(
 
 
 def quick_scan_barcode(image):
+    print('quick scan')
     img = Image.open(image)
     barcodes = zxingcpp.read_barcodes(img, text_mode=zxingcpp.Plain)
     if len(barcodes) == 0:
@@ -172,7 +176,9 @@ def quick_scan_barcode(image):
 
 
 def parse_gs1code(file=None, scanned_code=None):
+    print('file code', file, scanned_code)
     if file:
+        print('file*** indentified,')
         # scan image for barcode and get a list of test
         gs1_codes = [code.text for code in quick_scan_barcode(file)]
     else:
@@ -235,7 +241,7 @@ def find_asset_by_asset_no(asset_no):
         return None
 
     return AssetView.objects.filter(
-        assetid=asset_no
+        customerassetnumber=asset_no
     ).prefetch_related("jobs").first()
 
 
@@ -339,13 +345,12 @@ def gs1_resolver(parsed_data):
     # -------------------------
     asset = find_asset_by_asset_no(asset_no)
     if asset:
-        if asset:
-            jobs = list(asset.jobs.values_list("id", flat=True))
-            return asset_data_builder(
-                gtin=gtin,
-                asset_id=asset.pk,
-                jobs=jobs,
-            )
+        jobs = list(asset.jobs.all().values_list("pk", flat=True))
+        return asset_data_builder(
+            gtin=gtin,
+            asset_id=asset.pk,
+            jobs=jobs,
+        )
     create_asset = bool(asset)
 
     # -------------------------
@@ -442,6 +447,7 @@ def gs1_resolver(parsed_data):
 
 
 def job_resolver(parsed_data):
+    print(parsed_data)
     asset_no = parsed_data.get("ASSET_NO")
     gtin = parsed_data.get("GTIN")
     serial = parsed_data.get("SERIAL")
@@ -465,13 +471,7 @@ def job_resolver(parsed_data):
     # -------------------------
     asset = find_asset_by_asset_no(asset_no)
     if asset:
-        if asset:
-            jobs = list(asset.jobs.values_list("id", flat=True))
-            return asset_data_builder(
-                gtin=gtin,
-                asset_id=asset.pk,
-                jobs=jobs,
-            )
+        jobs = list(asset.jobs.values_list("pk", flat=True))
     create_asset = bool(asset)
 
     # -------------------------
@@ -503,28 +503,9 @@ def job_resolver(parsed_data):
         assets = result["assets"]
         create_asset = True
 
-        if asset_id is None:
+        if asset_id is None and assets:
             asset_id = assets[0]
         jobs = list(JobView.objects.filter(assetid__in=assets).values_list("pk", flat=True))
-
-    # -------------------------
-    # 5. Model
-    # -------------------------
-    model_name_options = parsed_data.get("model_name_options", [])
-
-    # -------------------------
-    # 6. Brand
-    # -------------------------
-
-    brand_name_options = parsed_data.get("brand_name_options", None)
-    brand_ids = []
-    if brand_name_options is not None:
-        brand_ids, brand_name_options = match_options(
-            qs=Tblbrands.objects.all(),
-            fieldname="brandname",
-            options=brand_name_options,
-        )
-    brand_ids += parsed_data.get("brand_id", [])
 
     # -------------------------
     # 6. Job
@@ -550,9 +531,6 @@ def job_resolver(parsed_data):
         create_asset=create_asset,
         jobs=jobs,
         model_id=model_id,
-        model_name_options=model_name_options,
-        brand_name_options=brand_name_options,
-        brand_ids=brand_ids,
         create_job=create_job,
         start_date=start_date,
         end_date=end_date,
@@ -564,6 +542,7 @@ def job_resolver(parsed_data):
 
 
 def delivery_resolver(parsed_data):
+    print(parsed_data)
     po_number = parsed_data.get('purchase_order', None)
     delivery_note_number_options = parsed_data.get('delivery_note_number_options', None)
     delivery_date = parsed_data.get('delivery_date', None)
@@ -574,7 +553,10 @@ def delivery_resolver(parsed_data):
     create_delivery = False
 
     if po_number:
-        po_id = TblPurchaseOrder.objects.filter(po_id__in=po_number).first().pk
+        po = TblPurchaseOrder.objects.filter(po_id__in=po_number).first()
+        if po:
+            po_id = po.pk
+
 
     if po_id and delivery_note_number_options:
         create_delivery = True
@@ -612,6 +594,7 @@ def temp_group_resolver(group_id):
         data = group.extracted_json.get("merged_parsed_barcode", {}).get('values',{})
 
     resolver = RESOLVER_MAP.get(group.document_type_id, gs1_resolver)
+    print('resolver', resolver)
     if data and resolver:
         group.extracted_json.update({"resolved": resolver(data)})
         group.save(update_fields=["extracted_json"])

@@ -49,8 +49,6 @@ def extract_barcode(opened_image):
     return decoded_barcodes
 
 def extract_barcode_from_pdf(file):
-    print("extracting barcode from pdf", repr(file))
-
     with file.file.open('rb') as f:
         pdf_bytes = f.read()
 

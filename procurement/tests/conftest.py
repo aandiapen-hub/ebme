@@ -5,7 +5,6 @@ from .factories import(
     PurchaseOrderFactory,
     TblInvoicesFactory,
     TblPoLinesFactory,
-    DeliveriesFactory,
     TblDeliveryLinesFactory,
     SupplierFactory,
 )
@@ -18,9 +17,6 @@ def purchase_order():
 def po_line():
     return TblPoLinesFactory
 
-@pytest.fixture
-def delivery():
-    return DeliveriesFactory
 
 @pytest.fixture
 def delivery_line():

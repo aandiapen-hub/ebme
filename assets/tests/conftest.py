@@ -1,13 +1,9 @@
 from .factories import(
     AssetFactory,
-    ModelFactory,
 )
 import pytest
 
 
-@pytest.fixture
-def model():
-    return ModelFactory
 
 @pytest.fixture
 def create_assets():

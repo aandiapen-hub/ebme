@@ -86,5 +86,6 @@ class AssetFactory(DjangoModelFactory):
     serialnumber = factory.Sequence(lambda n: 15245155412 + n)
     asset_status_id = factory.SubFactory(AssetStatusFactory)
     ppmscheduleid = factory.SubFactory(PpmScheduleFactory)
+    customerassetnumber = factory.Sequence(lambda n: 1 + n)
 
 

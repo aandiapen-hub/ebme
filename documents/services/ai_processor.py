@@ -129,7 +129,6 @@ def extract_group_info_with_ai(group):
         content.append({"type": "input_text", "text": gs1})
     if decoded_text:
         content.append({"type": "input_text", "text": ",".join(decoded_text)})
-
     content = content + encoded_images
 
     response = client.responses.parse(

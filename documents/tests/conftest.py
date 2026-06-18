@@ -12,6 +12,10 @@ from .factories import(
     TemporaryUploadFactory,
 )
 from django.contrib.contenttypes.models import ContentType
+from procurement.tests.factories import(
+    PurchaseOrderFactory,
+    DeliveriesFactory,
+)
 
 
 @pytest.fixture
@@ -118,7 +122,7 @@ def document(test_file):
 
 @pytest.fixture
 def temp_document(test_file):
-    def _get_temp_document(filename=None,content_type=None, group=None):
+    def _get_temp_document(filename=None, group_type= None, content_type=None, group=None):
         if filename:
             file = test_file(filename, content_type)
 
@@ -132,22 +136,46 @@ def temp_document(test_file):
                 content_type="text/plain"
             )
         if group is None:
-            return TemporaryUploadFactory(
+            temp_doc = TemporaryUploadFactory(
                 file = file,
                 mime_type = file.content_type,
                 file_size = file.size,
             )
+
         
         else:
-            return TemporaryUploadFactory(
+            temp_doc = TemporaryUploadFactory(
                 file = file,
                 mime_type = file.content_type,
                 file_size = file.size,
                 group = group
             )
+        if group_type:
+            temp_doc.group.document_type_id = group_type
+            temp_doc.group.save()
 
+        return temp_doc
     return _get_temp_document
 
+@pytest.fixture
+def asset_id_temp_document(temp_document):
+    return temp_document(filename='equipment_gs1.jpg', group_type=DocumentTypes.ASSET_DATA)
+
+@pytest.fixture
+def asset_no_temp_document(temp_document):
+    return temp_document(filename='asset_no.jpg', group_type=DocumentTypes.ASSET_DATA)
+
+@pytest.fixture
+def asset_temp_document(temp_document):
+    return temp_document(filename='equipment_gs1.jpg', group_type=DocumentTypes.ASSET_DATA)
+
+@pytest.fixture
+def service_report_temp_document(temp_document):
+    return temp_document(filename='service_report.pdf', group_type=DocumentTypes.SERVICE_REPORT)
+
+@pytest.fixture
+def delivery_note_temp_document(temp_document):
+    return temp_document(filename='delivery_note.jpeg', group_type=DocumentTypes.DELIVERY_NOTE)
 
 @pytest.fixture
 def temp_barcode_only():
@@ -171,7 +199,14 @@ def temp_barcode_only():
 def immediate_task_backend(settings):
     settings.TASKS = {
         "default": {
-                    "BACKEND": "django.tasks.backends.dummy.DummyBackend",
+                    "BACKEND": "django.tasks.backends.immediate.ImmediateBackend",
         }
     }
 
+@pytest.fixture
+def purchase_order():
+    return PurchaseOrderFactory
+
+@pytest.fixture
+def delivery():
+    return DeliveriesFactory

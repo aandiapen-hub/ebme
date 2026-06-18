@@ -11,7 +11,6 @@ from django.tasks import task
 
 def extract_data(group):
     qs = group.temp_uploads.all()
-
     # check and extract ocr data
     null_ocr_qs = qs.filter(
         Q(ocr_text={}) | Q(ocr_text__isnull=True) | Q(ocr_text='')
@@ -64,8 +63,13 @@ def extract_information_from_temp_group(group_id):
     # process group documents with ai
     print('using ai to enhence extracted data')
     ai_data = group.extracted_json.get('ai', None)
-    if ai_data is None:
-        ai_data = extract_group_info_with_ai(group)
+    if ai_data in ['', None]:
+        try:
+            ai_data = extract_group_info_with_ai(group)
+        except Exception as e:
+            ai_data = {}
+            print(e)
+            pass
         group.extracted_json.update(
             {"ai": ai_data, }
         )

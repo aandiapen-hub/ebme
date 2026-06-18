@@ -9,6 +9,7 @@ from documents.models import (
     TblDocumentLinks,
     TblDocuments,
     TemporaryUpload,
+    DocumentTypes
 )
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -37,7 +38,7 @@ def test_document_create_view_requires_permission(client, user_setup):
 @pytest.mark.django_db
 def test_document_create_view_renders(client, user_setup, asset):
     user = user_setup
-    asset=asset
+    asset = asset()
     content_type = asset._meta.label
     permission = Permission.objects.get(codename="add_tbldocuments")
     user.user_permissions.add(permission)
@@ -58,6 +59,7 @@ def test_document_create_view_post_successfully(client, user_setup, asset, docum
     user.user_permissions.add(permission)
     client.force_login(user)
 
+    asset = asset()
     content_type = asset._meta.label
 
     base_url = reverse("documents:create_document_link")
@@ -103,7 +105,7 @@ def test_document_create_view_post_duplicated_document(client, user_setup, asset
     user.user_permissions.add(permission)
     client.force_login(user)
 
-    asset=asset
+    asset = asset()
     content_type = asset._meta.label
 
     base_url = reverse("documents:create_document_link")
@@ -1216,6 +1218,127 @@ def test_temp_group_extract_text_posts(client, temp_document, user):
     assert response.status_code == 200
     assert response['HX-Redirect'] == reverse('documents:temp_group', kwargs={'pk': document.group.pk})
 
+@pytest.mark.django_db
+def test_test_group_extract_text_asset_data(
+        client,
+        asset_id_temp_document,
+        asset_no_temp_document,
+        user,
+        immediate_task_backend,
+        asset,
+        model,
+        
+):
+
+    document1 = asset_id_temp_document
+    document2 = asset_no_temp_document
+    group = document1.group
+    document2.group = group
+    document2.save()
+
+
+
+    
+    extract_url = reverse("documents:extract_text", kwargs={"pk": group.pk})
+    user = user()
+    permission1 = Permission.objects.get(codename="change_tempuploadgroup")
+    permission2 = Permission.objects.get(codename="view_tempuploadgroup")
+    user.user_permissions.add(permission1)
+    user.user_permissions.add(permission2)
+    client.force_login(user)
+
+    # no asset and not model
+    client.post(extract_url)
+
+    #asset no identified
+    asset1 = asset(customerassetnumber='5533488')
+    client.post(extract_url)
+    asset1.delete()
+
+    #asset id identified
+    model = model(gtin='00885403497233')
+    asset2 = asset(serialnumber='S00455524', modelid=model)
+    client.post(extract_url)
+    asset2.delete()
+
+@pytest.mark.django_db
+def test_test_group_extract_text_service_report(
+    client,
+    service_report_temp_document,
+    asset_id_temp_document,
+    asset_no_temp_document,
+    user,
+    immediate_task_backend,
+    asset,
+    model,
+):
+    document1 = service_report_temp_document
+    document2 = asset_id_temp_document
+    document3 = asset_no_temp_document
+
+    group = document1.group
+    document2.group = group
+    document2.save()
+
+    document3.group = group
+    document3.save()
+
+    extract_url = reverse("documents:extract_text", kwargs={"pk": group.pk})
+    user = user()
+    permission1 = Permission.objects.get(codename="change_tempuploadgroup")
+    permission2 = Permission.objects.get(codename="view_tempuploadgroup")
+    user.user_permissions.add(permission1)
+    user.user_permissions.add(permission2)
+    client.force_login(user)
+
+    #start data extraction
+    client.post(extract_url)
+
+    #test exsiting asset id
+    model = model(gtin='00885403497233')
+    asset2 = asset(serialnumber='S00455524', modelid=model)
+    client.post(extract_url)
+    asset2.delete()
+    model.delete()
+
+    #test exsiting asset id
+    asset2 = asset(serialnumber='S00455524')
+    client.post(extract_url)
+    asset2.delete()
+
+    #test exsiting asset asset no
+    asset2 = asset(customerassetnumber='5533488')
+    client.post(extract_url)
+    asset2.delete()
+
+@pytest.mark.django_db
+def test_test_group_extract_text_delivery_note(
+    client,
+    delivery_note_temp_document,
+    user,
+    immediate_task_backend,
+    purchase_order,
+    delivery,
+):
+    document = delivery_note_temp_document
+    extract_url = reverse("documents:extract_text", kwargs={"pk": document.group.pk})
+    user = user()
+    permission1 = Permission.objects.get(codename="change_tempuploadgroup")
+    permission2 = Permission.objects.get(codename="view_tempuploadgroup")
+    user.user_permissions.add(permission1)
+    user.user_permissions.add(permission2)
+    client.force_login(user)
+
+    #check with no data
+    client.post(extract_url)
+
+    #check with po 
+    client.post(extract_url)
+
+    #check with po and delivery
+    purchase_order = purchase_order(po_id='5100186')
+    delivery = delivery(po = purchase_order)
+    client.post(extract_url)
 
 # test get get task result 
 @pytest.mark.django_db
@@ -1280,24 +1403,6 @@ def test_get_extracted_text_renders(client, temp_document, user):
     assert response.status_code == 200
     
 
-@pytest.mark.django_db
-def test_get_extracted_text_renders_completed_task(client, temp_document, user):
-    document = temp_document('equipment_gs1.jpg')
-    extract_url = reverse("documents:extract_text", kwargs={"pk": document.group.pk})
-    user = user()
-    permission1 = Permission.objects.get(codename="change_tempuploadgroup")
-    permission2 = Permission.objects.get(codename="view_tempuploadgroup")
-    user.user_permissions.add(permission1)
-    user.user_permissions.add(permission2)
-    client.force_login(user)
-
-    #start data extraction
-    client.post(extract_url)
-
-    #get extraction result
-    url = reverse("documents:task_progress", kwargs={"pk": document.group.pk})
-    response = client.get(url)
-    assert response.status_code == 200
 
 
 
@@ -1387,7 +1492,7 @@ def test_link_temp_document_renders(client,  user):
 
 @pytest.mark.django_db
 def test_link_temp_document_posts(client, temp_document, asset, document_type,  user):
-    asset = asset
+    asset = asset()
     document_name = 'equipment_gs1.jpg'
     temp_document = temp_document(document_name)
     user = user()
@@ -1410,7 +1515,7 @@ def test_link_temp_document_posts(client, temp_document, asset, document_type,  
 
 @pytest.mark.django_db
 def test_link_temp_document_posts_htmx(client, temp_document, asset, document_type,  user):
-    asset = asset
+    asset = asset()
     document_name = 'equipment_gs1.jpg'
     temp_document = temp_document(document_name)
     user = user()

@@ -133,7 +133,7 @@ def test_po_update_view_post(client, user, purchase_order, part):
         'po_line-MAX_NUM_FORMS': '1000',
 
         # One form in the formset
-        'po_line-0-item': str(item.partid),       
+        'po_line-0-item': str(item.partid),
         'po_line-0-unit_price': '100.00',
         'po_line-0-qty_ordered': '2',
 
