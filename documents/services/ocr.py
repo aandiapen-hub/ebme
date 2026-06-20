@@ -92,8 +92,6 @@ def extract_text_from_file(file):
         extracted_data = extract_text_from_image(file)
     elif 'pdf' in file.mime_type:
         extracted_data = extract_text_from_pdf(file)
-    else:
-       return
 
     file.ocr_text = extracted_data['ocr_text']
     file.ocr_boxes = extracted_data['ocr_boxes']

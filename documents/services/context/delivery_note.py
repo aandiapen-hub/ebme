@@ -11,8 +11,6 @@ from procurement.models import TblPurchaseOrder, TblDeliveries
 
 
 def temp_group_params(temp_group_id):
-    if not temp_group_id:
-        return {}
     return urlencode({'temp_group_id': temp_group_id})
 
 
@@ -53,10 +51,10 @@ def get_purchase_order_from_resolved_data(data, temp_group_id=None):
 
 
 def get_existing_matching_deliveries(data):
-    del_note_number = data.get('delivery', {}).get('delivery_ids')
+    delivery_ids = data.get('delivery', {}).get('delivery_ids')
     items = []
-    if del_note_number:
-        existing_deliveries = TblDeliveries.objects.filter(pk__in=del_note_number)
+    if delivery_ids:
+        existing_deliveries = TblDeliveries.objects.filter(pk__in=delivery_ids)
         for delivery in existing_deliveries:
             actions = []
             actions.append(
@@ -85,6 +83,7 @@ class DeliveryNoteContext(
 
     def get_extra_context(self):
 
+        print('this is running******')
         purchase_order =  MatchedGroup(
             title='Purchase Order',
             confidence='Full',

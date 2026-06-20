@@ -514,7 +514,7 @@ def test_model_delete_view_renders(client, user, model):
 
 @pytest.mark.django_db
 def test_model_delete_view_posts_unsuccessfully(client, user, model, asset):
-    asset = asset
+    asset = asset()
     model = asset.modelid 
     url = reverse("model_information:delete_model", kwargs={"pk": model.modelid})
     user = user()

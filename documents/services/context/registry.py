@@ -15,6 +15,8 @@ CONTEXT_BUILDERS = {
 
 
 def build_document_context(*, user, temp_group=None, resolved_data=None):
+    print('this is running0')
+    print('temp group type', temp_group.document_type_id)
     if not user.is_staff:
         builder_cls = CONTEXT_BUILDERS.get(
             'non_staff', None
@@ -29,8 +31,6 @@ def build_document_context(*, user, temp_group=None, resolved_data=None):
             'global_search', None
         )
 
-    if not builder_cls:
-        return {}
     return builder_cls(
         temp_group=temp_group, resolved_data=resolved_data
     ).build()

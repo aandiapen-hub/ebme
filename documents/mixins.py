@@ -15,21 +15,6 @@ from django.utils.dateparse import parse_date, parse_datetime
 from datetime import datetime, date
 
 class DocumentLinkPermissionMixin(PermissionRequiredMixin):
-    def check_object_permissions(self, obj):
-        user_customerid = getattr(self.request.user, "customerid", None)
-        is_user_staff = self.request.user.is_staff
-        object_customerid = obj.customer
-
-        if not is_user_staff:
-            if user_customerid is None:
-                raise PermissionDenied("User not associated with any customer.")
-            if user_customerid != object_customerid:
-                raise PermissionDenied("User cannot access this document")
-
-    def get_object(self, queryset=None):
-        obj = super().get_object(queryset)
-        self.check_object_permissions(obj)  # Manually call here
-        return obj
 
     def get_queryset(self):
         qs = super().get_queryset()

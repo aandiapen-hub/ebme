@@ -405,11 +405,8 @@ class ExtractTextFromImages(LoginRequiredMixin, PermissionRequiredMixin, FormVie
         task = extract_information_from_temp_group.enqueue(group_id=str(self.kwargs.get('pk')))
 
         group = TempUploadGroup.objects.get(pk=self.kwargs.get('pk'))
-        try:
-            group.task_result_id = str(task.id)
-            group.save()
-        except:
-            pass # allows code to be tested with immediate_task_backend
+        group.task_result_id = str(task.id)
+        group.save()
 
         response = HttpResponse()
         response['HX-Redirect'] = self.get_success_url() 
@@ -427,18 +424,14 @@ class GetTaskResult(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         response = HttpResponse(status=200)
 
         if self.object.task_result_id:
-            try:
-                task_result = default_task_backend.get_result(
-                    self.object.task_result_id
-                )
-                if task_result.status in ['SUCCESSFUL', 'FAILED', 'READY']:
-                    context['task_result'] = task_result
-                    response = self.render_to_response(context)
-                    response['HX-Reswap'] = 'outerHTML'
-                    response['HX-Trigger'] = json.dumps({'data_resolved': True})
-            except Exception as e:
-                print(e)
-                pass
+            task_result = default_task_backend.get_result(
+                self.object.task_result_id
+            )
+            if task_result.status in ['SUCCESSFUL', 'FAILED', 'READY']:
+                context['task_result'] = task_result
+                response = self.render_to_response(context)
+                response['HX-Reswap'] = 'outerHTML'
+                response['HX-Trigger'] = json.dumps({'data_resolved': True})
 
         return response
 
@@ -506,7 +499,7 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
 class TempUploadGroupView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = TempUploadGroup
     context_object_name = "group"
-    permission_required = "documents.view_temporaryupload"
+    permission_required = "documents.view_tempuploadgroup"
 
     def get_queryset(self):
         return super().get_queryset().filter(user=self.request.user)

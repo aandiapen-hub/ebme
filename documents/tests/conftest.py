@@ -159,7 +159,11 @@ def temp_document(test_file):
 
 @pytest.fixture
 def asset_id_temp_document(temp_document):
-    return temp_document(filename='equipment_gs1.jpg', group_type=DocumentTypes.ASSET_DATA)
+    return temp_document(filename='equipment_gs2.jpg', group_type=DocumentTypes.ASSET_DATA)
+
+@pytest.fixture
+def gs1_conflict_temp_document(temp_document):
+    return temp_document(filename='gs1_conflict.jpg', group_type=DocumentTypes.ASSET_DATA)
 
 @pytest.fixture
 def asset_no_temp_document(temp_document):

@@ -13,7 +13,7 @@ from urllib.parse import urlencode
 # test AssetCreateView
 @pytest.mark.django_db
 def test_asset_detail_view_requires_login(client, asset):
-    asset = asset
+    asset = asset()
     url = reverse("assets:view_asset", kwargs={'pk':asset.pk} )  # Update to your actual URL name
     response = client.get(url)
     assert response.status_code == 302  # Redirect to login
@@ -22,7 +22,7 @@ def test_asset_detail_view_requires_login(client, asset):
 
 @pytest.mark.django_db
 def test_asset_detail_view_permission_denied(client, user, asset):
-    asset = asset
+    asset = asset()
     url = reverse("assets:view_asset", kwargs={'pk':asset.pk} )  # Update to your actual URL name
     user = user()
     client.force_login(user)
@@ -35,7 +35,7 @@ def test_asset_detail_view_permission_denied(client, user, asset):
 
 @pytest.mark.django_db
 def test_asset_detail_view_renders(client, user, asset, jobs):
-    asset = asset
+    asset = asset()
     jobs = jobs(count=10, assetid=asset)
     url = reverse("assets:view_asset", kwargs={'pk':asset.pk} )  # Update to your actual URL name
     user = user()
@@ -155,7 +155,7 @@ def test_asset_create_view_success_post(
 # test AssetUpdateView
 @pytest.mark.django_db
 def test_asset_update_view_requires_login(client, asset):
-    asset = asset
+    asset = asset()
     url = reverse("assets:update_asset", kwargs={"pk": asset.assetid})
     response = client.get(url)
     assert response.status_code == 302  # Redirect to login
@@ -164,7 +164,7 @@ def test_asset_update_view_requires_login(client, asset):
 
 @pytest.mark.django_db
 def test_asset_update_view_permission_denied(client, asset, user_setup):
-    asset = asset
+    asset = asset()
     user = user_setup
     client.force_login(user)
 
@@ -176,7 +176,7 @@ def test_asset_update_view_permission_denied(client, asset, user_setup):
 
 @pytest.mark.django_db
 def test_asset_update_view_renders(client, user_setup, asset):
-    asset = asset
+    asset = asset()
     user = user_setup
     client.force_login(user)
 
@@ -193,7 +193,7 @@ def test_asset_update_view_renders(client, user_setup, asset):
 
 @pytest.mark.django_db
 def test_asset_update_view_valid_data_updates_object(client, user_setup, asset):
-    asset = asset
+    asset = asset()
     user = user_setup
 
     client.force_login(user)
@@ -220,7 +220,7 @@ def test_asset_update_view_valid_data_updates_object(client, user_setup, asset):
 
 @pytest.mark.django_db
 def test_asset_delete_view_login(client, asset):
-    asset = asset
+    asset = asset()
     url = reverse("assets:delete_asset", kwargs={"pk": asset.assetid})
     response = client.get(url)
     assert response.status_code == 302  # Redirect to login
@@ -229,7 +229,7 @@ def test_asset_delete_view_login(client, asset):
 
 @pytest.mark.django_db
 def test_asset_delete_view_permission_denied(client, user_setup, asset):
-    asset = asset
+    asset = asset()
     user = user_setup
     client.force_login(user)
     url = reverse("assets:delete_asset", kwargs={"pk": asset.assetid})
@@ -239,7 +239,7 @@ def test_asset_delete_view_permission_denied(client, user_setup, asset):
 
 @pytest.mark.django_db
 def test_asset_delete_view_renders(client, user_setup, asset):
-    asset = asset
+    asset = asset()
     user = user_setup
 
     user.customerid = asset.customerid
@@ -258,7 +258,7 @@ def test_asset_delete_view_renders(client, user_setup, asset):
 
 @pytest.mark.django_db
 def test_asset_delete_view_post_success(client, user_setup, asset):
-    asset = asset
+    asset = asset()
 
     user = user_setup
     permission = Permission.objects.get(codename="delete_tblassets")
@@ -276,7 +276,7 @@ def test_asset_delete_view_post_success(client, user_setup, asset):
 
 @pytest.mark.django_db
 def test_asset_delete_view_handles_exception(client, user_setup, asset):
-    asset = asset
+    asset = asset()
     user = user_setup
 
     user.customerid = asset.customerid
@@ -335,7 +335,7 @@ def test_filtered_asset_table_view_renders(
     permission = Permission.objects.get(codename="view_assetview")
     user.user_permissions.add(permission)
 
-    asset = asset
+    asset = asset()
     user.customerid = asset.customerid
     user.save()
     client.force_login(user)
@@ -360,13 +360,13 @@ def test_filtered_asset_table_view_renders(
 
 
 @pytest.mark.django_db
-def test_filtered_asset_filterset(django_db_setup, client, user_setup, asset):
-    user = user_setup
+def test_filtered_asset_filterset(django_db_setup, client, user, asset):
+    user = user()
 
     permission = Permission.objects.get(codename="view_assetview")
     user.user_permissions.add(permission)
 
-    user.customerid = asset.customerid
+    user.customerid = asset().customerid
     user.save()
     client.force_login(user)
 

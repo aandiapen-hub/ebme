@@ -10,8 +10,6 @@ from .context_action import(
 )
 
 def temp_group_params(temp_group_id):
-    if not temp_group_id:
-        return {}
     return urlencode({'temp_group_id': temp_group_id})
 
 

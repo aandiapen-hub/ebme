@@ -61,10 +61,10 @@ def extract_information_from_temp_group(group_id):
     extract_data(group)
 
     # process group documents with ai
-    print('using ai to enhence extracted data')
     ai_data = group.extracted_json.get('ai', None)
     if ai_data in ['', None]:
         try:
+            print('using ai to enhence extracted data')
             ai_data = extract_group_info_with_ai(group)
         except Exception as e:
             ai_data = {}

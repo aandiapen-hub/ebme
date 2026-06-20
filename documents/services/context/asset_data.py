@@ -13,8 +13,6 @@ from assets.models import (
 
 
 def temp_group_params(temp_group_id):
-    if not temp_group_id:
-        return {}
     return urlencode({'temp_group_id': temp_group_id})
 
 
@@ -134,7 +132,7 @@ def get_duplicatable_models(data, temp_group_id=None):
                 Action(
                     label='Copy',
                     enabled=True,
-                    action_url=f"{reverse('model_information:update_model', kwargs={'pk': model.pk})}?{query_params}",
+                    url=f"{reverse('model_information:update_model', kwargs={'pk': model.pk})}?{query_params}",
                     color='primary'
                 )
             )
@@ -186,10 +184,9 @@ def get_partially_matched_asset(data, temp_group_id=None):
     items = []
 
     asset_id = data.get("asset", {}).get("asset_id")
-    asset_ids = data.get("asset", {}).get("assets")
+    asset_ids = data.get("asset", {}).get("assets", [])
     # remove fully matched asset from partially matched list
-    if asset_id:
-        asset_ids.remove(asset_id)
+    asset_ids = [x for x in asset_ids if x != asset_id]
 
     if asset_ids:
         assets = Tblassets.objects.filter(pk__in=asset_ids)

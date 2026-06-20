@@ -1,3 +1,4 @@
+from django.contrib.auth import PermissionDenied
 from django.contrib.auth.models import Permission
 from urllib.parse import urlencode
 
@@ -386,6 +387,36 @@ def test_document_link_table_view_renders(client, user_setup, customer):
     assert response.status_code == 200
     assertTemplateUsed(response, "documents/documents_links.html")
 
+@pytest.mark.django_db
+def test_document_link_table_view_non_staff_no_customer(client, document_link, user):
+    url = reverse("documents:table_document_links")
+    document_link.create_batch(size=20)
+    user = user()
+    user.is_staff = True
+    permission = Permission.objects.get(codename="view_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.context['table'].data.data.count() == 20
+
+@pytest.mark.django_db
+def test_document_link_table_view_non_staff_no_customer(client, document_link, user_setup, customer):
+    customer = customer()
+    url = reverse("documents:table_document_links")
+    document_link.create_batch(size=20)
+    user = user_setup
+    permission = Permission.objects.get(codename="view_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.customerid = None 
+    user.save()
+
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.context['table'].data.data.count() == 0
 
 # test DocumentDownloadView
 @pytest.mark.django_db
@@ -467,6 +498,37 @@ def test_download_document_from_link_view_renders(client, user_setup, document_l
     response = client.get(url)
     assert response.status_code == 200
 
+@pytest.mark.django_db
+def test_download_document_from_link_view_non_staff_no_customer(client, user_setup, document_link, customer):
+    document_link = document_link()
+    customer1 = customer()
+    document_link.customer = customer1
+    document_link.save()
+
+    user = user_setup
+    user.customerid = None
+    permission = Permission.objects.get(codename="view_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.save()
+    client.force_login(user)
+
+    url = reverse("documents:download_document_from_link", kwargs={"pk": document_link.pk})
+    response = client.get(url)
+    assert response.status_code == 404
+
+@pytest.mark.django_db
+def test_download_document_from_link_view_staff(client, user, document_link):
+    document_link = document_link()
+    user = user()
+    user.is_staff = True
+    permission = Permission.objects.get(codename="view_tbldocumentlinks")
+    user.user_permissions.add(permission)
+    user.save()
+    client.force_login(user)
+
+    url = reverse("documents:download_document_from_link", kwargs={"pk": document_link.pk})
+    response = client.get(url)
+    assert response.status_code == 200
 
 # test DocumentListView
 @pytest.mark.django_db
@@ -490,7 +552,7 @@ def test_document_list_view_requires_permission(client, user_setup):
 
 @pytest.mark.django_db
 def test_document_list_view_renders(client,asset, user_setup, obj_document_link, customer):
-    asset = asset
+    asset = asset()
     document_link = obj_document_link(obj=asset)
     customer1 = customer()
     document_link.customerid = customer1
@@ -1148,7 +1210,7 @@ def test_document_update_view_post_invalid_form(client, test_file, user, documen
 
 # test DocumentUpdateView
 @pytest.mark.django_db
-def test_temporary_group_create_view_requires_login(client, temp_document):
+def test_temporary_group_view_requires_login(client, temp_document):
     document = temp_document()
     url = reverse("documents:temp_group", kwargs={"pk": document.group.pk})
 
@@ -1170,7 +1232,7 @@ def test_temp_group_view_requires_permission(client, temp_document, user):
 @pytest.mark.django_db
 def test_temp_group_view_renders(client,temp_group, temp_document, user):
     user = user()
-    permission = Permission.objects.get(codename="view_temporaryupload")
+    permission = Permission.objects.get(codename="view_tempuploadgroup")
     user.user_permissions.add(permission)
 
     group1 = temp_group(user=user)
@@ -1218,8 +1280,16 @@ def test_temp_group_extract_text_posts(client, temp_document, user):
     assert response.status_code == 200
     assert response['HX-Redirect'] == reverse('documents:temp_group', kwargs={'pk': document.group.pk})
 
+MOCK_ASSET_DATA = {
+    'GTIN': '00885403497233', 'SERIAL': 'S00455524', 'ASSET_NO': '5533488',
+    'PROD_DATE': '2304-04-23', 'brand': None, 'model': None, 'category': None,
+    'brand_name_options': ['NHS', 'GE Healthcare', 'Siemens Healthineers'],
+    'model_name_options': ['Model 999-103DEN', 'Model PRL001311'], 'category_name_options': ['Infusion Pump',
+    'Medical Device', 'Healthcare Equipment'], 'model_description': None
+}
+
 @pytest.mark.django_db
-def test_test_group_extract_text_asset_data(
+def test_group_extract_text_asset_data_non_staff(
         client,
         asset_id_temp_document,
         asset_no_temp_document,
@@ -1227,7 +1297,8 @@ def test_test_group_extract_text_asset_data(
         immediate_task_backend,
         asset,
         model,
-        
+        brand,
+        mocker, 
 ):
 
     document1 = asset_id_temp_document
@@ -1236,33 +1307,136 @@ def test_test_group_extract_text_asset_data(
     document2.group = group
     document2.save()
 
+    brand1 = brand(brandname='GE')
+    brand2 = brand(brandname='Siemens')
 
+    mocker.patch(
+        "documents.services.process_document.extract_group_info_with_ai",
+        return_value=MOCK_ASSET_DATA
+    )
 
     
     extract_url = reverse("documents:extract_text", kwargs={"pk": group.pk})
     user = user()
+    group.user = user
+    group.save()
     permission1 = Permission.objects.get(codename="change_tempuploadgroup")
     permission2 = Permission.objects.get(codename="view_tempuploadgroup")
     user.user_permissions.add(permission1)
     user.user_permissions.add(permission2)
     client.force_login(user)
 
+    get_url = reverse("documents:temp_group", kwargs={"pk": group.pk})
     # no asset and not model
     client.post(extract_url)
+    response = client.get(get_url)
 
     #asset no identified
     asset1 = asset(customerassetnumber='5533488')
     client.post(extract_url)
     asset1.delete()
+    response = client.get(get_url)
+
+
+    #asset partial matches 
+    asset3 = asset(serialnumber='S004555248943')
+    asset4 = asset(serialnumber='S004555243489')
+    asset5 = asset(serialnumber='S0045552438')
+    client.post(extract_url)
+    response = client.get(get_url)
 
     #asset id identified
     model = model(gtin='00885403497233')
     asset2 = asset(serialnumber='S00455524', modelid=model)
     client.post(extract_url)
     asset2.delete()
+    response = client.get(get_url)
 
 @pytest.mark.django_db
-def test_test_group_extract_text_service_report(
+def test_group_extract_text_asset_data_staff(
+        client,
+        asset_id_temp_document,
+        asset_no_temp_document,
+        user,
+        immediate_task_backend,
+        asset,
+        model,
+        brand,
+        mocker, 
+):
+
+    document1 = asset_id_temp_document
+    document2 = asset_no_temp_document
+    group = document1.group
+    document2.group = group
+    document2.save()
+
+    brand1 = brand(brandname='GE')
+    brand2 = brand(brandname='Siemens')
+
+    mocker.patch(
+        "documents.services.process_document.extract_group_info_with_ai",
+        return_value=MOCK_ASSET_DATA
+    )
+
+    extract_url = reverse("documents:extract_text", kwargs={"pk": group.pk})
+    user = user()
+    user.is_staff = True
+    user.save()
+    group.user = user
+    group.save()
+    permission1 = Permission.objects.get(codename="change_tempuploadgroup")
+    permission2 = Permission.objects.get(codename="view_tempuploadgroup")
+    user.user_permissions.add(permission1)
+    user.user_permissions.add(permission2)
+    client.force_login(user)
+
+    get_url = reverse("documents:temp_group", kwargs={"pk": group.pk})
+    # no asset and not model
+    client.post(extract_url)
+    response = client.get(get_url)
+
+    #asset no identified
+    asset1 = asset(customerassetnumber='5533488')
+    client.post(extract_url)
+    asset1.delete()
+    response = client.get(get_url)
+
+
+    #asset partial matches 
+    asset3 = asset(serialnumber='S004555248943')
+    asset4 = asset(serialnumber='S004555243489')
+    asset5 = asset(serialnumber='S0045552438')
+
+    client.post(extract_url)
+    response = client.get(get_url)
+
+    #asset id identified
+    model1 = model(gtin='00885403497233')
+    asset2 = asset(serialnumber='S00455524', modelid=model1)
+    client.post(extract_url)
+    response = client.get(get_url)
+    asset2.delete()
+    model1.delete()
+
+    #duplicatable_models
+    model2 = model(gtin='00885403494378')
+    asset3 = asset(serialnumber='S00455524', modelid=model2)
+    client.post(extract_url)
+    response = client.get(get_url)
+    asset3.delete()
+    model2.delete()
+
+MOCK_SERVICE_REPORT_DATA = {
+    'GIAI': '50552395105533488', 'GTIN': '00885403497233', 'brand': None,
+    'model': '4040 Flowmeter', 'SERIAL': 'S00455524', 'job_ref': '300364863',
+    'ASSET_NO': '5533488', 'cal_date': '2021-08-18', 'end_date': '2021-08-18',
+    'workdone': """Calibration of Flowmeter 4040. Unit cleaned, calibrated, and complete operational checkout
+        performed. As-Found and As-Left calibration with NIST/UKAS traceable calibration.""",
+    'PROD DATE': '230423', 'jobtypeid': 1, 'start_date': '2021-08-15', 'jobstatusid': 2, 'non_gs1_codes': []} 
+
+@pytest.mark.django_db
+def test_group_extract_text_service_report(
     client,
     service_report_temp_document,
     asset_id_temp_document,
@@ -1271,39 +1445,56 @@ def test_test_group_extract_text_service_report(
     immediate_task_backend,
     asset,
     model,
+    mocker,
 ):
+    user = user()
+    user.is_staff = True
+    user.save()
+
     document1 = service_report_temp_document
     document2 = asset_id_temp_document
     document3 = asset_no_temp_document
 
     group = document1.group
+    group.user = user
+    group.save()
+
     document2.group = group
     document2.save()
+
 
     document3.group = group
     document3.save()
 
-    extract_url = reverse("documents:extract_text", kwargs={"pk": group.pk})
-    user = user()
+    mocker.patch(
+        "documents.services.process_document.extract_group_info_with_ai",
+        return_value=MOCK_ASSET_DATA
+    )
     permission1 = Permission.objects.get(codename="change_tempuploadgroup")
     permission2 = Permission.objects.get(codename="view_tempuploadgroup")
     user.user_permissions.add(permission1)
     user.user_permissions.add(permission2)
+
     client.force_login(user)
 
+    extract_url = reverse("documents:extract_text", kwargs={"pk": group.pk})
+    get_url = reverse("documents:temp_group", kwargs={"pk": group.pk})
     #start data extraction
     client.post(extract_url)
+    response = client.get(get_url)
 
     #test exsiting asset id
     model = model(gtin='00885403497233')
     asset2 = asset(serialnumber='S00455524', modelid=model)
     client.post(extract_url)
+    response = client.get(get_url)
     asset2.delete()
     model.delete()
 
     #test exsiting asset id
     asset2 = asset(serialnumber='S00455524')
     client.post(extract_url)
+    response = client.get(get_url)
     asset2.delete()
 
     #test exsiting asset asset no
@@ -1311,34 +1502,139 @@ def test_test_group_extract_text_service_report(
     client.post(extract_url)
     asset2.delete()
 
+MOCK_DELIVERY_DATA = {
+    'delivery_date': '2023-06-18', 'non_gs1_codes': ['0002791747'],
+    'delivery_items': [{'quantity': 2, 'part_number': '72035-514'},
+    {'quantity': 5, 'part_number': '72035-507'}], 'purchase_order': [5100186],
+    'delivery_note_number': '0002791747',
+    'delivery_note_number_options': ['0002791747', '0002792257', '18062025']
+}
 @pytest.mark.django_db
-def test_test_group_extract_text_delivery_note(
+def test_group_extract_text_delivery_note(
     client,
     delivery_note_temp_document,
     user,
     immediate_task_backend,
     purchase_order,
     delivery,
+    mocker,
 ):
-    document = delivery_note_temp_document
-    extract_url = reverse("documents:extract_text", kwargs={"pk": document.group.pk})
     user = user()
+    user.is_staff = True
+    user.save()
+    document = delivery_note_temp_document
+    group = document.group
+    
+    group.user = user
+    group.save()
     permission1 = Permission.objects.get(codename="change_tempuploadgroup")
     permission2 = Permission.objects.get(codename="view_tempuploadgroup")
     user.user_permissions.add(permission1)
     user.user_permissions.add(permission2)
     client.force_login(user)
 
+    extract_url = reverse("documents:extract_text", kwargs={"pk": document.group.pk})
+    get_url = reverse("documents:temp_group", kwargs={"pk": group.pk})
+
+    mocker.patch(
+        "documents.services.process_document.extract_group_info_with_ai",
+        return_value=MOCK_DELIVERY_DATA
+    )
     #check with no data
     client.post(extract_url)
+    response = client.get(get_url)
+    print('response', response)
 
     #check with po 
+    purchase_order = purchase_order(po_id='5100186')
     client.post(extract_url)
+    response = client.get(get_url)
 
     #check with po and delivery
-    purchase_order = purchase_order(po_id='5100186')
-    delivery = delivery(po = purchase_order)
+    delivery = delivery(po = purchase_order, delivery_note_number='0002791747')
     client.post(extract_url)
+    response = client.get(get_url)
+
+@pytest.mark.django_db
+def test_group_extract_unknown_document_type(
+        client,
+        asset_id_temp_document,
+        user,
+        immediate_task_backend,
+        asset,
+        model,
+        brand,
+        mocker, 
+):
+
+    document1 = asset_id_temp_document
+    group = document1.group
+    group.document_type_id = DocumentTypes.UNKNOWN
+    group.save()
+    
+
+    mocker.patch(
+        "documents.services.process_document.extract_group_info_with_ai",
+        return_value={}
+    )
+
+    extract_url = reverse("documents:extract_text", kwargs={"pk": group.pk})
+    user = user()
+    user.is_staff = True
+    user.save()
+    group.user = user
+    group.save()
+    permission1 = Permission.objects.get(codename="change_tempuploadgroup")
+    permission2 = Permission.objects.get(codename="view_tempuploadgroup")
+    user.user_permissions.add(permission1)
+    user.user_permissions.add(permission2)
+    client.force_login(user)
+
+    get_url = reverse("documents:temp_group", kwargs={"pk": group.pk})
+    # no asset and not model
+    client.post(extract_url)
+    response = client.get(get_url)
+
+
+@pytest.mark.django_db
+def test_group_extract_ai_error(
+        client,
+        asset_id_temp_document,
+        user,
+        immediate_task_backend,
+        asset,
+        model,
+        brand,
+        mocker, 
+):
+
+    document1 = asset_id_temp_document
+    group = document1.group
+    group.document_type_id = DocumentTypes.UNKNOWN
+    group.save()
+    
+
+    mocker.patch(
+        "documents.services.process_document.extract_group_info_with_ai",
+        side_effect=TimeoutError("simulated timeout error")
+    )
+
+    extract_url = reverse("documents:extract_text", kwargs={"pk": group.pk})
+    user = user()
+    user.is_staff = True
+    user.save()
+    group.user = user
+    group.save()
+    permission1 = Permission.objects.get(codename="change_tempuploadgroup")
+    permission2 = Permission.objects.get(codename="view_tempuploadgroup")
+    user.user_permissions.add(permission1)
+    user.user_permissions.add(permission2)
+    client.force_login(user)
+
+    get_url = reverse("documents:temp_group", kwargs={"pk": group.pk})
+    # no asset and not model
+    client.post(extract_url)
+    response = client.get(get_url)
 
 # test get get task result 
 @pytest.mark.django_db

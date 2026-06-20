@@ -40,7 +40,6 @@ def asset_data_builder(
     part_id=None,
     suggested_new_part_names=None,
 ):
-    print('using asset data biulder')
     return {
         "gtin": {
             "value": gtin,
@@ -108,7 +107,6 @@ def job_data_builder(
     jobstatusid=None,
     create_job=False,
 ):
-    print('using job data biulder')
     return {
         "gtin": {
             "value": gtin,
@@ -151,7 +149,6 @@ def delivery_data_builder(
     delivery_date=None,
     items=None,
 ):
-    print('using delivery data biulder')
     return {
         "delivery": {
             "delivery_note_number": delivery_note_number,
@@ -164,25 +161,8 @@ def delivery_data_builder(
     }
 
 
-def quick_scan_barcode(image):
-    print('quick scan')
-    img = Image.open(image)
-    barcodes = zxingcpp.read_barcodes(img, text_mode=zxingcpp.Plain)
-    if len(barcodes) == 0:
-        raise ValidationError({"file": "Could not find any barcode"})
-
-    gs1_codes = [code for code in barcodes if code.content_type == zxingcpp.GS1]
-    return gs1_codes
-
-
-def parse_gs1code(file=None, scanned_code=None):
-    print('file code', file, scanned_code)
-    if file:
-        print('file*** indentified,')
-        # scan image for barcode and get a list of test
-        gs1_codes = [code.text for code in quick_scan_barcode(file)]
-    else:
-        gs1_codes = [scanned_code]
+def parse_gs1code(scanned_code=None):
+    gs1_codes = [scanned_code]
 
     output = {}
     non_gs1_codes = []
@@ -196,15 +176,10 @@ def parse_gs1code(file=None, scanned_code=None):
             continue
 
         for es in parsed_gs1.gs1_message.element_strings:
-            if es.ai.data_title not in output:
-                if es.ai.data_title == 'INTERNAL':
-                    non_gs1_codes.append(code)
-                    continue
-                output[es.ai.data_title] = es.value
-            else:
-                raise ValidationError(
-                    {"__all__": "Multiple GS1 barcode of the same type scanned"}
-                )
+            if es.ai.data_title == 'INTERNAL':
+                non_gs1_codes.append(code)
+                continue
+            output.update({es.ai.data_title: es.value})
 
             if es.ai.data_title == "GIAI":
                 output["ASSET_NO"] = es.value[-7:]
@@ -267,14 +242,6 @@ def resolve_gtin(gtin):
 
 
 def find_partial_asset_matches(serial):
-    if not serial:
-        return {
-            "assets": [],
-            "too_many_assets": False,
-            "models_with_gtin": [],
-            "models_without_gtin": [],
-            "jobs": [],
-        }
 
     assets_qs = AssetView.objects.filter(serialnumber__icontains=serial)
 
@@ -447,7 +414,6 @@ def gs1_resolver(parsed_data):
 
 
 def job_resolver(parsed_data):
-    print(parsed_data)
     asset_no = parsed_data.get("ASSET_NO")
     gtin = parsed_data.get("GTIN")
     serial = parsed_data.get("SERIAL")
@@ -542,7 +508,6 @@ def job_resolver(parsed_data):
 
 
 def delivery_resolver(parsed_data):
-    print(parsed_data)
     po_number = parsed_data.get('purchase_order', None)
     delivery_note_number_options = parsed_data.get('delivery_note_number_options', None)
     delivery_date = parsed_data.get('delivery_date', None)
@@ -594,7 +559,6 @@ def temp_group_resolver(group_id):
         data = group.extracted_json.get("merged_parsed_barcode", {}).get('values',{})
 
     resolver = RESOLVER_MAP.get(group.document_type_id, gs1_resolver)
-    print('resolver', resolver)
     if data and resolver:
         group.extracted_json.update({"resolved": resolver(data)})
         group.save(update_fields=["extracted_json"])

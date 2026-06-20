@@ -22,7 +22,9 @@ class DocumentsFactory(DjangoModelFactory):
 
     document_name = factory.Faker("file_name")
     document_description = factory.Faker("sentence")
-    document_bytea = b"test document"
+    document_bytea = factory.LazyFunction(
+        lambda: factory.Faker._get_faker().sentence().encode("utf-8")
+    )
     file_size = factory.LazyAttribute(lambda o: len(o.document_bytea))
     document_hash = factory.LazyAttribute(
         lambda o: hashlib.sha256(o.document_bytea).hexdigest()

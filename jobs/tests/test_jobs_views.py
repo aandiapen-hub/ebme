@@ -474,7 +474,7 @@ def test_job_create_view_permission_denied(client, user_setup):
 
 @pytest.mark.django_db
 def test_job_create_view_renders(client, user_setup, asset):
-    asset = asset
+    asset = asset()
     customerid = asset.customerid
     user = user_setup
     user.customerid = customerid
@@ -497,7 +497,7 @@ def test_job_create_view_post_successfully(
     client, user_setup, asset, jobtype, jobstatus, technician
 ):
 
-    asset = asset
+    asset = asset()
     user = user_setup
     user.customerid = asset.customerid
 
@@ -543,7 +543,7 @@ def test_job_create_view_post_incorrect_customer(
     client, user_setup, asset, customer, jobtype, jobstatus, technician
 ):
 
-    asset = asset
+    asset = asset()
     user = user_setup
     user.customerid = customer() 
 
@@ -573,7 +573,7 @@ def test_job_create_view_non_existent_asset(
     client, user_setup, asset, customer, jobtype, jobstatus, technician
 ):
 
-    asset = asset
+    asset = asset()
     user = user_setup
     user.customerid = customer() 
 
@@ -602,7 +602,7 @@ def test_job_create_view_post_invalid_form(
     client, user_setup, asset, jobtype, jobstatus, technician
 ):
 
-    asset = asset
+    asset = asset()
     user = user_setup
     user.customerid = asset.customerid
 
@@ -875,7 +875,7 @@ def test_generate_parts_list_permission_required(client, user):
 
 @pytest.mark.django_db
 def test_generate_parts_list_view_renders(client, user, asset, part_model):
-    asset = asset
+    asset = asset()
 
     part1_model = part_model(model=asset.modelid)
     part2_model = part_model(model=asset.modelid)
@@ -898,7 +898,7 @@ def test_generate_parts_list_view_renders(client, user, asset, part_model):
 # test add check formset
 @pytest.mark.django_db
 def test_generate_check_list_view_requires_login(client, asset):
-    asset = asset
+    asset = asset()
     url = reverse("jobs:check_list", kwargs={'modelid':asset.modelid.pk, })
     response = client.get(url)
 
@@ -908,7 +908,7 @@ def test_generate_check_list_view_requires_login(client, asset):
 
 @pytest.mark.django_db
 def test_generate_check_list_permission_required(client, user, asset):
-    asset = asset
+    asset = asset()
     client.force_login(user())
     url = reverse("jobs:check_list", kwargs={'modelid':asset.modelid.pk, })
     response = client.get(url)
@@ -918,7 +918,7 @@ def test_generate_check_list_permission_required(client, user, asset):
 
 @pytest.mark.django_db
 def test_generate_check_list_view_renders(client, user, asset, checklists):
-    asset = asset
+    asset = asset()
     checkllists = checklists(count=10, modelid=asset.modelid) 
     user = user()
     permission = Permission.objects.get(codename="change_tbljob")
