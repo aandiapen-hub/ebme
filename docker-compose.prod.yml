@@ -18,7 +18,7 @@ services:
   db_worker:
     build:
       context: .
-      dockerfile: docker/dev/Dockerfile
+      dockerfile: docker/prod/Dockerfile
     volumes:
       - .:/app
     env_file:
