@@ -15,6 +15,21 @@ services:
     tty: "true"
     restart: unless-stopped
 
+  db_worker:
+    build:
+      context: .
+      dockerfile: docker/prod/Dockerfile
+    volumes:
+      - .:/app
+    env_file:
+      - .env.production
+      - static/company_info/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    tty: "true"
+    command: gunicorn db_worker
+    restart: unless-stopped
+
   redis:
     image: redis:latest
     ports:
