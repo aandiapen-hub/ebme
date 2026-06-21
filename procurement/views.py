@@ -1,7 +1,6 @@
 from django.db import transaction
 import json
 from django.contrib import messages
-from django.db.models.deletion import ProtectedError
 
 from documents.services.payloads import (
     get_formset_initial,
@@ -14,7 +13,6 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from django.utils.timezone import now
 
-from documents.models import TblDocumentLinks
 from documents.services.documents import (
     delete_object_document_links,
 )

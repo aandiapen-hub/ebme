@@ -83,7 +83,6 @@ class DeliveryNoteContext(
 
     def get_extra_context(self):
 
-        print('this is running******')
         purchase_order =  MatchedGroup(
             title='Purchase Order',
             confidence='Full',

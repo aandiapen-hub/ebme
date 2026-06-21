@@ -290,13 +290,13 @@ def test_delivery_create_view_permission_required(client, user, po_line):
     assert response.status_code == 403
 
 @pytest.mark.django_db
-def test_delivery_create_view_renders(client, user, po_line):
+def test_delivery_create_view_renders(client, user, po_lines, purchase_order):
     user = user()
     permission = Permission.objects.get(codename="add_tbldeliveries")
     user.user_permissions.add(permission)
     client.force_login(user)
-    po_line = po_line()
-    po = po_line.po_id 
+    po = purchase_order()
+    po_lines = po_lines(po=po)
 
     url = reverse('procurement:deliveries_create', kwargs={'po_id':po})
     #test po_id in query params

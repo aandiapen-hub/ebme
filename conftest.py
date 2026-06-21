@@ -5,6 +5,7 @@ from assets.tests.factories import(
     AssetStatusFactory,
     ModelFactory,
     BrandFactory,
+    CategoryFactory
 )
 from parts.tests.factories import PartFactory
 from users.tests.factories import UserFactory
@@ -88,6 +89,10 @@ def asset_status():
 @pytest.fixture
 def brand():
     return BrandFactory
+
+@pytest.fixture
+def category():
+    return CategoryFactory
 
 @pytest.fixture
 def part_model():

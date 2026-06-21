@@ -1,7 +1,5 @@
-from django.contrib.auth import PermissionDenied
 from django.contrib.auth.models import Permission
 from urllib.parse import urlencode
-
 import pytest
 from pytest_django.asserts import assertTemplateUsed
 from django.urls import reverse
@@ -1543,7 +1541,6 @@ def test_group_extract_text_delivery_note(
     #check with no data
     client.post(extract_url)
     response = client.get(get_url)
-    print('response', response)
 
     #check with po 
     purchase_order = purchase_order(po_id='5100186')

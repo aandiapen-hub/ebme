@@ -1,24 +1,21 @@
 from django.contrib import messages
 from django.db import transaction
 from documents.mixins import TempUploadMixin
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 import json
 from documents.services.documents import delete_object_document_links
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
-    ListView,
     CreateView,
     UpdateView,
     DeleteView,
     DetailView,
 )
 from datetime import datetime
-from model_information.views import BrandCreateView, CategoryCreateView, ModelUpdateView
 
 from .models import (
     Tblassets,
     AssetView,
-    JobView,
 )
 
 from .forms import AssetUpdateForm, AssetBulkUpdateForm
@@ -92,6 +89,7 @@ class AssetDetailView(
 class AssetUpdateView(
     LoginRequiredMixin,
     CustomerAssetPermissionMixin,
+    TempUploadMixin,
     UpdateView,
 ):
     model = Tblassets

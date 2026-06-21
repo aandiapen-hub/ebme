@@ -6,11 +6,16 @@ from assets.models import Tblbrands, Tblcategories
 def map_service_report_data_to_job(resolved_data):
     # data for job is already mapped correctly, no further
     # processing required
-    return resolved_data.get("job", None)
+    payload = resolved_data.get("job", None)
+    auto_update_fields = '__all__'
+    return payload, auto_update_fields
+
 
 
 def map_delivery_note(resolved_data):
-    return resolved_data.get("delivery", None)
+    payload = resolved_data.get("delivery", None)
+    auto_update_fields = '__all__'
+    return payload, auto_update_fields
 
 
 def map_asset_data(resolved_data):
@@ -18,12 +23,15 @@ def map_asset_data(resolved_data):
     for field, value in payload.items():
         if field == "prod_date":
             value = datetime.strptime(value, "%y%m%d").date()
-    return payload
+
+    auto_update_fields = '__all__'
+    return payload, auto_update_fields
 
 
 def map_model_data(resolved_data):
     payload = resolved_data.get("model", None)
-    return payload
+    auto_update_fields = ['brandid', 'categoryid', 'gtin']
+    return payload, auto_update_fields
 
 
 INITIAL_PAYLOAD_MAP = {
@@ -57,19 +65,19 @@ def apply_payload_to_initial(
     if not mapper:
         return initial
 
-    payload = mapper(resolved_data)
+    payload, auto_update_fields = mapper(resolved_data)
 
     if payload:
         # update initial based on specifid payload in query params
         for key, value in payload.items():
-            print(key, ':', value)
-            v = initial.get(key, None)
-            if v in [None, '']:
-                if isinstance(value, list):
-                    if len(value) > 0:
-                        initial[key] = value[0]
-                else:
-                    initial[key] = value
+            if auto_update_fields == '__all__' or key in auto_update_fields:
+                v = initial.get(key, None)
+                if v in [None, '']:
+                    if isinstance(value, list):
+                        if len(value) > 0:
+                            initial[key] = value[0]
+                    else:
+                        initial[key] = value
     return initial
 
 

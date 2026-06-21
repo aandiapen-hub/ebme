@@ -50,30 +50,19 @@ def asset_data_temp_group():
     return TempUploadGroupFactory(
         document_type_id=DocumentTypes.ASSET_DATA,
         extracted_json = {
-            'merged_gs1_ai': {'asset': {'asset_id': None,
-                        'assets': [1541],
-                        'create_asset': True,
-                        'customerassetnumber': None,
-                        'modelid': None,
-                        'prod_date': '200526',
-                        'serialnumber': 'S00404465',
-                        'too_many_assets': False},
-                'brand': {'brand_ids': [0, 2, 3, 5, 7, 10, 34, 35, 37, 51],
-                        'brand_options': ['Fresenius', 'Fresenius Medical Care']},
-                'category': {'category_ids': [2, 3, 4, 5, 6, 24, 35],
-                            'category_options': ['Infusion Pump', 'Medical Device']},
-                'gtin': {'add_gtin': True, 'value': '00885403477310'},
-                'job': {'jobs': [5487], 'too_many_jobs': False},
-                'model': {'brand_ids': [0, 2, 3, 5, 7, 10, 34, 35, 37, 51],
-                        'brandname': ['Fresenius', 'Fresenius Medical Care'],
-                        'category_ids': [2, 3, 4, 5, 6, 24, 35],
-                        'categoryname': ['Infusion Pump', 'Medical Device'],
-                        'duplicatable_models': [],
-                        'gtin': '00885403477310',
-                        'model_id': None,
-                        'modelname': ['IP22', '999-103EN'],
-                        'models_without_gtin': [42]},
-                'part': {'part_id': None, 'suggested_new_name': []}}
+            'merged_gs1_ai':{
+                'GIAI': '50552395105533488', 'GTIN': '00885403497233', 'brand': None,
+                'model': None, 'SERIAL': 'S00455524', 'ASSET_NO': '5533488',
+                'category': None, 'PROD DATE': '230423',
+                'PROD_DATE': '2304-04-23', 'non_gs1_codes': [],
+                'model_description': None,
+                'brand_name_options': ['NHS', 'GE Healthcare', 'Siemens Healthineers'],
+                'model_name_options': ['Model 999-103DEN', 'Model PRL001311'],
+                'category_name_options': ['Infusion Pump', 'Medical Device', 'Healthcare Equipment']
+            },
+            'resolved': {
+                'gtin': {'value': '00885403497233', 'add_gtin': True},
+                'asset': {'asset_id': None, 'serialnumber': 'S00455524', 'customerassetnumber': '5533488', 'modelid': None, 'assets': [37818, 37819, 37820, 37822], 'prod_date': '230423', 'create_asset': True, 'too_many_assets': False}, 'job': {'jobs': [], 'too_many_jobs': False}, 'model': {'gtin': '00885403497233', 'modelname': ['Model 999-103DEN', 'Model PRL001311'], 'brandname': ['NHS', 'GE Healthcare', 'Siemens Healthineers'], 'brand_ids': [6661], 'categoryname': ['Infusion Pump', 'Medical Device', 'Healthcare Equipment'], 'category_ids': [], 'model_id': None, 'duplicatable_models': [34763], 'models_without_gtin': [34759, 34760, 34761]}, 'part': {'part_id': None, 'suggested_new_name': []}, 'brand': {'brand_options': ['NHS', 'GE Healthcare', 'Siemens Healthineers'], 'brand_ids': [6661]}, 'category': {'category_options': ['Infusion Pump', 'Medical Device', 'Healthcare Equipment'], 'category_ids': []}},
         }
     )
 

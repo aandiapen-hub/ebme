@@ -1,3 +1,4 @@
+from procurement.models import TblPoLines
 import pytest
 from .factories import(
     InvoiceStatusFactory,
@@ -17,6 +18,12 @@ def purchase_order():
 @pytest.fixture
 def po_line():
     return TblPoLinesFactory
+
+@pytest.fixture
+def po_lines():
+    def _multiple_po_lines(count=5, **kwargs):
+        return TblPoLinesFactory.create_batch(size=count, **kwargs)
+    return _multiple_po_lines
 
 @pytest.fixture
 def delivery():

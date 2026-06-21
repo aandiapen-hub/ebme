@@ -1067,7 +1067,6 @@ def test_check_delete_view_renders(client, user, check):
 @pytest.mark.django_db
 def test_check_delete_view_posts_unsuccessfully(client, user):
     test = TestsCarriedOutFactory()
-    print('test', test.checkid.pk)
     checkid = test.checkid.pk
     url = reverse("model_information:delete_check", kwargs={"pk": checkid})
 

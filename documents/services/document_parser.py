@@ -1,4 +1,5 @@
 import biip
+
 from PIL import Image
 import zxingcpp
 from django.core.exceptions import ValidationError
@@ -553,15 +554,20 @@ RESOLVER_MAP = {
 
 
 def temp_group_resolver(group_id):
-    group = TempUploadGroup.objects.get(pk=group_id)
+    group = TempUploadGroup.objects.filter(pk=group_id).first()
+    if not group:
+        return
+
     data = group.extracted_json.get("merged_gs1_ai", None)
     if data is None:
         data = group.extracted_json.get("merged_parsed_barcode", {}).get('values',{})
 
     resolver = RESOLVER_MAP.get(group.document_type_id, gs1_resolver)
     if data and resolver:
-        group.extracted_json.update({"resolved": resolver(data)})
+        resolved_data = resolver(data)
+        group.extracted_json.update({"resolved": resolved_data})
         group.save(update_fields=["extracted_json"])
+
 
 
 

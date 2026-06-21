@@ -51,14 +51,6 @@ class TempUploadMixin:
             pk=temp_group_id
         ).first()
 
-    def add_temp_group_to_context(self, context):
-        temp_group = self.get_temp_group()
-
-        if temp_group:
-            context['temp_group'] = temp_group
-
-        return context
-
     def apply_temp_payload_to_initial(self, initial):
         return apply_payload_to_initial(
             self.get_temp_group_id(),
@@ -160,11 +152,7 @@ class TempUploadUpdateFormMixin:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         self.original = {}
-        if not getattr(self, "instance", None) or not getattr(self.instance, 'pk', None):
-            return
-
         self._compute_original_values()
 
     def _get_instance_value(self, field):

@@ -3,6 +3,7 @@ from .models import Tblassets, Tblmodel, Tblcustomer, TblAssetStatus, Tblppmsche
 from django_select2.forms import ModelSelect2Widget
 from django.core.exceptions import ValidationError
 
+from documents.mixins import TempUploadUpdateFormMixin
 
 class DateInput(forms.DateInput):
     input_type = "date"
@@ -12,7 +13,7 @@ class DateInput(forms.DateInput):
         super().__init__(*args, **kwargs)
 
 
-class AssetUpdateForm(forms.ModelForm):
+class AssetUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
     assetid = forms.CharField(
         widget=forms.HiddenInput(), required=False, label="Asset ID"
     )
