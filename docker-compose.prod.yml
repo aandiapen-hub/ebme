@@ -20,7 +20,7 @@ services:
       context: .
       dockerfile: docker/prod/Dockerfile
     volumes:
-      - .:/app
+      - ./media:/app/media
     env_file:
       - .env.production
       - static/company_info/.env
