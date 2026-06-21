@@ -22,7 +22,7 @@ services:
     volumes:
       - .:/app
     env_file:
-      - .env.development
+      - .env.production
       - static/company_info/.env
     extra_hosts:
       - "host.docker.internal:host-gateway"
