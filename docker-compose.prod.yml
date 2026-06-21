@@ -5,6 +5,8 @@ services:
       dockerfile: docker/prod/Dockerfile
     ports:
       - "10000:10000"
+    networks:
+      - app_net
     volumes:
       - ./media:/app/media
     env_file:
@@ -19,6 +21,8 @@ services:
     build:
       context: .
       dockerfile: docker/prod/Dockerfile
+    networks:
+      - app_net
     volumes:
       - ./media:/app/media
     env_file:
@@ -34,3 +38,9 @@ services:
     image: redis:latest
     ports:
       - "6379:6379"
+    networks:
+      - app_net
+
+networks:
+  app_net:
+    driver: bridge
