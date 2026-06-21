@@ -171,7 +171,7 @@ class ModelUpdateView(
     template_name = "model_information/partials/model_update.html"
     permission_required = "assets.change_tblmodel"
     success_url_app_view = 'model_information:model_view'
-    initial_mapper = 'create_model'
+    initial_mapper = 'update_model'
 
 
 

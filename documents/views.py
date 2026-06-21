@@ -8,6 +8,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseRedirect
 from django.contrib import messages
 from django.urls import reverse, reverse_lazy
 from django.core.exceptions import ValidationError
+
 from .services.documents import (
     create_document_from_file,
     save_temp_files,
@@ -53,7 +54,7 @@ from .forms import (
     BulkLinkDocument,
     EmptyForm,
     TempUploadGroupUpdateForm,
-    AssetDataUpdate
+    get_temp_group_data_update_formclass,
 )
 
 # import generic filter table view
@@ -528,8 +529,15 @@ class TempUploadGroupUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateV
 
 class TempUploadMergedDataUpdate(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     permission_required = "documents.change_tempuploadgroup"
-    form_class = AssetDataUpdate
     template_name = 'documents/temp_group_data_update.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        group_pk = self.kwargs.get('pk')
+        self.group = TempUploadGroup.objects.get(pk=group_pk)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_class(self):
+        return get_temp_group_data_update_formclass(self.group.document_type_id)
 
     def get_success_url(self):
         group_pk = self.kwargs.get('pk')
@@ -537,24 +545,20 @@ class TempUploadMergedDataUpdate(LoginRequiredMixin, PermissionRequiredMixin, Fo
 
     def get_initial(self):
         initial = super().get_initial()
-        group_pk = self.kwargs.get('pk')
-        group = TempUploadGroup.objects.get(pk=group_pk)
-        data = group.extracted_json.get('merged_gs1_ai')
+        data = self.group.extracted_json.get('merged_gs1_ai')
         for key, value in data.items():
             initial[key] = value
         return initial
 
     def form_valid(self, form):
-        group_pk = self.kwargs.get('pk')
-        group = TempUploadGroup.objects.get(pk=group_pk)
-        data = group.extracted_json.get('merged_gs1_ai')
+        data = self.group.extracted_json.get('merged_gs1_ai')
         for key, value in form.cleaned_data.items():
             if isinstance(value, QuerySet):
                 data[key] = list(value.values_list("pk", flat=True))
             else:
                 data[key] = value
-        group.save(update_fields=['extracted_json'])
-        temp_group_resolver(group.pk)
+        self.group.save(update_fields=['extracted_json'])
+        temp_group_resolver(self.group.pk)
         return super().form_valid(form)
 
 class TempUploadGroupDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):

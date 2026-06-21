@@ -204,3 +204,17 @@ class AssetDataUpdate(forms.Form):
         )
     )
 
+class ServiceReportDataUpdate(forms.Form):
+    SERIAL = forms.CharField(required=False)
+
+class DeliveryNoteDataUpdate(forms.Form):
+    po = forms.CharField(required=False)
+
+def get_temp_group_data_update_formclass(group_type):
+    GROUP_TYPE_FORM_MAP = {
+        DocumentTypes.ASSET_DATA: AssetDataUpdate,
+        DocumentTypes.SERVICE_REPORT: ServiceReportDataUpdate,
+        DocumentTypes.DELIVERY_NOTE: DeliveryNoteDataUpdate,
+    }
+    return GROUP_TYPE_FORM_MAP.get(group_type, AssetDataUpdate)
+

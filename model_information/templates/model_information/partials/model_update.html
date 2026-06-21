@@ -4,6 +4,7 @@
 
 {% block content %}
 <div id='update_model'class='container bg-white p-2'>
+{% include 'documents/partials/temp_file_group_mini.html' %}
 <form class="form" method="post"
         hx-post="{{request.path}}"
         hx-trigger="submit"
@@ -16,7 +17,6 @@
         {% include 'partials/form_with_comparison.html' %}
 
         <button class="btn btn-primary" type="submit">Save</button>
-
 
         </form>
         {% if error_message %}
