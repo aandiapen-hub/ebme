@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libpoppler-cpp-dev \
     gcc \
+    tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update \
@@ -14,10 +15,9 @@ RUN apt-get update \
     && pip install psycopg
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
+RUN pip install psycopg
 
 RUN python manage.py collectstatic --noinput
-
-
 
 ENV DJANGO_SETTINGS_MODULE=ebme.settings.production
 
