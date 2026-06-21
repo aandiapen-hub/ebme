@@ -27,7 +27,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     tty: "true"
-    command: gunicorn db_worker
+    command: python manage.py db_worker
     restart: unless-stopped
 
   redis:
