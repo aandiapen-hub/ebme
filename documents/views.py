@@ -462,9 +462,7 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
         file = self.request.FILES.get("files")
         scanned_code = self.request.POST.get("scanned_code", None)
         raw_group_id = self.request.GET.get("group", None)
-        print('raw_groupid', raw_group_id, self.is_uuid(raw_group_id))
         group_id = raw_group_id if self.is_uuid(raw_group_id) else None
-        print('groupid', group_id)
     
         try:
             self.object = save_temp_document(
@@ -474,7 +472,6 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
                 scanned_code=scanned_code,
             )
         except ValidationError as e:
-            print(str(e))
             form.add_error(None, str(e))
             return self.form_invalid(form)
 
@@ -483,6 +480,7 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
                 group=self.object.group
             ).count()
             if group_document_count == 1:
+                print('new grup')
                 context = {"group": self.object.group, "temp_files": [self.object]}
                 response = render(
                     self.request,
@@ -492,11 +490,13 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
                 response['HX-Retarget'] = '#images_div'
                 return response
             else:
+                print('add to existing grup')
                 context = {"file": self.object, "group": self.object.group }
-                return render(
+                response = render(
                     self.request, "documents/partials/temp_file.html", context
                 )
-
+                response['HX-Retarget'] = f"#images_row_{self.object.group.pk}"
+                return response
         else:
             return super().form_valid(form)
 
