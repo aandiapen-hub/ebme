@@ -1,21 +1,44 @@
 {% load static %}
 
-{% if temp_group %}
+{% if group %}
 <div class='container'>
   <div class='row'>
-      <div class='col' id="group_{{ temp_group.pk }}">
-            <small>Scan Type: {{ temp_group.get_document_type_id_display }}</small><br>
-            {% for file in temp_group.temp_uploads.all %}
+      <div class='col' id="group_{{ group.pk }}">
+            <small>Scan Type: {{ group.get_document_type_id_display }}</small><br>
+            {% for file in group.temp_uploads.all %}
             {% include "documents/partials/temp_file.html" %}
             {% endfor %}
 
                 <div class='d-inline-flex mt-1 gap-1'>
-                  <a href='{% url "documents:temp_group" pk=temp_group.pk %}'
+                  <a href='{% url "documents:temp_group" pk=group.pk %}'
                     class='text-decoration-none btn btn-outline-primary'>
                     Open
                   </a>
                 </div>
         </div>
+
+        <div id="openseadragon_{{group.pk}}" style="width: 500px; height: 300px;display:none;">
+            <button class='btn btn-secondary'
+          _='on click hide #openseadragon_{{group.pk}}'>
+            Close viewer 
+            </button>
+        </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/openseadragon.min.js"
+                integrity="sha512-gPZzE+sKmE0kvcjMxW431ef5b5T5QOADV9Gij0isPw2oLATd1IZW7dmDmKh7F2e5BfwjQyAfFp3/OF0fVMOF7Q=="
+                crossorigin="anonymous"
+                referrerpolicy="no-referrer">
+        </script>
+        <script>
+            var viewer = OpenSeadragon({
+              id: "openseadragon_{{group.pk}}",
+              prefixUrl:
+                "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
+              showRotationControl: true,
+              gestureSettingsTouch: {
+                pinchRotate: true
+              }
+            });
+        </script>
   </div>
 </div>
 {% endif %}

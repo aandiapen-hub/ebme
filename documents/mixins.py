@@ -126,7 +126,7 @@ class TempUploadMixin:
 
         # populate from payload
         context = self.apply_temp_payload_to_context(context=context)
-        context['temp_group'] = self.get_temp_group()
+        context['group'] = self.get_temp_group()
 
         return context
 
