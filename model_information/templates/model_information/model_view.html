@@ -13,7 +13,7 @@
         </div>
         <div class='col text-end'>
         <!--Documents --> 
-        {% include "documents/partials/generic_document_partial.html" with object=object.pk content_type='assets.tblmodel' %}
+        {% include "documents/partials/generic_document_partial.html" with object_id=object.pk content_type='assets.tblmodel' %}
 
           <div id="edit_div" class="dropdown">
             <button class="btn btn-outline-white border-white dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
