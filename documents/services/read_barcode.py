@@ -95,7 +95,10 @@ def merge_barcode_parsed(barcodes):
             if key not in merged:
                 merged[key] = value
             elif merged[key] != value:
-                conflicts.setdefault(key, set()).update([merged[key], value])
+                conflicts.setdefault(key, set()).update([
+                    tuple(merged[key]),
+                    tuple(value)
+                ])
 
     return {
         "values": merged,

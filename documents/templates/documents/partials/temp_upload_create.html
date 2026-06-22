@@ -4,11 +4,7 @@
     action="{{scan_url}}?group={{ group_id }}"
     {% if not quick_scanner %}
     hx-post="{{scan_url}}?group={{ group_id }}"
-    {% if 'new' in group_id %}
-      hx-target="#images_div"
-      {% else %}
-      hx-target="#group_{{ group_id }}"
-    {% endif %}
+    hx-target="#images_row_{{ group_id }}"
     hx-swap="beforeend"
     hx-trigger='submit'
     hx-disabled-elt='#inputs_{{group_id}} input, #inputs_{{group_id}} button'

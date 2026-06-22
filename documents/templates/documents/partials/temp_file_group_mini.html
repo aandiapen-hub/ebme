@@ -4,7 +4,7 @@
 <div class='container'>
   <div class='row'>
       <div class='col' id="group_{{ temp_group.pk }}">
-            <h5>Group Type: {{ temp_group.get_document_type_id_display }}</h5>
+            <small>Scan Type: {{ temp_group.get_document_type_id_display }}</small><br>
             {% for file in temp_group.temp_uploads.all %}
             {% include "documents/partials/temp_file.html" %}
             {% endfor %}

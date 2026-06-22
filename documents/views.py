@@ -1,5 +1,6 @@
 from io import BytesIO
 import json
+import uuid
 from django.apps import apps
 from django.views.generic.edit import FormMixin
 from django.db.models.query import QuerySet
@@ -424,18 +425,19 @@ class GetTaskResult(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         context = self.get_context_data(object=self.object)
         response = HttpResponse(status=200)
 
-        if self.object.task_result_id:
+        task_result = None
+        task_result_id = self.object.task_result_id
+        if task_result_id:
             task_result = default_task_backend.get_result(
                 self.object.task_result_id
             )
-            if task_result.status in ['SUCCESSFUL', 'FAILED', 'READY']:
-                context['task_result'] = task_result
-                response = self.render_to_response(context)
-                response['HX-Reswap'] = 'outerHTML'
-                response['HX-Trigger'] = json.dumps({'data_resolved': True})
+        if getattr(task_result, 'status', None) in ['SUCCESSFUL', 'FAILED', None] :
+            context['task_result'] = task_result
+            response = self.render_to_response(context)
+            response['HX-Reswap'] = 'outerHTML'
+            response['HX-Trigger'] = json.dumps({'data_resolved': True})
 
         return response
-
 
     def get_template_names(self):
         return ['documents/partials/task_progress.html']
@@ -449,19 +451,31 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
     def get_success_url(self):
         return reverse("documents:temp_group", kwargs={'pk': self.object.group.pk})
 
+    def is_uuid(self,value):
+        try:
+            uuid.UUID(str(value))
+            return True
+        except (ValueError, TypeError):
+            return False
+
     def form_valid(self, form):
         file = self.request.FILES.get("files")
         scanned_code = self.request.POST.get("scanned_code", None)
-
+        raw_group_id = self.request.GET.get("group", None)
+        print('raw_groupid', raw_group_id, self.is_uuid(raw_group_id))
+        group_id = raw_group_id if self.is_uuid(raw_group_id) else None
+        print('groupid', group_id)
+    
         try:
             self.object = save_temp_document(
                 user=self.request.user,
-                group_id = self.request.GET.get("group", None),
+                group_id = group_id,
                 file=file,
                 scanned_code=scanned_code,
             )
         except ValidationError as e:
-            form.add_error(None, str(e.message_dict['__all__'][0]))
+            print(str(e))
+            form.add_error(None, str(e))
             return self.form_invalid(form)
 
         if self.request.htmx:
@@ -478,7 +492,7 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
                 response['HX-Retarget'] = '#images_div'
                 return response
             else:
-                context = {"file": self.object}
+                context = {"file": self.object, "group": self.object.group }
                 return render(
                     self.request, "documents/partials/temp_file.html", context
                 )

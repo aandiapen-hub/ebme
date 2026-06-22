@@ -84,7 +84,7 @@
                         {% with scanner_input_class='visually-hidden' group_id=group.pk %}
                           {% include 'documents/partials/temp_upload_create.html' %}
                         {% endwith %}
-                        {% if request.resolver_match.url_name == 'user_temp_files' %}
+                        {% if request.resolver_match.url_name == 'user_temp_files' or  request.resolver_match.url_name == 'create_temp_file' %}
                           <a href='{% url "documents:temp_group" pk=group.pk %}'
                             class='text-decoration-none btn btn-sm btn-outline-primary'>
                             Open <i class="bi bi-door-open"></i>
@@ -118,14 +118,12 @@
                           </div>       
                       </div>
 
-                      <div class='d-flex flex-column'>
-                          <div class='col d-inline-flex'>
+              <div class='d-flex flex-column'>
+                          <div id='images_row_{{group.pk}}' class='col d-inline-flex'>
                             {% for file in group.temp_uploads.all %}
-                            {% include "documents/partials/temp_file.html" %}
-                            {% if forloop.counter == 1 %}
-
-                            {% endif %}
+                              {% include "documents/partials/temp_file.html" %}
                             {% endfor %}
+                          </div>
 
                             <div id="openseadragon_{{group.pk}}" style="width: 500px; height: 300px;display:none;">
                                 <button class='btn btn-secondary'
@@ -145,7 +143,6 @@
                                       "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
                                 });
                             </script>
-                          </div>
                       </div>
               </div>
     </div>

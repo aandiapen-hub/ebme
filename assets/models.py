@@ -530,7 +530,7 @@ class Tbljobtypes(models.Model):
 
 class Tblmodel(models.Model):
     modelname = models.CharField(
-        db_column="ModelName", max_length=100, verbose_name="Model"
+        db_column="ModelName", max_length=100, verbose_name="Model Name"
     )  # Field name made lowercase.
     modelid = models.BigAutoField(
         db_column="ModelID", primary_key=True
@@ -539,13 +539,18 @@ class Tblmodel(models.Model):
         "Tblbrands",
         models.PROTECT,
         db_column="BrandID",
+        verbose_name='Brand'
     )  # Field name made lowercase.
     categoryid = models.ForeignKey(
         "Tblcategories",
         on_delete=models.PROTECT,
         db_column="categoryid",
+        verbose_name='Category'
     )
-    gtin = models.CharField(blank=True, null=True)
+    gtin = models.CharField(
+        blank=True, null=True,
+        verbose_name='GTIN'
+    )
     document_links = GenericRelation(
         "documents.TblDocumentLinks", related_query_name="models"
     )
