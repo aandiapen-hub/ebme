@@ -139,8 +139,12 @@
                             <script>
                                 var viewer = OpenSeadragon({
                                   id: "openseadragon_{{group.pk}}",
-                                    prefixUrl:
-                                      "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
+                                  prefixUrl:
+                                    "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
+                                  showRotationControl: true,
+                                  gestureSettingsTouch: {
+                                    pinchRotate: true
+                                  }
                                 });
                             </script>
                       </div>
