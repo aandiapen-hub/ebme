@@ -88,12 +88,13 @@ def extract_text_from_pdf(file):
 
 
 def extract_text_from_file(file):
+    extracted_data = None
     if 'image' in file.mime_type:
         extracted_data = extract_text_from_image(file)
     elif 'pdf' in file.mime_type:
         extracted_data = extract_text_from_pdf(file)
 
-    file.ocr_text = extracted_data['ocr_text']
-    file.ocr_boxes = extracted_data['ocr_boxes']
-
-    file.save(update_fields=['ocr_text', 'ocr_boxes'])
+    if extracted_data:
+        file.ocr_text = extracted_data['ocr_text']
+        file.ocr_boxes = extracted_data['ocr_boxes']
+        file.save(update_fields=['ocr_text', 'ocr_boxes'])

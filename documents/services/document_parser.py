@@ -1,10 +1,5 @@
 import biip
-
-from PIL import Image
-import zxingcpp
-from django.core.exceptions import ValidationError
 from django.db.models import Q
-
 from assets.models import (
     AssetView,
     Tblmodel,
@@ -39,6 +34,10 @@ def asset_data_builder(
     category_name_options=None,
     category_ids=None,
     part_id=None,
+    part_number=None,
+    part_short_name=None,
+    part_description=None,
+    parts_without_gtin=None,
     suggested_new_part_names=None,
 ):
     return {
@@ -72,8 +71,13 @@ def asset_data_builder(
             "models_without_gtin": models_without_gtin or [],
         },
         "part": {
+            "gtin": gtin,
             "part_id": part_id,
             "suggested_new_name": suggested_new_part_names or [],
+            "part_number": part_number,
+            "short_name": part_short_name,
+            "description": part_description,
+            "parts": parts_without_gtin,
         },
         "brand": {
             "brand_options": brand_name_options or [],
@@ -388,6 +392,13 @@ def gs1_resolver(parsed_data):
             options=category_name_options,
         )
 
+    category_name_options = parsed_data.get("category_name_options", None)
+
+    # -------------------------
+    # 8. Spare Part 
+    # -------------------------
+    part_number = parsed_data.get("model")
+    part_short_name = parsed_data.get("description")
     # -------------------------
     # FINAL OUTPUT
     # -------------------------
@@ -411,6 +422,8 @@ def gs1_resolver(parsed_data):
         category_name_options=category_name_options,
         category_ids=category_ids,
         part_id=part_id,
+        part_number=part_number,
+        part_short_name=part_short_name,
     )
 
 
@@ -559,6 +572,7 @@ def temp_group_resolver(group_id):
         return
 
     data = group.extracted_json.get("merged_gs1_ai", None)
+    print('pre resolved data', data)
     if data is None:
         data = group.extracted_json.get("merged_parsed_barcode", {}).get('values',{})
 

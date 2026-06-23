@@ -26,8 +26,7 @@ class AssetData(BaseModel):
     brand_name_options: list[str] = Field(default_factory=list)
     model_name_options: list[str] = Field(default_factory=list)
     category_name_options: list[str] = Field(default_factory=list)
-
-    model_description: Optional[str] = None
+    description: Optional[str] = None
 
 
 class JobData(BaseModel):
@@ -85,7 +84,8 @@ PROMPT_CONTENT = {
     DocumentTypes.ASSET_DATA.value: {
         "user_prompt": """Get information about the medical equipment from the images
                             and decoded text and gs1 decoded informations. gs1 decoded information is always acurate. If the information
-                            is not clear, return none, do not guess. Give name options that can be used for keyword lookup in a database""",
+                            is not clear, return none, do not guess.
+                            Give name options that can be used for keyword lookup in a database.""",
         "system_prompt": """You are a biomedical equipment administrator with expertise in cataloging
                         medical equipment and devices on a database.""",
         "response_format": AssetData,

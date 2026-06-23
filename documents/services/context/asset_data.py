@@ -290,6 +290,7 @@ class AssetDataContext(
 
 
         return {
+            'key_data_extracted': self.resolved_data.get('asset'),
             'groups': [
                 exact_match_group,
                 suggested_actions,

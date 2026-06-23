@@ -94,14 +94,21 @@ def quick_group_processor(temporary_upload):
         barcode_data = extract_barcode_from_file(temporary_upload)
 
     keys = ("text", "parsed")
+
+    barcode_lists = list(group.temp_uploads.all().values_list("barcode_data", flat=True))
+    print('barcode_lists', barcode_lists)
+    flattened_barcode_list = [
+        barcode for barcode_list in barcode_lists for barcode in barcode_list
+    ]
+    print('flattened barcode_lists', flattened_barcode_list)
+    keys = ("text", "parsed")
     barcode_list = [
         {key: barcode.get(key, None) for key in keys}
-        for barcode in barcode_data
+        for barcode in flattened_barcode_list
     ]
 
-    data = group.extracted_json.get("barcode", [])
-    data.append(barcode_list)
-    group.extracted_json["barcode"] = data
-    group.extracted_json['merged_parsed_barcode'] = merge_barcode_parsed(barcode_list)
+    group.extracted_json["barcode"] = barcode_list 
+    merged_barcode_parsed = merge_barcode_parsed(barcode_list)
+    group.extracted_json['merged_parsed_barcode'] = merged_barcode_parsed
     group.save(update_fields=['extracted_json'])
     temp_group_resolver(group.pk)

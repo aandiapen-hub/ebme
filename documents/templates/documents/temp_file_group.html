@@ -168,13 +168,20 @@
     </div>
 
     <div id='additional_context'
-    hx-get='{% url "documents:temp_group" pk=group.pk %}'
-    hx-trigger='data_resolved from:body'
-    hx-swap='outerHTML'
-    hx-target='this'
-    hx-select='#additional_context'
-    >
-      {% include template_name %} </div>
+      hx-get='{% url "documents:temp_group" pk=group.pk %}'
+      hx-trigger='data_resolved from:body'
+      hx-swap='outerHTML'
+      hx-target='this'
+      hx-select='#additional_context'
+      >
+      <div class='border border-secondary mb-2'>
+        <small>Key information:</small>
+        {% for key,value in key_data_extracted.items %}
+                <small>{{key}}:{{value}},</small>
+        {% endfor %}
+      </div>
+      {% include template_name %}
+    </div>
 </div>
 
 {% endblock %}

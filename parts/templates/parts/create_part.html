@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<h3>Add new spare part</h3>
+{% include 'documents/partials/temp_file_group_mini.html' %}
+<div id="update_part" class="container">
+    {% include "partials/messages.html" %}
+
+    <form action="" method="post">
+        {{ form.media }} 
+        {% csrf_token %}
+        {% bootstrap_form form %}
+
+        <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+
+</div>
+
+{% endblock %}
+

@@ -10,8 +10,6 @@ def map_service_report_data_to_job(resolved_data):
     auto_update_fields = '__all__'
     return payload, auto_update_fields
 
-
-
 def map_delivery_note(resolved_data):
     payload = resolved_data.get("delivery", None)
     auto_update_fields = '__all__'
@@ -39,6 +37,11 @@ def map_model_create_data(resolved_data):
     auto_update_fields = '__all__'
     return payload, auto_update_fields
 
+def map_part_create_data(resolved_data):
+    payload = resolved_data.get("part", None)
+    auto_update_fields = '__all__'
+    return payload, auto_update_fields
+
 
 INITIAL_PAYLOAD_MAP = {
     DocumentTypes.SERVICE_REPORT: map_service_report_data_to_job,
@@ -47,6 +50,7 @@ INITIAL_PAYLOAD_MAP = {
     "create_model": map_model_create_data,
     "update_model": map_model_update_data,
     DocumentTypes.UNKNOWN: map_asset_data,
+    "create_part": map_part_create_data,
 }
 
 
@@ -73,6 +77,7 @@ def apply_payload_to_initial(
         return initial
 
     payload, auto_update_fields = mapper(resolved_data)
+    print('payload', payload)
 
     if payload:
         # update initial based on specifid payload in query params
@@ -81,10 +86,8 @@ def apply_payload_to_initial(
         for key, value in payload.items():
             update_key = True if key in auto_update_fields else False
             non_null_value = True if value not in ['', None] else False
-            print(key, value)
 
             if [update_all_fields or update_key] and non_null_value:
-                print('updating')
                 v = initial.get(key, None)
                 if v in [None, '']:
                     if isinstance(value, list):

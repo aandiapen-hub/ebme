@@ -1,12 +1,12 @@
-from django.db import transaction, utils
 from django.utils.safestring import mark_safe
+from django.db import transaction
 from django.db.utils import IntegrityError
 from urllib.parse import urlencode
+from documents.mixins import TempUploadMixin
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from django.utils.timezone import now
-from django.contrib import messages
 
 from documents.services.documents import delete_object_document_links
 from utils.generic_views import BulkUpdateView
@@ -133,21 +133,17 @@ class PartDeleteView(LoginRequiredMixin, PermissionRequiredMixin,
             return self.render_to_response(context)
 
 
-class PartCreateView(LoginRequiredMixin, PermissionRequiredMixin,
-                  CreateView):
+class PartCreateView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TempUploadMixin,
+    CreateView):
     model = Tblpartslist
     fields = "__all__"
-    template_name = "parts/update_part.html"
+    template_name = "parts/create_part.html"
     permission_required = 'parts.add_tblpartslist'
-
-    def get_success_url(self):
-        return reverse("parts:part_detail", kwargs={'pk':self.object.partid})
-
-    def get_initial(self):
-        initial = super().get_initial()
-        for key in self.request.GET:
-            initial[key] = self.request.GET[key]
-        return initial
+    initial_mapper = 'create_part'
+    success_url_app_view = "parts:part_detail"
 
 
     def form_valid(self, form):
@@ -168,12 +164,6 @@ class PartCreateView(LoginRequiredMixin, PermissionRequiredMixin,
             url = reverse('parts:part_detail', kwargs={'pk':existing_part.partid})
             form.add_error(None, mark_safe(f'This part number from the same supplier already exists - <a href="{url}">Go to Existing Part</a>'))
         return super().form_invalid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["title"] = 'Create New Part' 
-        context["view_type"] = 'create'
-        return context
 
 
 class SparePartPriceListView(LoginRequiredMixin, PermissionRequiredMixin,
