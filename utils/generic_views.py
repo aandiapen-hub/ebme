@@ -148,6 +148,7 @@ class FilteredTableView(
         # call parent's dispatch so that the check for new filter is completed
         response = super().dispatch(request, *args, **kwargs)
         if getattr(self, "new_filter_context", False):
+            print(self.new_filter_context)
             return render(request, "partials/new_filter.html", self.new_filter_context)
 
         # fallback is to return of filtered table data
