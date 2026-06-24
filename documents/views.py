@@ -559,7 +559,7 @@ class TempUploadMergedDataUpdate(LoginRequiredMixin, PermissionRequiredMixin, Fo
 
     def get_initial(self):
         initial = super().get_initial()
-        data = self.group.extracted_json.get('merged_gs1_ai')
+        data = self.group.extracted_json.get('merged_gs1_ai', {})
         for key, value in data.items():
             initial[key] = value
         return initial
