@@ -180,7 +180,7 @@ def test_part_create_view_renders(client, user):
     query_params = urlencode({'part_number': 'test'})
     response = client.get(f"{url}?{query_params}")
     assert response.status_code == 200
-    assertTemplateUsed(response, 'parts/update_part.html')
+    assertTemplateUsed(response, 'parts/create_part.html')
 
 @pytest.mark.django_db
 def test_part_create_view_post_successful(client, user, supplier, order_unit):

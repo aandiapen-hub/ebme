@@ -10,7 +10,7 @@
         </div>
       </div>    
     </h5>
-    <p class="card-text">Out of {{total_assets}} assets, {{non_compliant_assets|floatformat:0}} are due for Preventive Maintenance</p>
+    <p class="card-text">Out of {{overall.total}} assets, {{overall.compliant_count|floatformat:0}} are compliant</p>
     <a href='{% url "assets:assets_list" %}?ppm_compliance=non-compliant' class="btn btn-outline-warning">View Oustanding Assets</a>
   </div>
 </div>

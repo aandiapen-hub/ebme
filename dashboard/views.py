@@ -1,17 +1,12 @@
-from django.shortcuts import render
-
+from django.db.models import Count, Q, FloatField, F
+from django.db.models.expressions import ExpressionWrapper
 # Create your views here.
-from django.urls import reverse,reverse_lazy
 
 #get models from asset model file
 from assets.models import AssetView, JobView
 
 
 #import data analysis libraries
-import pandas as pd
-
-#import plotly libraries
-import plotly.express as px
 
 import django_tables2 as tables
 from django_tables2.views import SingleTableView
@@ -23,7 +18,7 @@ from jobs.mixins import CustomerJobListPermissionMixin
 
 
 class ModelComplianceTable(tables.Table):
-    model = tables.Column()
+    modelname = tables.Column()
     modelid = tables.Column(visible=False)
     Percentage = tables.Column()
 
@@ -32,7 +27,7 @@ class ModelComplianceTable(tables.Table):
 
 
 class CategoryComplianceTable(tables.Table):
-    category = tables.Column()
+    categoryname = tables.Column()
     categoryid = tables.Column(visible=False)
     Percentage = tables.Column()
 
@@ -59,31 +54,26 @@ class BaseComplianceView(
     template_name = "dashboards/partials/compliance.html"
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        values_fields = self.group_by_fields + [self.compliance_field, self.asset_id_field]
-        df = pd.DataFrame.from_records(qs.values(*values_fields))
-
-        if df.empty:
-            return []
-
-        # Group by asset type and compliance status
-        group_cols = self.group_by_fields + [self.compliance_field]
-        grouped = df.groupby(group_cols, group_keys=False)[self.asset_id_field].count().to_frame()
-
-        # Calculate percentage per model (excluding compliance status)
-        percentage = grouped.groupby(level=0).apply(lambda x: 100 * x / x.sum()).round(2)
-        percentage.index = percentage.index.droplevel(0)
-        percentage = percentage.reset_index()
-
-        # Rename fields for table display
-        percentage.rename(columns={self.asset_id_field: 'Percentage'}, inplace=True)
-        for old_name, new_name in self.model_field_map.items():
-            percentage.rename(columns={old_name: new_name}, inplace=True)
-
-        # Sort and filter
-        percentage = percentage.sort_values(by='Percentage', ascending=False)
-        output = percentage[percentage[self.compliance_field] == self.filter_compliant_value]
-        return output.to_dict(orient='records')
+        qs = (
+            super()
+            .get_queryset()
+            .values(*self.group_by_fields)
+            .annotate(
+                total=Count(self.asset_id_field),
+                compliant=Count(
+                    self.asset_id_field,
+                    filter=Q(**{self.compliance_field: self.filter_compliant_value}),
+                ),
+            )
+            .annotate(
+                Percentage=ExpressionWrapper(
+                    100.0 * F("compliant") / F("total"),
+                    output_field=FloatField(),
+                )
+            )
+            .order_by("-Percentage")
+        )
+        return qs
 
     def get_template_names(self):
         if self.request.htmx:
@@ -96,7 +86,6 @@ class ModelComplianceView(BaseComplianceView):
     permission_required = 'assets.view_assetview'
     table_class = ModelComplianceTable
     group_by_fields = ['modelname', 'modelid']
-    model_field_map = {'modelname': 'model'}  # Field renames for output
 
 
 class CategoryComplianceView(BaseComplianceView):
@@ -104,7 +93,6 @@ class CategoryComplianceView(BaseComplianceView):
     permission_required = 'assets.view_assetview'
     table_class = CategoryComplianceTable
     group_by_fields = ['categoryname', 'categoryid']
-    model_field_map = {'categoryname': 'category'}
 
 
 class AssetComplianceView(
@@ -117,25 +105,25 @@ class AssetComplianceView(
     asset_id_field = 'assetid'
     template_name = 'dashboards/partials/asset_overall_compliance.html'
     permission_required = 'assets.view_assetview'
+    compliant_value = 'compliant'
 
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-    
         qs = super().get_queryset()
-        values_fields = [self.compliance_field, self.asset_id_field]
-        df = pd.DataFrame.from_records(qs.values(*values_fields))
 
-        # Group by asset type and compliance status
-        group_cols = self.compliance_field
-        grouped = df.groupby(group_cols, group_keys=False)[self.asset_id_field].count().to_frame()
-        
-        context['total_assets'] = grouped['assetid'].sum()
-        # Calculate percentage per model (excluding compliance status)
-        grouped['percentage'] = (grouped['assetid']/grouped['assetid'].sum())*100
-        context['compliant_assets'] = grouped.loc['compliant']['assetid']
-        context['non_compliant_assets'] = grouped.loc['non-compliant']['assetid']
-        context['percentage_compliance'] = grouped.loc['compliant']['percentage']
+        overall = qs.aggregate(
+            total = Count(self.asset_id_field),
+            compliant_count = Count(
+                self.asset_id_field,
+                filter=Q(**{self.compliance_field: self.compliant_value})
+            )
+        )
+        context['percentage_compliance'] = (
+                100.0 * overall['compliant_count']/overall['total']
+                if overall['total'] else 0
+        )
+        context['overall'] = overall
 
         return context
 
@@ -146,28 +134,27 @@ class OpenJobsView(LoginRequiredMixin,
     template_name = 'dashboards/partials/open_jobs.html'
     permission_required = 'assets.view_jobview'
 
+    def get_queryset(self):
+        qs = (
+            super()
+            .get_queryset()
+            .filter(jobstatusid__in=[0,2,3,5])
+            .values(
+                "jobtypename",
+                "jobstatus",
+                "jobstatusid",
+                "jobtypeid",
+            ).
+            annotate(count=Count('pk'))
+        )
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-    
-        qs = super().get_queryset().filter(jobstatusid__in=[0,2,3,5])
-        values_fields = ['jobid','jobtypename','jobstatus','jobstatusid','jobtypeid']
-        group_cols = ['jobtypename','jobstatus','jobstatusid','jobtypeid']
-        df = pd.DataFrame.from_records(qs.values(*values_fields))
-        
-        grouped = df.groupby(group_cols, group_keys=False)['jobid'].count().to_frame()
-        grouped = grouped.rename(columns={'jobid': 'count'})
-        context['total_jobs'] = grouped['count'].sum()
-        # Calculate percentage per model (excluding compliance status)
-        nested = {}
-        for (jobtypename, jobstatus,jobstatusid,jobtypeid), row in grouped.iterrows():
-            nested.setdefault(jobtypename, []).append({
-                'jobstatus': jobstatus,
-                'jobtypeid':jobtypeid,
-                'jobstatusid':jobstatusid,
-                'count': row['count'],
-            })
-
-        context['details'] = nested
-
+        context["total_jobs"] = (
+            super()
+            .get_queryset()
+            .filter(jobstatusid__in=[0, 2, 3, 5])
+            .count()
+        )
         return context

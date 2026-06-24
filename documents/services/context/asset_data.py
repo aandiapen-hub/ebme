@@ -235,6 +235,22 @@ def get_create_asset(data, temp_group_id=None):
         ) ]
     return items
 
+def get_key_information(data):
+    output = {}
+    serialno = data.get('asset',{}).get('serialnumber')
+    if serialno:
+        output.update({
+            'Serial no': serialno 
+            })
+
+    gtin = data.get('gtin',{}).get('value')
+    if gtin: 
+        output.update({
+            'GTIN': gtin 
+            })
+
+    return output
+
 class AssetDataContext(
     BaseDocumentContextBuilder
 ):
@@ -288,9 +304,10 @@ class AssetDataContext(
                 self.resolved_data,  temp_group
         )
 
+        
 
         return {
-            'key_data_extracted': self.resolved_data.get('asset'),
+            'key_data_extracted': get_key_information(self.resolved_data),
             'groups': [
                 exact_match_group,
                 suggested_actions,

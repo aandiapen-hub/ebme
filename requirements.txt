@@ -26,13 +26,10 @@ idna==3.10
 iniconfig==2.1.0
 jiter==0.10.0
 narwhals==1.39.1
-numpy
 openai==1.93.0
 packaging==25.0
-pandas
 pdf2image==1.17.0
 pillow
-plotly==6.1.0
 pluggy==1.6.0
 psycopg==3.2.9
 pydantic

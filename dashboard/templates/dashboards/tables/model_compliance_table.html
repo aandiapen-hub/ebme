@@ -36,8 +36,8 @@
                         <div style="width: {{ cell }}%; background-color: #4caf50; height: 20px; border-radius: 5px;"></div>
                     </div>
                 {% else %}
-                <a href='{% url "assets:assets_list" %}?modelid__iexact={{row.record.modelid}}' type='button', class="text text-secondary text-decoration-none">
-                  {{ cell }}
+                <a href='{% url "assets:assets_list" %}?modelid__iexact={{row.record.modelid|floatformat}}' type='button', class="text text-secondary text-decoration-none">
+              {{ cell }}
                 </a>
                 {% endif %}
             </td>

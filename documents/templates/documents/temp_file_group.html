@@ -176,9 +176,11 @@
       >
       <div class='border border-secondary mb-2'>
         <small>Key information:</small>
-        {% for key,value in key_data_extracted.items %}
-                <small>{{key}}:{{value}},</small>
+          <ul>
+            {% for key,value in key_data_extracted.items %}
+               <li><small>{{key}}:{{value}}</small></li> 
         {% endfor %}
+          </ul>
       </div>
       {% include template_name %}
     </div>
