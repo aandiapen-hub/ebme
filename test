@@ -1,0 +1,117 @@
+
+from django.db import models
+
+class CapitalProjectStatus(models.Model):
+    capitalprojectstatusid = models.IntegerField(db_column='CapitalProjectStatusId', primary_key=True, max_length=50)  # Field name made lowercase.
+    capitalprojectstatusshortname = models.CharField(db_column='CapitalProjectStatusShortName', max_length=255, blank=True, null=True)  # Field name made lowercase.
+    capitalprojectstatusdescription = models.TextField(db_column='CapitalProjectStatusDescription', blank=True, null=True)  # Field name made lowercase.
+    inactive = models.BooleanField(db_column='Inactive', blank=True, null=True)  # Field name made lowercase.
+
+    class Meta:
+        managed = False
+        db_table = 'capital_project_status'
+
+class CapitalProjectType(models.Model):
+    capitalprojecttypeid = models.IntegerField(db_column='CapitalProjectTypeId', primary_key=True, max_length=50)  # Field name made lowercase.
+    capitalprojecttypeshortname = models.CharField(db_column='CapitalProjectTypeShortName', max_length=255, blank=True, null=True)  # Field name made lowercase.
+    capitalprojecttypedescription = models.TextField(db_column='CapitalProjectTypeDescription', blank=True, null=True)  # Field name made lowercase.
+    inactive = models.BooleanField(db_column='Inactive', blank=True, null=True)  # Field name made lowercase.
+
+    class Meta:
+        managed = False
+        db_table = 'capital_project_type'
+
+class CapitalProject(models.Model):
+    capitalprojectid = models.BigIntegerField(primary_key=True, max_length=50)  # Field name made lowercase.
+    capitalprojectcode = models.CharField(max_length=50, blank=True, null=True)  # Field name made lowercase.
+    capitalprojectshortname = models.CharField(max_length=255, blank=True, null=True)  # Field name made lowercase.
+    capitalprojectdescription = models.TextField(blank=True, null=True)  # Field name made lowercase.
+    capitalprojectnotes = models.TextField(blank=True, null=True)  # Field name made lowercase.
+    capitalprojecttypeid = models.ForeignKey('CapitalProjectType', models.DO_NOTHING, db_column='CapitalProjectTypeId', blank=True, null=True)  # Field name made lowercase.
+    capitalprojectstatusid = models.ForeignKey('CapitalProjectStatus', models.DO_NOTHING, db_column='CapitalProjectStatusId', blank=True, null=True)  # Field name made lowercase.
+    responsibleid = models.ForeignKey('CustomUser', models.DO_NOTHING, db_column='ResponsibleId', blank=True, null=True)  # Field name made lowercase.
+    closedate = models.DateTimeField(db_column='CloseDate', blank=True, null=True)  # Field name made lowercase.
+    creationdate = models.DateTimeField(db_column='CreationDate', blank=True, null=True)  # Field name made lowercase.
+    modificationdate = models.DateTimeField(blank=True, null=True)  # Field name made lowercase.
+    inactive = models.BooleanField(db_column='Inactive', blank=True, null=True)  # Field name made lowercase.
+    startdate = models.DateTimeField(db_column='StartDate', blank=True, null=True)  # Field name made lowercase.
+    enddate = models.DateTimeField(db_column='EndDate', blank=True, null=True)  # Field name made lowercase.
+
+    class Meta:
+        managed = False
+        db_table = 'capital_project'
+
+class CapitalProjectBidStatus(models.Model):
+    capitalprojectbidstatusid = models.CharField(db_column='CapitalProjectBidStatusId', primary_key=True, max_length=50)  # Field name made lowercase.
+    capitalprojectbidstatuscode = models.CharField(db_column='CapitalProjectBidStatusCode', max_length=50, blank=True, null=True)  # Field name made lowercase.
+    capitalprojectbidstatusshortname = models.CharField(db_column='CapitalProjectBidStatusShortName', max_length=255, blank=True, null=True)  # Field name made lowercase.
+    capitalprojectbidstatusdescription = models.TextField(db_column='CapitalProjectBidStatusDescription', blank=True, null=True)  # Field name made lowercase.
+    inactive = models.BooleanField(db_column='Inactive', blank=True, null=True)  # Field name made lowercase.
+
+    class Meta:
+        managed = False
+        db_table = 'capital_project_bid_status'
+
+class Capitalprojectbid(models.Model):
+    capitalprojectbidid = models.IntegerField(primary_key=True, max_length=50)  # Field name made lowercase.
+    capitalprojectid = models.ForeignKey(CapitalProject, models.DO_NOTHING)  # Field name made lowercase.
+    capitalprojectbidcode = models.CharField(max_length=50, blank=True, null=True)  # Field name made lowercase.
+    capitalprojectbidshortname = models.CharField(max_length=255, blank=True, null=True)  # Field name made lowercase.
+    capitalprojectbiddescription = models.TextField(blank=True, null=True)  # Field name made lowercase.
+    capitalprojectbidnotes = models.TextField(blank=True, null=True)  # Field name made lowercase.
+    capitalprojectbidstatusid = models.ForeignKey('CapitalProjectBidStatus', models.PROTECT, blank=True, null=True)  # Field name made lowercase.
+    statusdate = models.DateTimeField(db_column='StatusDate', blank=True, null=True)  # Field name made lowercase.
+    locationid = models.ForeignKey('Tbllocations', models.DO_NOTHING, blank=True, null=True)  # Field name made lowercase.
+    responsibleid = models.ForeignKey('Personnel', models.PROTECT, blank=True, null=True)  # Field name made lowercase.
+    usercontactid = models.ForeignKey('Personnel', models.PROTECT, related_name='capitalprojectbid_usercontactid_set', blank=True, null=True)  # Field name made lowercase.
+    techcontactid = models.ForeignKey('Personnel', models.PROTECT, related_name='capitalprojectbid_techcontactid_set', blank=True, null=True)  # Field name made lowercase.
+    targetdate = models.DateTimeField(blank=True, null=True)  # Field name made lowercase.
+
+    quantity = models.IntegerField(db_column='Quantity', blank=True, null=True)  # Field name made lowercase.
+    approvedquantity = models.IntegerField(db_column='ApprovedQuantity', blank=True, null=True)  # Field name made lowercase.
+    supplierid = models.ForeignKey('Supplier', models.DO_NOTHING, db_column='SupplierId', blank=True, null=True)  # Field name made lowercase.
+
+    orderno = models.CharField(db_column='OrderNo', max_length=50, blank=True, null=True)  # Field name made lowercase.
+
+    class Meta:
+        managed = False
+        db_table = 'CapitalProjectBid'
+
+
+class Capitalprojectequipment(models.Model):
+    """
+        Model linking assets to capital projects
+    """
+    capitalprojectequipmentid = models.CharField(db_column='CapitalProjectEquipmentId', max_length=50)  # Field name made lowercase.
+    capitalprojectid = models.CharField(db_column='CapitalProjectId', max_length=50)  # Field name made lowercase.
+    equipmentid = models.CharField(db_column='EquipmentId', max_length=50)  # Field name made lowercase.
+
+    class Meta:
+        managed = False
+        db_table = 'CapitalProjectEquipment'
+
+class Decommissionrequeststatus(models.Model):
+    decommissionrequeststatusid = models.IntegerField(primary_key=True, max_length=50)  # Field name made lowercase.
+    decommissionrequeststatuscode = models.CharField(max_length=50, blank=True, null=True)  # Field name made lowercase.
+    decommissionrequeststatusshortname = models.CharField(max_length=255, blank=True, null=True)  # Field name made lowercase.
+
+    class Meta:
+        managed = False
+        db_table = 'decommission_request_status'
+
+class Decommissionrequest(models.Model):
+    decommissionrequestid = models.BigIntegerField(primary_key=True, max_length=50)  # Field name made lowercase.
+    decommissionrequestcode = models.CharField(max_length=50)  # Field name made lowercase.
+    decommissionreason = models.TextField(blank=True, null=True)  # Field name made lowercase.
+    decommissionrequestnotes = models.TextField(blank=True, null=True)  # Field name made lowercase.
+    decommissionrequeststatusid = models.ForeignKey(Decommissionrequeststatus,max_length=50, blank=True, null=True)  # Field name made lowercase.
+    requestdate = models.DateTimeField(blank=True, null=True)  # Field name made lowercase.
+    requestedby = models.ForeignKey('CustomUser', models.DO_NOTHING, blank=True, null=True)  # Field name made lowercase.
+    assetid = models.ForeignKey('Tblassets', models.DO_NOTHING,blank=True, null=True)  # Field name made lowercase.
+
+    class Meta:
+        managed = False
+        db_table = 'decommission_request'
+
+
+
