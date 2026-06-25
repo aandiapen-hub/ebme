@@ -79,6 +79,7 @@
                       {% endif %}
 
               <div class='d-flex flex-row'>
+    <p>test</p>
                       <div class='d-flex flex-column align-items-start gap-1'>
                         {% url 'documents:create_temp_file' as scan_url %}
                         {% with scanner_input_class='visually-hidden' group_id=group.pk %}
@@ -99,7 +100,7 @@
                           </button>
 
                           <a class="btn btn-outline-secondary btn-sm"
-                            href="{% url 'documents:temp_group_delete' pk=group.pk %}">
+                          href="{% url 'documents:temp_group_delete' pk=group.pk %}?redirect_after_delete='true'">
                             Delete <i class="bi bi-file-earmark-x"></i>
                           </a>
 

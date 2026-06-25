@@ -61,7 +61,7 @@
             </svg>
 
             <i class="bi bi-trash btn btn-sm btn-warning position-absolute top-0 end-0 m-1"
-            hx-post="{% url "documents:delete_temp_file" pk=file.pk %}"
+              hx-post="{% url "documents:delete_temp_file" pk=file.pk %}?redirect_after_delete={{redirect_after_delete}}"
             hx-target="#file_div_{{file.pk}}"
             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
             hx-swap="outerHTML"

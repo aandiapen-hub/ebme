@@ -1,7 +1,11 @@
 from urllib.parse import urlencode
 from .context import BaseDocumentContextBuilder
 from django.shortcuts import reverse
-from assets.models import Tblassets
+from assets.models import(
+    Tblassets,
+    Tbljobstatus,
+    Tbljobtypes,
+    ) 
 
 from .context_action import(
     Action,
@@ -44,6 +48,38 @@ def get_assets_from_resolved_data(data, temp_group_id=None):
     return items 
 
 
+def get_key_information(data):
+    output = {}
+    serialno = data.get('asset',{}).get('serial')
+    if serialno:
+        output.update({
+            'Serialno':  serialno
+            })
+    workdone = data.get('job',{}).get('workdone')
+    if workdone:
+        output.update({
+            'Work Done':  workdone
+            })
+    jobenddate = data.get('job',{}).get('jobenddate')
+    if jobenddate:
+        output.update({
+            'End Date':  jobenddate
+            })
+    jobtypeid = data.get('job',{}).get('jobtypeid')
+    if jobtypeid:
+        jobtype = Tbljobtypes.objects.get(pk=jobtypeid)
+        output.update({
+            'Type':  jobtype
+            })
+    jobstatusid = data.get('job',{}).get('jobstatusid')
+    if jobstatusid:
+        jobstatus = Tbljobstatus.objects.get(pk=jobstatusid)
+        output.update({
+            'Status':  jobstatus
+            })
+
+    return output
+
 class ServiceReportContext(
     BaseDocumentContextBuilder
 ):
@@ -63,6 +99,7 @@ class ServiceReportContext(
 
 
         return {
+            'key_data_extracted': get_key_information(self.resolved_data),
             'asset_groups': [
                 assets
             ]

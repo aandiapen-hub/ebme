@@ -386,10 +386,17 @@ class TempFilesDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteVie
         if request.htmx:
             response = HttpResponse(status=200)
 
-            if not TemporaryUpload.objects.filter(
-                group=self.object.group
-            ).exists():
-                response["HX-Retarget"] = f"#group_{self.object.group.pk}"
+            redirect_after_delete = self.request.GET.get('redirect_after_delete')
+            group_size = self.object.group.temp_uploads.all().count()
+
+            if redirect_after_delete and group_size == 0:
+                response['HX-Redirect'] = reverse('documents:user_temp_files')
+
+            else:
+                if not TemporaryUpload.objects.filter(
+                    group=self.object.group
+                ).exists():
+                    response["HX-Retarget"] = f"#group_{self.object.group.pk}"
 
             return response  # No Content
 
@@ -525,6 +532,7 @@ class TempUploadGroupView(LoginRequiredMixin, PermissionRequiredMixin, DetailVie
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context.update(**build_document_context(user=self.request.user, temp_group=self.object))
+        context['redirect_after_delete'] = 'true'
         return context
 
 

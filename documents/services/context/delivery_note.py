@@ -50,6 +50,16 @@ def get_purchase_order_from_resolved_data(data, temp_group_id=None):
 
 
 
+def get_key_information(data):
+    output = {}
+    po = data.get('delivery',{}).get('po')
+    if po:
+        output.update({
+            'Purchase Order': po 
+            })
+
+    return output
+
 def get_existing_matching_deliveries(data):
     delivery_ids = data.get('delivery', {}).get('delivery_ids')
     items = []
@@ -106,6 +116,7 @@ class DeliveryNoteContext(
                 )
 
         return {
+            'key_data_extracted': get_key_information(self.resolved_data),
             'purchase_order': purchase_order,
             'existing_deliveries': existing_deliveries,
             }
