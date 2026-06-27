@@ -781,6 +781,7 @@ class Tblest(models.Model):
         db_table = "tblest"
 
 
+
 class Tbllocations(models.Model):
     locationid = models.BigAutoField(primary_key=True)
     locationname = models.CharField()

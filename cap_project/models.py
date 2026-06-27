@@ -32,7 +32,7 @@ def generate_internal_code(length=6):
     return "".join(str(random.randint(0,9)) for _ in range(length))
 
 class CapitalProject(models.Model):
-    id = models.BigIntegerField(primary_key=True, editable=False)
+    id = models.AutoField(primary_key=True, editable=False)
     code = models.CharField(max_length=50, unique=True, blank=True, null=True, editable=False)
     name = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
@@ -54,16 +54,15 @@ class CapitalProject(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        creating = self.pk in None
+        creating = self.pk is None
 
         if creating and not self.code:
             while True:
-                self.code = generate_internal_code()
-                try:
-                    with transaction.atomic():
-                        return super().save(*args, **kwargs)
-                except IntegrityError:
-                    self.internal_code = None
+                new_code = generate_internal_code()
+                if not CapitalProject.objects.filter(code=new_code).exists():
+                    self.code = new_code
+                    break
+        return super().save(*args, **kwargs)
 
 class CapitalAcquisitionStatus(models.Model):
     id = models.AutoField(primary_key=True, editable=False)
@@ -80,13 +79,13 @@ class CapitalAcquisitionStatus(models.Model):
 
 class CapitalAcquisition(models.Model):
     id = models.AutoField(primary_key=True, editable=False)
-    capitalproject = models.ForeignKey(CapitalProject, models.DO_NOTHING, related_name='actuisition')
+    capitalproject = models.ForeignKey(CapitalProject, models.DO_NOTHING, related_name='acquisition')
     code = models.CharField(max_length=50, blank=True, null=True, editable=False)
     name = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     status = models.ForeignKey('CapitalAcquisitionStatus', models.PROTECT, blank=True, null=True)
-    statusdate = models.DateTimeField(db_column='StatusDate', blank=True, null=True, editable=False)
+    statusdate = models.DateTimeField(blank=True, null=True, editable=False)
     locationid = models.ForeignKey('assets.Tbllocations', models.DO_NOTHING, blank=True, null=True)
     responsible = models.ForeignKey('users.CustomUser', models.PROTECT, blank=True, null=True)
     usercontact = models.ForeignKey('users.CustomUser', models.PROTECT, related_name='usercontactid', blank=True, null=True)
@@ -96,7 +95,7 @@ class CapitalAcquisition(models.Model):
     quantity = models.IntegerField(blank=True, null=True)
     approvedquantity = models.IntegerField(blank=True, null=True)
 
-    orderno = models.CharField(db_column='OrderNo', max_length=50, blank=True, null=True)
+    orderno = models.CharField(max_length=50, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -106,16 +105,15 @@ class CapitalAcquisition(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        creating = self.pk in None
+        creating = self.pk is None
 
         if creating and not self.code:
             while True:
-                self.code = generate_internal_code()
-                try:
-                    with transaction.atomic():
-                        return super().save(*args, **kwargs)
-                except IntegrityError:
-                    self.internal_code = None
+                new_code = generate_internal_code()
+                if not CapitalAcquisition.objects.filter(code=new_code).exists():
+                    self.code = new_code
+                    break
+        return super().save(*args, **kwargs)
 
 class CommissionRequestStatus(models.Model):
     id = models.AutoField(primary_key=True, editable=False)
@@ -128,18 +126,19 @@ class CommissionRequestStatus(models.Model):
     def __str__(self):
         return self.name
 
-class Commissionrequest(models.Model):
+class CommissionRequest(models.Model):
     id = models.AutoField(primary_key=True, editable=False)
     code = models.CharField(max_length=50, blank=True, null=True, editable=False)
     capital_acquisition = models.ForeignKey(CapitalAcquisition, models.DO_NOTHING, related_name='commission_request')
-    notes = models.TextField(db_column='CommissionRequestNotes', blank=True, null=True)
-    creationdate = models.DateTimeField(db_column='CreationDate', blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+    creationdate = models.DateTimeField(blank=True, null=True)
 
-    status = models.ForeignKey('CommissionRequestStatus', models.DO_NOTHING, blank=True, null=True)
-    configuration = models.TextField(db_column='SoftwareVersion', blank=True, null=True)
-    isnew = models.BooleanField(db_column='IsNew', blank=True, null=True)
+    status = models.ForeignKey(CommissionRequestStatus, models.DO_NOTHING, blank=True, null=True)
+    configuration = models.TextField(blank=True, null=True)
+    isnew = models.BooleanField(blank=True, null=True)
     orderno = models.CharField(max_length=50, blank=True, null=True)
     quantity = models.IntegerField(blank=True, null=True)
+    locationid = models.ForeignKey('assets.Tbllocations', models.DO_NOTHING, blank=True, null=True)
     unitprice = models.DecimalField(max_digits=19, decimal_places=4, blank=True, null=True)
     unitpricevat = models.FloatField(blank=True, null=True)
     warrantymonths = models.IntegerField(blank=True, null=True)
@@ -154,16 +153,15 @@ class Commissionrequest(models.Model):
         db_table = 'commission_request'
 
     def save(self, *args, **kwargs):
-        creating = self.pk in None
+        creating = self.pk is None
 
         if creating and not self.code:
             while True:
-                self.code = generate_internal_code()
-                try:
-                    with transaction.atomic():
-                        return super().save(*args, **kwargs)
-                except IntegrityError:
-                    self.internal_code = None
+                new_code = generate_internal_code()
+                if not CommissionRequest.objects.filter(code=new_code).exists():
+                    self.code = new_code
+                    break
+        return super().save(*args, **kwargs)
 
 
     def __str__(self):

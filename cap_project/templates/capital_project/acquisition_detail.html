@@ -6,25 +6,24 @@
 
 <div id="acquisition_details" class='container'>
 
+    <h3>Acquisition: {{acquisition.code}} - {{acquisition.name}}</h3>
+
       <div class="row  bg-white p-4 rounded"> 
         <div class="col">
-          <p><small class="text-muted">Code: </small>{{acquisition.code}}</p>
-          <p><small class="text-muted">Project: </small>{{acquisition.project}}</p>
-          <p><small class="text-muted">Name: </small>{{acquisition.name}}</p>
+          <p><small class="text-muted">Project: </small>{{acquisition.capitalproject}}</p>
           <p><small class="text-muted">Description: </small>{{acquisition.description}}</p>
-          <p><small class="text-muted">Status: </small>{{acquisition.statusid}}</p>
-          <p><small class="text-muted">Responsible: </small>{{acquisition.responsibleid}}</p>
-          <p><small class="text-muted">Target Date: </small>{{acquisition.target_date}}</p>
+          <p><small class="text-muted">Status: </small>{{acquisition.status}}</p>
+          <p><small class="text-muted">Responsible: </small>{{acquisition.responsible}}</p>
+          <p><small class="text-muted">Target Date: </small>{{acquisition.targetdate}}</p>
+          <a class='btn btn-sm btn-outline-secondary' href='{% url "capital_projects:acquisition_update" pk=acquisition.id %}'>Update</a>
+          <a class='btn btn-sm btn-outline-secondary' href='{% url "capital_projects:acquisition_delete" pk=acquisition.id %}'>Delete</a>
         </div>
-        <div class="col text-end">
-          <div id="edit_div" class="dropdown">
-                {% if perms.capital_projects.change_capitalproject %}
-                  <a class='button button-outline-secondary' href='{% url "capital_projects:acquisition_update" pk=acquisition.id %}'>Update</a>
-                {% endif %}
-                {% if perms.capital_projects.delete_capitalproject %}
-                  <a class='button button-outline-secondary' href='{% url "capital_projects:acquisition_delete" pk=acquisition.id %}'>Delete</a>
-                {% endif %}
-          </div>
+
+        <div class="col">
+          <h6>Commissioning Requests</h6>
+          <p><small class="text-muted">Request count: </small>{{request_count}}</p>
+            <a class='btn btn-sm btn-outline-secondary' href='{% url "capital_projects:commission_request_create" %}?capital_acquisition={{acquisition.pk}}'>Add Commissioning Request</a>
+            <a class='btn btn-sm btn-outline-secondary' href='{% url "capital_projects:commission_requests" %}?acquisition__iexact={{acquisition.pk}}'>View Commissioning Requests</a>
 
         </div>
       </div>

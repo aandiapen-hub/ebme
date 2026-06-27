@@ -10,6 +10,11 @@ from .views import(
     CapitalAcquisitionDetailView,
     CapitalAcquisitionUpdateView,
     CapitalAcquisitionDeleteView,
+    CommissionRequestFilterView,
+    CommissionRequestCreateView,
+    CommissionRequestDetailView,
+    CommissionRequestUpdateView,
+    CommissionRequestDeleteView,
 )
 
 
@@ -27,4 +32,10 @@ urlpatterns = [
     path("acquisitions/<int:pk>/detail",CapitalAcquisitionDetailView.as_view(),name='acquisition_detail'),
     path("acquisitions/<int:pk>/update",CapitalAcquisitionUpdateView.as_view(),name='acquisition_update'),
     path("acquisitions/<int:pk>/delete",CapitalAcquisitionDeleteView.as_view(),name='acquisition_delete'),
+
+    path("commission_requests/",CommissionRequestFilterView.as_view(),name='commission_requests'),
+    path("commission_requests/create/",CommissionRequestCreateView.as_view(),name='commission_request_create'),
+    path("commission_requests/<int:pk>/detail",CommissionRequestDetailView.as_view(),name='commission_request_detail'),
+    path("commission_requests/<int:pk>/update",CommissionRequestUpdateView.as_view(),name='commission_request_update'),
+    path("commission_requests/<int:pk>/delete",CommissionRequestDeleteView.as_view(),name='commission_request_delete'),
 ]
