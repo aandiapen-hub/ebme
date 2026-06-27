@@ -14,23 +14,23 @@ from django.contrib.contenttypes.fields import GenericRelation
 class Tblassets(models.Model):
     assetid = models.BigAutoField(
         db_column="AssetID", primary_key=True, verbose_name="ID"
-    )  # Field name made lowercase.
+    )
     customerassetnumber = models.CharField(
         db_column="CustomerAssetNumber",
         max_length=255,
         blank=True,
         null=True,
         verbose_name="Customer Asset",
-    )  # Field name made lowercase.
+    )
     customerid = models.ForeignKey(
         "Tblcustomer", models.PROTECT, db_column="CustomerID", verbose_name="Customer"
-    )  # Field name made lowercase.
+    )
     modelid = models.ForeignKey(
         "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model"
-    )  # Field name made lowercase.
+    )
     serialnumber = models.CharField(
         db_column="SerialNumber", max_length=255, verbose_name="Serial No"
-    )  # Field name made lowercase.
+    )
     lastppmdate = models.DateField(blank=True, null=True, verbose_name="Last PPM Date")
     lastrepairdate = models.DateField(
         blank=True, null=True, verbose_name="Last Repair Date"
@@ -104,27 +104,27 @@ class Tblassets(models.Model):
 class AssetView(models.Model):
     assetid = models.BigIntegerField(
         db_column="AssetID", blank=True, primary_key=True, verbose_name="Asset ID"
-    )  # Field name made lowercase.
+    )
     customerassetnumber = models.CharField(
         db_column="CustomerAssetNumber",
         max_length=255,
         blank=True,
         null=True,
         verbose_name="CustomerAsset",
-    )  # Field name made lowercase.
+    )
     customerid = models.ForeignKey(
         "Tblcustomer", models.PROTECT, db_column="CustomerID", verbose_name="Customer"
-    )  # Field name made lowercase.
+    )
     modelid = models.ForeignKey(
         "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model"
-    )  # Field name made lowercase.
+    )
     serialnumber = models.CharField(
         db_column="SerialNumber",
         max_length=255,
         blank=True,
         null=True,
         verbose_name="SN",
-    )  # Field name made lowercase.
+    )
     lastppmdate = models.DateField(blank=True, null=True, verbose_name="Last PPM Date")
     lastrepairdate = models.DateField(
         blank=True, null=True, verbose_name="Last Repair Date"
@@ -184,10 +184,10 @@ class AssetView(models.Model):
         blank=True,
         null=True,
         verbose_name="ModelName",
-    )  # Field name made lowercase.
+    )
     brandname = models.CharField(
         db_column="BrandName", blank=True, null=True, verbose_name="Brand Name"
-    )  # Field name made lowercase.
+    )
     brandid = models.ForeignKey(
         "Tblbrands",
         models.PROTECT,
@@ -195,7 +195,7 @@ class AssetView(models.Model):
         blank=True,
         null=True,
         verbose_name="Brand",
-    )  # Field name made lowercase.
+    )
     categoryid = models.ForeignKey(
         "Tblcategories",
         models.PROTECT,
@@ -237,7 +237,7 @@ class JobView(models.Model):
     enddate = models.DateField(blank=True, null=True, verbose_name="End Date")
     workdone = models.TextField(
         db_column="WorkDone", blank=True, null=True, verbose_name="Work Done"
-    )  # Field name made lowercase.
+    )
     jobstatusid = models.ForeignKey(
         "Tbljobstatus",
         models.PROTECT,
@@ -245,7 +245,7 @@ class JobView(models.Model):
         blank=True,
         null=True,
         verbose_name="Job Status",
-    )  # Field name made lowercase.
+    )
     technicianid = models.ForeignKey(
         "Tbltechnicianlist",
         models.PROTECT,
@@ -253,33 +253,33 @@ class JobView(models.Model):
         blank=True,
         null=True,
         verbose_name="Technician",
-    )  # Field name made lowercase.
+    )
     assetid = models.ForeignKey(
         AssetView, models.PROTECT, db_column="AssetID", related_name="jobs"
-    )  # Field name made lowercase.
+    )
     technician_name = models.CharField(
         db_column="Technician Name",
         max_length=100,
         blank=True,
         null=True,
         verbose_name="Technician",
-    )  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    )
     partsperjob = models.TextField(
         db_column="PartsPerJob", blank=True, null=True, verbose_name="Parts Used"
-    )  # Field name made lowercase.
+    )
     testsperjob = models.TextField(
         db_column="TestsPerJob", blank=True, null=True, verbose_name="Checklist"
-    )  # Field name made lowercase.
+    )
     modelid = models.ForeignKey(
         "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model"
-    )  # Field name made lowercase.
+    )
     serialnumber = models.CharField(
         db_column="SerialNumber",
         max_length=255,
         blank=True,
         null=True,
         verbose_name="SN",
-    )  # Field name made lowercase.
+    )
     customerid = models.ForeignKey(
         "Tblcustomer",
         models.PROTECT,
@@ -287,20 +287,20 @@ class JobView(models.Model):
         blank=True,
         null=True,
         verbose_name="Customer",
-    )  # Field name made lowercase.
+    )
     model = models.CharField(
         db_column="Model", max_length=100, blank=True, null=True
-    )  # Field name made lowercase.
+    )
     customer = models.CharField(
         db_column="Customer", max_length=100, blank=True, null=True
-    )  # Field name made lowercase.
+    )
     jobstatus = models.CharField(
         db_column="JobStatus",
         max_length=100,
         blank=True,
         null=True,
         verbose_name="Status",
-    )  # Field name made lowercase.
+    )
     jobtypename = models.CharField(
         max_length=50, blank=True, null=True, verbose_name="Job Type Name"
     )
@@ -318,30 +318,30 @@ class JobView(models.Model):
         blank=True,
         null=True,
         verbose_name="Cust Asset No",
-    )  # Field name made lowercase.
+    )
     customer_address = models.CharField(
         db_column="Customer Address",
         max_length=100,
         blank=True,
         null=True,
         verbose_name="Customer Addr",
-    )  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    )
     customer_phone = models.CharField(
         db_column="Customer Phone",
         max_length=100,
         blank=True,
         null=True,
         verbose_name="Customer Phone",
-    )  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    )
     brandname = models.CharField(
         db_column="BrandName", blank=True, null=True, verbose_name="Brand"
-    )  # Field name made lowercase.
+    )
     customer_postcode = models.CharField(
         db_column="Customer Postcode",
         blank=True,
         null=True,
         verbose_name="Customer Postcode",
-    )  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    )
     brandid = models.ForeignKey(
         "Tblbrands",
         models.PROTECT,
@@ -349,7 +349,7 @@ class JobView(models.Model):
         blank=True,
         null=True,
         verbose_name="Brand",
-    )  # Field name made lowercase.
+    )
     jobtypeid = models.ForeignKey(
         "Tbljobtypes", models.PROTECT, db_column="jobtypeid", verbose_name="Job Type"
     )
@@ -369,10 +369,10 @@ class JobView(models.Model):
 class Tblbrands(models.Model):
     brandid = models.BigAutoField(
         db_column="BrandID", primary_key=True, verbose_name="ID"
-    )  # Field name made lowercase.
+    )
     brandname = models.CharField(
         db_column="BrandName", unique=True, verbose_name="Brand"
-    )  # Field name made lowercase.
+    )
 
     class Meta:
         managed = False
@@ -386,18 +386,18 @@ class Tblbrands(models.Model):
 class Tblcheckslists(models.Model):
     testname = models.CharField(
         db_column="Test", max_length=100, verbose_name="Test"
-    )  # Field name made lowercase.
+    )
     testid = models.BigAutoField(
         db_column="testID", primary_key=True, verbose_name="ID"
-    )  # Field name made lowercase.
+    )
     test_description = models.TextField(
         db_column="Test Description", verbose_name="Description"
-    )  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    )
     modelid = models.ForeignKey(
         "tblModel",
         models.PROTECT,
         db_column="ModelID",
-    )  # Field name made lowercase.
+    )
 
     class Meta:
         managed = False
@@ -411,27 +411,27 @@ class Tblcheckslists(models.Model):
 class Tblcustomer(models.Model):
     customer_name = models.CharField(
         db_column="Customer Name", unique=True, max_length=100, verbose_name="Customer"
-    )  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    )
     customer_address = models.CharField(
         db_column="Customer Address",
         max_length=100,
         blank=True,
         null=True,
         verbose_name="Address",
-    )  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    )
     customer_phone = models.CharField(
         db_column="Customer Phone",
         max_length=100,
         blank=True,
         null=True,
         verbose_name="Phone",
-    )  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    )
     customerid = models.BigAutoField(
         db_column="CustomerID", primary_key=True
-    )  # Field name made lowercase.
+    )
     customer_postcode = models.CharField(
         db_column="Customer Postcode", blank=True, null=True, verbose_name="Postcode"
-    )  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    )
 
     class Meta:
         managed = False
@@ -445,35 +445,35 @@ class Tblcustomer(models.Model):
 class Tbljob(models.Model):
     jobid = models.BigAutoField(
         db_column="JobID", primary_key=True, verbose_name="Job ID"
-    )  # Field name made lowercase.
+    )
     jobstartdate = models.DateField(
         db_column="JobStartDate", blank=True, null=True, verbose_name="Start Date"
-    )  # Field name made lowercase.
+    )
     jobenddate = models.DateField(
         db_column="JobEndDate", blank=True, null=True, verbose_name="End Date"
-    )  # Field name made lowercase.
+    )
     comments = models.CharField(
         db_column="Comments", blank=True, null=True
-    )  # Field name made lowercase.
+    )
     workdone = models.TextField(
         db_column="WorkDone", blank=True, null=True, verbose_name="Work Done"
-    )  # Field name made lowercase.
+    )
     jobstatusid = models.ForeignKey(
         "Tbljobstatus", models.PROTECT, db_column="JobStatusID", verbose_name="Status"
-    )  # Field name made lowercase.
+    )
     technicianid = models.ForeignKey(
         "Tbltechnicianlist",
         models.PROTECT,
         db_column="TechnicianID",
         verbose_name="Technician",
-    )  # Field name made lowercase.
+    )
     assetid = models.ForeignKey(
         Tblassets,
         models.PROTECT,
         db_column="AssetID",
         related_name="jobs",
         verbose_name="Asset",
-    )  # Field name made lowercase.
+    )
     jobtypeid = models.ForeignKey(
         "Tbljobtypes", models.PROTECT, db_column="jobtypeid", verbose_name="Job Type"
     )
@@ -501,10 +501,10 @@ class Tbljobstatus(models.Model):
         blank=True,
         null=True,
         verbose_name="Job `Status",
-    )  # Field name made lowercase.
+    )
     jobstatusid = models.BigIntegerField(
         db_column="JobStatusID", primary_key=True
-    )  # Field name made lowercase.
+    )
 
     class Meta:
         managed = False
@@ -531,16 +531,16 @@ class Tbljobtypes(models.Model):
 class Tblmodel(models.Model):
     modelname = models.CharField(
         db_column="ModelName", max_length=100, verbose_name="Model Name"
-    )  # Field name made lowercase.
+    )
     modelid = models.BigAutoField(
         db_column="ModelID", primary_key=True
-    )  # Field name made lowercase.
+    )
     brandid = models.ForeignKey(
         "Tblbrands",
         models.PROTECT,
         db_column="BrandID",
         verbose_name='Brand'
-    )  # Field name made lowercase.
+    )
     categoryid = models.ForeignKey(
         "Tblcategories",
         on_delete=models.PROTECT,
@@ -573,18 +573,18 @@ class Tblpartsused(models.Model):
         on_delete=models.PROTECT,
         db_column="JobID",
         related_name='parts_used'
-    )  # Field name made lowercase.
+    )
     quantity = models.IntegerField(
         db_column="Quantity", default=1
-    )  # Field name made lowercase.
+    )
     partsusedid = models.BigAutoField(
         db_column="PartsUsedID", primary_key=True
-    )  # Field name made lowercase.
+    )
     partid = models.ForeignKey(
         "parts.Tblpartslist",
         models.PROTECT,
         db_column="PartID",
-    )  # Field name made lowercase.
+    )
     unitprice = models.DecimalField(
         max_digits=100, decimal_places=2, blank=True, null=True
     )
@@ -601,10 +601,10 @@ class Tblpartsused(models.Model):
 class Tbltechnicianlist(models.Model):
     name = models.CharField(
         db_column="Name", max_length=100, blank=True, null=True
-    )  # Field name made lowercase.
+    )
     technicianid = models.BigIntegerField(
         db_column="TechnicianID", primary_key=True
-    )  # Field name made lowercase.
+    )
     email = models.CharField(unique=True, blank=True, null=True)
 
     class Meta:
@@ -618,22 +618,22 @@ class Tbltechnicianlist(models.Model):
 class Tbltesteq(models.Model):
     testeqid = models.BigAutoField(
         db_column="TestEqID", primary_key=True
-    )  # Field name made lowercase.
+    )
     last_calibration_date = models.DateField(
         db_column="Last Calibration Date", blank=True, null=True
-    )  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    )
     status = models.CharField(
         db_column="Status", max_length=100, blank=True, null=True
-    )  # Field name made lowercase.
+    )
     serialnumber = models.CharField(
         db_column="SerialNumber", max_length=100
-    )  # Field name made lowercase.
+    )
     comment = models.CharField(
         db_column="Comment", max_length=100, blank=True, null=True
-    )  # Field name made lowercase.
+    )
     modelid = models.ForeignKey(
         Tblmodel, models.PROTECT, db_column="ModelID", blank=True, null=True
-    )  # Field name made lowercase.
+    )
 
     class Meta:
         managed = False
@@ -643,10 +643,10 @@ class Tbltesteq(models.Model):
 class Tbltesteqused(models.Model):
     id = models.BigAutoField(
         db_column="ID", primary_key=True
-    )  # Field name made lowercase.
+    )
     jobid = models.ForeignKey(
         Tbljob, on_delete=models.PROTECT, db_column="JobID", related_name="test_eq_used"
-    )  # Field name made lowercase.
+    )
     test_eq = models.ForeignKey(
         Tblassets, on_delete=models.PROTECT, limit_choices_to={"is_test_eq": True}
     )
@@ -663,13 +663,13 @@ class Tbltesteqused(models.Model):
 class Tbltestscarriedout(models.Model):
     jobid = models.ForeignKey(
         "Tbljob", on_delete=models.CASCADE, db_column="JobID", related_name='test_carried_out'
-    )  # Field name made lowercase.
+    )
     testid = models.BigAutoField(
         db_column="TestID", primary_key=True
-    )  # Field name made lowercase.
+    )
     checkid = models.ForeignKey(
         "Tblcheckslists", on_delete=models.PROTECT, db_column="CheckID", blank=True
-    )  # Field name made lowercase.
+    )
     resultid = models.ForeignKey(
         "Tbltestresult",
         on_delete=models.PROTECT,

@@ -88,6 +88,18 @@
                     </ul>
                   </li>
                 <li>
+                <!--Projects-->
+                  <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle {% if '/project' in request.path %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                   Projects 
+                  </a>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url 'capital_projects:projects' %}">Projects</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="{% url 'capital_projects:acquisitions' %}">Acquisitions</a></li>
+                    </ul>
+                  </li>
+                <li>
                   
 
                 {% endif %}           

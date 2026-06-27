@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+{% block content %}
+<!--List Asset Details -->
+
+<div id="project_details" class='container'>
+
+      <div class="row  bg-white p-4 rounded"> 
+        <div class="col">
+          <p><small class="text-muted">Code: </small>{{project.code}}</p>
+          <p><small class="text-muted">Name: </small>{{project.name}}</p>
+          <p><small class="text-muted">Description: </small>{{project.description}}</p>
+          <p><small class="text-muted">Type: </small>{{project.typeid}}</p>
+          <p><small class="text-muted">Status: </small>{{project.statusid}}</p>
+          <p><small class="text-muted">Responsible: </small>{{project.responsibleid}}</p>
+          <p><small class="text-muted">Start: </small>{{project.startdate}}</p>
+          <p><small class="text-muted">End: </small>{{project.enddate}}</p>
+        </div>
+        <div class="col text-end">
+          <div id="edit_div" class="dropdown">
+                {% if perms.capital_projects.change_capitalproject %}
+                  <a class='button button-outline-secondary' href='{% url "capital_projects:project_update" pk=project.id %}'>Update</a>
+                {% endif %}
+                {% if perms.capital_projects.delete_capitalproject %}
+                  <a class='button button-outline-secondary' href='{% url "capital_projects:project_delete" pk=project.id %}'>Delete</a>
+                {% endif %}
+          </div>
+
+        </div>
+      </div>
+
+</div>
+
+
+{%endblock content%}
+

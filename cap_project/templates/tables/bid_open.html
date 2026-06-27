@@ -1,0 +1,4 @@
+{% with record_url=None %}
+    {% url 'assets:view_asset' record.pk as record_url %}
+    {% include "tables/open_record.html" with record_url=record_url %}
+{% endwith %}

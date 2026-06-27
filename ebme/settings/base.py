@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     "model_information",
     "parts",
     "procurement",
-
+    "cap_project"
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"

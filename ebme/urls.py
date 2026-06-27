@@ -34,6 +34,7 @@ urlpatterns = [
     path("documents/", include("documents.urls")),
     path("dashboards/", include("dashboard.urls")),
     path("parts/", include("parts.urls")),
+    path("capital_project/", include("cap_project.urls")),
     path('select2/', include('django_select2.urls')),
     path("procurement/", include('procurement.urls')),
     # set home page

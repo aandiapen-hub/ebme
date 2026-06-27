@@ -1,5 +1,4 @@
 from django.db import models
-from parts.models import Tblpartsprice
 from django.utils.timezone import now
 from django.contrib.contenttypes.fields import GenericRelation
 from django.urls import reverse
@@ -313,10 +312,10 @@ class Deliverylineview(models.Model):
     qty = models.BigIntegerField(blank=True, null=True)
     part_number = models.CharField(
         db_column="part number", max_length=100, blank=True, null=True
-    )  # Field renamed to remove unsuitable characters.
+    )
     short_name = models.CharField(
         db_column="Short Name", max_length=100, blank=True, null=True
-    )  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    )
     line_id = models.BigIntegerField(primary_key=True)
 
     class Meta:

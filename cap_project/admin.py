@@ -1,14 +1,15 @@
 from django.contrib import admin
 from .models import(
+    CapitalAcquisition,
     CapitalProjectStatus,
     CapitalProjectType,
-    CapitalProjectBidStatus,
+    CapitalAcquisitionStatus,
     CommissionRequestStatus,
     )
 
 admin.site.register([
     CapitalProjectStatus,
     CapitalProjectType,
-    CapitalProjectBidStatus,
+    CapitalAcquisitionStatus,
     CommissionRequestStatus,
 ])
