@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+
+{% block content %}
+  <div class="container p-3">
+    <h4>Add configuration to equipment</h4>
+      <form id='asset_form' method='POST' action="{{request.path}}">
+          {{ form.media }} 
+          {% csrf_token %}
+      {% bootstrap_form form layout='horizontal' %}
+          <button class="btn btn-primary" type="submit">Submit</button>
+  </form>   
+  </div>
+
+{% endblock %}

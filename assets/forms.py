@@ -3,7 +3,7 @@ from django.db.models import CommaSeparatedIntegerField
 from .models import Tblassets, Tblmodel, Tblcustomer, TblAssetStatus, Tblppmschedules
 from django_select2.forms import ModelSelect2Widget
 from django.core.exceptions import ValidationError
-from model_information.models import Software, SoftwareModel
+from model_information.models import EquipmentConfiguration, Software, SoftwareModel
 
 from documents.mixins import TempUploadUpdateFormMixin
 
@@ -172,3 +172,46 @@ class SetEquipmentSoftwareForm(forms.Form):
 
             self.fields['software'].queryset = compatible_software
             self.fields['software'].initial = compatible_software.last()
+
+
+class SetEquipmentConfigurationForm(forms.Form):
+    configuration = forms.ModelChoiceField(
+        queryset=EquipmentConfiguration.objects.all(),
+        required=True,
+        widget=ModelSelect2Widget(
+            model=EquipmentConfiguration,
+            search_fields=['brand__icontains','name__icontains'],
+            attrs={
+                "data-minimum-input-length": 0,
+                "data-placeholder": "Select an option",
+                "data-close-on-select": "false",
+            }
+        )
+    )
+
+    equipment = forms.ModelChoiceField(
+        queryset=Tblassets.objects.all(),
+        required=True,
+        widget=ModelSelect2Widget(
+            model=Tblassets,
+            search_fields=['serialnumber__icontains'],
+            attrs={
+                "data-minimum-input-length": 0,
+                "data-placeholder": "Select an option",
+                "data-close-on-select": "false",
+            }
+        )
+    )
+    
+    def __init__(self, *args, **kwargs):
+        equipment_id = kwargs.pop('equipment_id', None)
+        super().__init__(*args, **kwargs)
+        if equipment_id:
+            equipment = Tblassets.objects.get(pk=equipment_id)
+            required_config_id = EquipmentConfiguration.objects.for_asset(equipment)
+            required_config = EquipmentConfiguration.objects.filter(pk__in=required_config_id)
+
+            self.fields['equipment'].initial = equipment_id
+
+            self.fields['configuration'].queryset = required_config
+            self.fields['configuration'].initial = required_config.last()

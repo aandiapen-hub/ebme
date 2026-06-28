@@ -2,10 +2,10 @@ from django.contrib import messages
 from django.db import transaction
 from assets.services.oustanding_tasks import get_equipment_tasks
 from assets.services.sofware_service import apply_software_change
+from assets.services.configuration_service import apply_configuration_change
 from cap_project.models import CommissionRequest
 from documents.mixins import TempUploadMixin
 from django.http import HttpResponse, HttpResponseRedirect
-import json
 from documents.services.documents import delete_object_document_links
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
@@ -17,7 +17,7 @@ from django.views.generic import (
 )
 from datetime import datetime
 
-from model_information.models import EquipmentSoftware, SoftwareModel
+from model_information.models import EquipmentConfiguration, EquipmentSoftware
 
 from .models import (
     Tblassets,
@@ -25,7 +25,12 @@ from .models import (
 )
 
 from documents.services.process_document import quick_barcode_processor
-from .forms import AssetUpdateForm, AssetBulkUpdateForm, SetEquipmentSoftwareForm
+from .forms import(
+        AssetUpdateForm,
+        AssetBulkUpdateForm,
+        SetEquipmentSoftwareForm,
+        SetEquipmentConfigurationForm,
+)
 
 from utils.generic_views import BulkUpdateView
 
@@ -91,6 +96,8 @@ class AssetDetailView(
         context = super().get_context_data(**kwargs)
         context["open_jobs"] = self.object.jobs.filter(jobstatusid__in=[0, 2, 3, 5])
         context['tasks'] = get_equipment_tasks(self.object)
+        context['required_config'] = EquipmentConfiguration.objects.for_asset(self.object)
+        
         return context
 
 
@@ -233,6 +240,34 @@ class RemoveEquipmentSoftware(DeleteView):
     def get_success_url(self):
         equipment_id = self.object.equipment.pk
         return reverse('assets:view_asset', kwargs={'pk':equipment_id})
+
+class SetEquipmentConfiguration(FormView):
+    template_name = 'assets/set_equipment_configuration.html'
+    form_class = SetEquipmentConfigurationForm
+    
+    def get_success_url(self):
+        equipment = self.object.equipment.pk
+        return reverse('assets:view_asset', kwargs={'pk':equipment})
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        equipmentid = self.request.GET.get('equipmentid', None)
+        if equipmentid:
+            kwargs['equipment_id'] = equipmentid 
+
+        return kwargs
+        
+
+    def form_valid(self, form):
+        configuration_id = form.cleaned_data['configuration']
+        equipment_id = form.cleaned_data['equipment']
+        self.object = apply_configuration_change(
+            equipment=equipment_id,
+            configuration=configuration_id,
+        )
+        
+        response = HttpResponseRedirect(self.get_success_url())
+        return response
 
 class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):
     model = AssetView

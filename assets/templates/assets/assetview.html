@@ -80,7 +80,7 @@
         </div>
       </div>
 
-      <div class="col-12" id="document_div">
+      <div class="col-12">
         <p><small class="text-muted">Software: </small>
         <ul class="list-group">
           {% for software in asset.assetid.installed_software.all %}
@@ -92,6 +92,27 @@
             <p>No software installed</p>
             {% endfor %}
         </ul>
+        <p><small class="text-muted">Required Config: </small>
+        <ul class="list-group">
+          {% for config in required_config %}
+            <li class="list-group-item" aria-current="true">
+            {{config}}
+            </li>
+            {% empty %}
+            <p>No Required Config</p>
+            {% endfor %}
+        </ul>
+        <p><small class="text-muted">Installed Config: </small>
+        <ul class="list-group">
+          {% for config in asset.assetid.installed_config.all %}
+            <li class="list-group-item" aria-current="true">
+            {{config}}
+            </li>
+            {% empty %}
+            <p>No Installed Config</p>
+            {% endfor %}
+        </ul>
+
       </div>
         <div class="col-12" id="document_div">
             {% include "documents/partials/generic_document_partial.html" with object_id=asset.assetid content_type="assets.tblAssets" %}   

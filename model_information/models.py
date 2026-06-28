@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Q
+
 
 # Create your models here.
 #
@@ -187,6 +189,44 @@ class EquipmentConfigurationStatus(models.Model):
     def __str__(self):
         return self.name
 
+class EquipmentConfigurationQuerySet(models.QuerySet):
+
+    def active(self):
+        return self.filter(
+            configuration_status__code="active"
+        )
+
+    def for_model(self, model):
+        return self.filter(
+            model_links__model=model
+        )
+
+    def for_location(self, site, location=None):
+        return self.filter(
+            Q(scopes__isnull=True) |
+            Q(
+                scopes__site=site,
+                scopes__location__isnull=True,
+            ) |
+            Q(
+                scopes__site=site,
+                scopes__location=location,
+            )
+        )
+
+    def for_asset(self, asset):
+        
+        qs = (
+                self.active().for_model(
+                asset.modelid
+            ).for_location(
+                site=asset.locationid.siteid,
+                location=asset.locationid
+            )
+        )
+        return qs
+
+
 class EquipmentConfiguration(models.Model):
     """
     Defines a configuration policy that can apply to equipment.
@@ -210,6 +250,8 @@ class EquipmentConfiguration(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = EquipmentConfigurationQuerySet.as_manager()
 
     class Meta:
         managed = False
@@ -282,5 +324,51 @@ class EquipmentConfigurationScope(models.Model):
             models.UniqueConstraint(
                 fields=["configuration", "site", "location"],
                 name="uniq_config_site_location",
+            )
+        ]
+
+
+class EquipmentConfigurationLink(models.Model):
+    """
+    Represents software actually installed on a specific
+    equipment asset.
+    """
+    id = models.BigAutoField(
+        primary_key=True, editable=False,
+    )
+    equipment = models.ForeignKey(
+        "assets.tblAssets",
+        on_delete=models.CASCADE,
+        related_name="installed_config",
+    )
+
+    configuration = models.ForeignKey(
+        EquipmentConfiguration,
+        on_delete=models.PROTECT,
+        related_name="installed",
+    )
+
+    installed_on = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    removed_on = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    is_current = models.BooleanField(default=True)
+
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        managed = False
+        db_table = 'equipment_configuration_link'
+        constraints = [
+            models.UniqueConstraint(
+                fields=["equipment", "configuration"],
+                condition=models.Q(is_current=True),
+                name="unique_current_configuration_install",
             )
         ]
