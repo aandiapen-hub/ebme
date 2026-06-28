@@ -9,7 +9,9 @@ from assets.models import Tblbrands, Tblmodel, Tblcategories, Tblcheckslists
 from .models import(
     Software,
     SoftwareModel,
-    EquipmentSoftware,
+    EquipmentConfiguration,
+    EquipmentConfigurationModel,
+    EquipmentConfigurationScope
 )
 
 from django.views.generic import (
@@ -589,3 +591,117 @@ class SoftwareModelDeleteView(DeleteView):
 
     def get_success_url(self):
         return reverse('model_information:software_detail', kwargs={'pk':self.object.software.pk})
+
+
+
+SOFTWARE_SEARCH_FIELDS = [
+    'brand',
+    'name',
+]
+
+class ConfigurationFilterView(FilteredTableView):
+
+    paginate_by = 25
+    permission_required = "model_information.view_equipmentconfiguration"
+    model = EquipmentConfiguration
+    table_class = None
+    template_columns = {"open": "model_information/tables/configuration_open.html"}
+    template_name = "model_information/configurations.html"
+    universal_search_fields = SOFTWARE_SEARCH_FIELDS
+    default_columns = [
+        'brand',
+        'configuration_status',
+        'version',
+    ]
+    bulk_actions = {
+    }
+
+class ConfigurationDetailView(DetailView):
+    permission_required = "model_information.view_equipmentconfiguration"
+    model = EquipmentConfiguration 
+    template_name = "model_information/configuration_detail.html"
+    context_object_name = 'config'
+
+
+class ConfigurationCreateView(CreateView):
+    permission_required = "model_information.add_equipmentconfiguration"
+    model = EquipmentConfiguration 
+    fields = '__all__'
+    template_name = "model_information/configuration_create.html"
+    context_object_name = 'config'
+
+    def get_success_url(self):
+        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.pk})
+
+
+class ConfigurationUpdateView(UpdateView):
+    permission_required = "model_information.change_equipmentconfiguration"
+    model = EquipmentConfiguration 
+    fields = '__all__'
+    template_name = "model_information/configuration_update.html"
+    context_object_name = 'config'
+
+    def get_success_url(self):
+        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.pk})
+
+class ConfigurationDeleteView(DeleteView):
+    permission_required = "model_information.delete_equipmentconfiguration"
+    model = EquipmentConfiguration 
+    fields = '__all__'
+    template_name = "model_information/configuration_delete.html"
+    context_object_name = 'config'
+
+    def get_success_url(self):
+        return reverse('model_information:configurations')
+
+class ConfigurationModelCreateView(CreateView):
+    permission_required = "model_information.add_equipmentconfigurationmodel"
+    model = EquipmentConfigurationModel
+    fields = '__all__'
+    template_name = "model_information/configuration_model_create.html"
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.update(**self.request.GET) 
+        return initial
+
+    def get_success_url(self):
+        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.configuration.pk})
+
+
+class ConfigurationModelDeleteView(DeleteView):
+    permission_required = "model_information.delete_equipmentconfigurationmodel"
+    model = EquipmentConfigurationModel
+    fields = '__all__'
+    template_name = "model_information/configuration_model_delete.html"
+    context_object_name = 'config_model'
+
+    def get_success_url(self):
+        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.configuration.pk})
+
+
+class ConfigurationScopeCreateView(CreateView):
+    permission_required = "model_information.add_equipmentconfigurationscope"
+    model = EquipmentConfigurationScope
+    fields = '__all__'
+    template_name = "model_information/configuration_scope_create.html"
+    context_object_name = 'scope'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.update(**self.request.GET) 
+        return initial
+
+    def get_success_url(self):
+        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.configuration.pk})
+
+
+class ConfigurationScopeDeleteView(DeleteView):
+    permission_required = "model_information.add_equipmentconfigurationscope"
+    model = EquipmentConfigurationScope
+    fields = '__all__'
+    template_name = "model_information/configuration_scope_create.html"
+    context_object_name = 'scope'
+
+    def get_success_url(self):
+        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.configuration.pk})

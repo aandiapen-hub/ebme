@@ -164,3 +164,123 @@ class EquipmentSoftware(models.Model):
 
     def __str__(self):
         return f"{self.software} -> {self.equipment}"
+
+class EquipmentConfigurationStatus(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
+    code = models.CharField(max_length=50, unique=True)
+
+    name = models.CharField(max_length=100)
+
+    description = models.TextField(blank=True)
+
+    sort_order = models.IntegerField(default=0)
+
+    is_terminal = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "equipment_configuration_status"
+        ordering = ["sort_order"]
+
+    def __str__(self):
+        return self.name
+
+class EquipmentConfiguration(models.Model):
+    """
+    Defines a configuration policy that can apply to equipment.
+    """
+
+    id = models.BigAutoField(primary_key=True, editable=False)
+
+    name = models.CharField(max_length=200)
+    configuration_status = models.ForeignKey(EquipmentConfigurationStatus, on_delete=models.PROTECT)
+    version = models.IntegerField()
+
+    brand = models.ForeignKey(
+        'assets.tblbrands',
+        on_delete=models.CASCADE,
+    )
+
+    description = models.TextField(blank=True)
+
+    active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = "equipment_configuration"
+
+    def __str__(self):
+        return self.name
+
+
+class EquipmentConfigurationModel(models.Model):
+    """
+    Links configurations to compatible equipment models.
+    """
+
+    id = models.BigAutoField(primary_key=True, editable=False)
+
+    configuration = models.ForeignKey(
+        EquipmentConfiguration,
+        on_delete=models.CASCADE,
+        related_name="model_links",
+    )
+
+    model = models.ForeignKey(
+        "assets.Tblmodel",
+        on_delete=models.CASCADE,
+        related_name="configuration_links",
+    )
+
+    mandatory = models.BooleanField(default=False)
+
+    notes = models.TextField(blank=True,)
+
+    class Meta:
+        managed = False
+        db_table = "equipment_configuration_model"
+        unique_together = ("configuration", "model")
+
+    def __str__(self):
+        return f"{self.configuration} -> {self.model}"
+
+
+class EquipmentConfigurationScope(models.Model):
+    """
+    Defines where a configuration applies.
+    """
+
+    id = models.BigAutoField(primary_key=True, editable=False)
+
+    configuration = models.ForeignKey(
+        EquipmentConfiguration,
+        on_delete=models.CASCADE,
+        related_name="scopes",
+    )
+
+    site = models.ForeignKey(
+        "assets.Tblsites",
+        on_delete=models.PROTECT,
+    )
+
+    location = models.ForeignKey(
+        "assets.Tbllocations",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "equipment_configuration_scope"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["configuration", "site", "location"],
+                name="uniq_config_site_location",
+            )
+        ]

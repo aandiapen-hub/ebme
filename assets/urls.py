@@ -22,6 +22,4 @@ urlpatterns = [
     path("bulk_update/",AssetBulkUpdateView.as_view(),name='bulk_update_assets'),
     path("set_equipment_software/",SetEquipmentSoftware.as_view(),name='set_equipment_software'),
     path("remove_equipment_software/<int:pk>/",RemoveEquipmentSoftware.as_view(),name='remove_equipment_software'),
-    #utils
-
-]   
+]

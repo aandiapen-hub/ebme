@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+{% block content %}
+<!--List Asset Details -->
+
+<div id="commissioning_details" class='container'>
+
+  <h3>Configuration: {{config}}</h3>
+      <div class="row  bg-white p-4 rounded"> 
+        <div class="col">
+          <p><small class="text-muted">brand: </small>{{config.brand}}</p>
+          <p><small class="text-muted">name: </small>{{config.name}}</p>
+          <p><small class="text-muted">version: </small>{{config.version}}</p>
+          <p><small class="text-muted">Status: </small>{{config.configuration_status}}</p>
+          <p><small class="text-muted">Description: </small>{{config.description}}</p>
+
+<a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:configuration_update" pk=config.pk %}'>Update</a>
+<a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:configuration_delete" pk=config.pk %}'>Delete</a>
+        </div>
+
+          <div class="col text-end">
+          <h5>Compatible Models</h5>
+      <a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:configuration_model_create" %}?configuration={{config.pk}}'>Add Model</a>
+      <ul class="list-group">
+        {% for configuration_model in config.model_links.all %}
+        <li class="list-group-item" aria-current="true">
+          {{configuration_model.model}}
+          <a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:configuration_model_delete" pk=configuration_model.pk %}'>Remove</a>
+        </li>
+          {% empty %}
+          <p>No models linked</p>
+          {% endfor %}
+      </ul>
+          </div>
+
+        </div>
+</div>
+
+{%endblock content%}
+

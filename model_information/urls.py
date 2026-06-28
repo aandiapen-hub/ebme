@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    ConfigurationModelDeleteView,
     FilteredBrandTableView,
     BrandUpdateView,
     BrandCreateView,
@@ -29,6 +30,12 @@ from .views import (
     SoftwareDeleteView,
     SoftwareModelCreateView,
     SoftwareModelDeleteView,
+    ConfigurationFilterView,
+    ConfigurationDetailView,
+    ConfigurationCreateView,
+    ConfigurationDeleteView,
+    ConfigurationUpdateView,
+    ConfigurationModelCreateView,
 )
 
 
@@ -69,5 +76,14 @@ urlpatterns = [
     path("software/<int:pk>/",SoftwareDetailView.as_view(),name='software_detail'),
     path("software/<int:pk>/delete",SoftwareDeleteView.as_view(),name='software_delete'),
     path("software/add_model",SoftwareModelCreateView.as_view(),name='software_model_create'),
-    path("software/add_model/<int:pk>/",SoftwareModelDeleteView.as_view(),name='software_model_delete'),
+    path("software/delete_model/<int:pk>/",SoftwareModelDeleteView.as_view(),name='software_model_delete'),
+
+    path("configuration/",ConfigurationFilterView.as_view(),name='configurations'),
+    path("configuration/<int:pk>/update/",ConfigurationUpdateView.as_view(),name='configuration_update'),
+    path("configuration/create/",ConfigurationCreateView.as_view(),name='configuration_create'),
+    path("configuration/<int:pk>/",ConfigurationDetailView.as_view(),name='configuration_detail'),
+    path("configuration/<int:pk>/delete/",ConfigurationDeleteView.as_view(),name='configuration_delete'),
+    path("configuration/model/create",ConfigurationModelCreateView.as_view(),name='configuration_model_create'),
+    path("configuration/model/<int:pk>/delete/",ConfigurationModelDeleteView.as_view(),name='configuration_model_delete'),
+
 ]
