@@ -6,18 +6,22 @@
 
 <div id="commissioning_details" class='container'>
 
-  <h3>Commissioning Request: {{request.code}}-{{request.name}}</h3>
+  <h3>Commissioning Request: {{request.code}}</h3>
       <div class="row  bg-white p-4 rounded"> 
         <div class="col">
+          <p><small class="text-muted">Acquisition:</small>
+              <a class='btn btn-outline-info btn-sm' href='{% url "capital_projects:acquisition_detail" pk=request.capital_acquisition.pk %}'>{{request.capital_acquisition}}</a>
+          </p>
           <p><small class="text-muted">Customer: </small>{{request.customerid}}</p>
           <p><small class="text-muted">Notes: </small>{{request.notes}}</p>
           <p><small class="text-muted">Status: </small>{{request.status}}</p>
           <p><small class="text-muted">Location: </small>{{request.locationid}}</p>
           <p><small class="text-muted">PO: </small>{{request.orderno}}</p>
         </div>
+
         <div class="col text-end">
           <div id="edit_div" class="dropdown">
-
+              <a class='btn btn-outline-primary btn-sm' href='{% url "assets:create_asset" %}?commission_request?={{request.capital_acquisition.pk}}'>Add Asset</a>
           </div>
 
         </div>

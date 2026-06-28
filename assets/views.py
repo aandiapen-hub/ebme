@@ -1,7 +1,10 @@
 from django.contrib import messages
 from django.db import transaction
+from assets.services.oustanding_tasks import get_equipment_tasks
+from assets.services.sofware_service import apply_software_change
+from cap_project.models import CommissionRequest
 from documents.mixins import TempUploadMixin
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 import json
 from documents.services.documents import delete_object_document_links
 from django.urls import reverse, reverse_lazy
@@ -10,15 +13,19 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
     DetailView,
+    FormView,
 )
 from datetime import datetime
+
+from model_information.models import EquipmentSoftware, SoftwareModel
 
 from .models import (
     Tblassets,
     AssetView,
 )
 
-from .forms import AssetUpdateForm, AssetBulkUpdateForm
+from documents.services.process_document import quick_barcode_processor
+from .forms import AssetUpdateForm, AssetBulkUpdateForm, SetEquipmentSoftwareForm
 
 from utils.generic_views import BulkUpdateView
 
@@ -30,7 +37,7 @@ from utils.generic_views import FilteredTableView
 
 UNIVERSAL_SEARCH_FIELDS = [
     "serialnumber__icontains",
-    "assetid__icontains",
+    "assetid__pk__icontains",
     "modelname__icontains",
     "brandname__icontains",
     "categoryname__icontains",
@@ -83,6 +90,7 @@ class AssetDetailView(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["open_jobs"] = self.object.jobs.filter(jobstatusid__in=[0, 2, 3, 5])
+        context['tasks'] = get_equipment_tasks(self.object)
         return context
 
 
@@ -156,19 +164,22 @@ class AssetCreateView(
 
     def get(self, request, *args, **kwargs):
         if request.htmx:
-            payload = request.GET.get("payload")
-            if payload:
-                return self.update_form()
+            barcode = request.GET.get("barcode")
+            print('barcode', barcode)
+            if barcode:
+                resolved_data = quick_barcode_processor(barcode)
+                print('resolved data received', resolved_data)
+                return self.update_form(resolved_data)
         return super().get(request, *args, **kwargs)
 
-    def update_form(self):
+    def update_form(self, resolved_data):
         form_data = self.request.GET.dict()
-        payload = json.loads(self.request.GET.get("payload", None))
-        if payload is not None:
-            for field, value in payload.items():
-                if field == "prod_date":
+        asset_data = resolved_data.get('asset', None)
+        if asset_data is not None:
+            for field, value in asset_data.items():
+                if field == "prod_date" and value is not None:
                     form_data[field] = datetime.strptime(value, "%y%m%d").date()
-                else:
+                elif value is not None:
                     form_data[field] = value
 
         form = self.form_class(form_data)
@@ -178,8 +189,50 @@ class AssetCreateView(
         context = self.get_context_data(form=form)
         return self.render_to_response(context)
 
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['com_requests'] = CommissionRequest.objects.all()
+        return context
 
+class SetEquipmentSoftware(FormView):
+    template_name = 'assets/set_equipment_software.html'
+    form_class = SetEquipmentSoftwareForm
+    
+    def get_success_url(self):
+        equipment = self.object.equipment.pk
+        print(self.object, self.object.equipment.pk)
+        return reverse('assets:view_asset', kwargs={'pk':equipment})
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        equipmentid = self.request.GET.get('equipmentid', None)
+        if equipmentid:
+            kwargs['equipment_id'] = equipmentid 
+
+        return kwargs
+        
+
+    def form_valid(self, form):
+        software_id = form.cleaned_data['software']
+        equipment_id = form.cleaned_data['equipment']
+        self.object = apply_software_change(
+            equipment=equipment_id,
+            software=software_id,
+            user=self.request.user 
+        )
+        
+        response = HttpResponseRedirect(self.get_success_url())
+        return response
+
+class RemoveEquipmentSoftware(DeleteView):
+    model = EquipmentSoftware
+    template_name = 'assets/remove_equipment_software.html'
+    fields = '__all__'
+    context_object_name = 'software_equipment'
+
+    def get_success_url(self):
+        equipment_id = self.object.equipment.pk
+        return reverse('assets:view_asset', kwargs={'pk':equipment_id})
 
 class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):
     model = AssetView

@@ -12,6 +12,19 @@
       {#Return to Assets Button#}
       {% include "assets/partials/back_to_assets_button.html" %}
 
+      {% if tasks %}
+        <div class="alert alert-warning">
+          <h4>Required actions</h4>
+          <ul>
+            {% for task in tasks %}
+              <li>
+                <a href="{{ task.url }}">{{ task.label }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
       <div class="row  bg-white p-4 rounded"> 
         <div class="col">
           <p><small class="text-muted">ID: </small>{{asset.assetid}}</p>
@@ -20,6 +33,7 @@
           <p><small class="text-muted">Model Spec: </small>{{asset.modelid}}</p>
           <p><small class="text-muted">Customer: </small>{{asset.customerid}}</p>
           <p><small class="text-muted">Location: </small>{{asset.locationid}}</p>
+
         </div>
         <div class="col">
           <p><small class="text-muted">Next PPM Date: </small>{{asset.nextppmdate}}</p>
@@ -61,13 +75,27 @@
                 {% endif %}
               </li>
             </ul>
-          </div>
 
+          </div>
         </div>
+      </div>
+
+      <div class="col-12" id="document_div">
+        <p><small class="text-muted">Software: </small>
+        <ul class="list-group">
+          {% for software in asset.assetid.installed_software.all %}
+            <li class="list-group-item" aria-current="true">
+            {{software.software}}
+          <a class='btn btn-sm btn-outline-secondary' href='{% url "assets:remove_equipment_software" pk=software.pk %}'>Remove</a>
+            </li>
+            {% empty %}
+            <p>No software</p>
+            {% endfor %}
+        </ul>
+      </div>
         <div class="col-12" id="document_div">
             {% include "documents/partials/generic_document_partial.html" with object_id=asset.assetid content_type="assets.tblAssets" %}   
         </div>
-      </div>
 
 
 

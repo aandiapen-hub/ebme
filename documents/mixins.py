@@ -160,7 +160,8 @@ class TempUploadUpdateFormMixin:
         """
         if hasattr(self.instance, f"{field}_id"):
             return getattr(self.instance, f"{field}_id")
-        return getattr(self.instance, field)
+        if hasattr(self.instance, field):
+            return getattr(self.instance, field)
 
     def _normalise_date(self, value, original):
         """

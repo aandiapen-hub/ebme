@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+
+{% block content %}
+<!--List Asset Details -->
+
+<div id="commissioning_details" class='container'>
+
+  <h3>Software: {{software}}</h3>
+      <div class="row  bg-white p-4 rounded"> 
+        <div class="col">
+          <p><small class="text-muted">brand: </small>{{software.brand}}</p>
+          <p><small class="text-muted">name: </small>{{software.name}}</p>
+          <p><small class="text-muted">version: </small>{{software.version}}</p>
+          <p><small class="text-muted">Release Date: </small>{{software.release_date}}</p>
+          <p><small class="text-muted">Part No.: </small>{{software.part_number}}</p>
+          <p><small class="text-muted">GTIN: </small>{{software.GTIN}}</p>
+<a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:software_update" pk=software.pk %}'>Update</a>
+<a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:software_delete" pk=software.pk %}'>Delete</a>
+        </div>
+
+          <div class="col text-end">
+          <h5>Compatible Models</h5>
+      <a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:software_model_create" %}?software={{software.pk}}'>Add Model</a>
+      <ul class="list-group">
+        {% for software_model in software.compatible_models.all %}
+        <li class="list-group-item" aria-current="true">
+          {{software_model.model}}
+          <a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:software_model_delete" pk=software_model.pk %}'>Remove</a>
+        </li>
+              {% empty %}
+              <p>No compatible models registered</p>
+              {% endfor %}
+      </ul>
+          </div>
+
+        </div>
+</div>
+
+{%endblock content%}
+

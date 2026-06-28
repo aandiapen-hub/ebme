@@ -4,7 +4,7 @@ from django.db.models import Q
 
 
 from documents.models import TempUploadGroup
-from documents.services.document_parser import temp_group_resolver
+from documents.services.document_parser import rapid_gs1_resolver, temp_group_resolver
 from documents.services.ai_processor import extract_group_info_with_ai
 from django.tasks import task
 
@@ -112,3 +112,9 @@ def quick_group_processor(temporary_upload):
     group.extracted_json['merged_parsed_barcode'] = merged_barcode_parsed
     group.save(update_fields=['extracted_json'])
     temp_group_resolver(group.pk)
+
+
+def quick_barcode_processor(barcode):
+    resolved_data = rapid_gs1_resolver(barcode)
+    print('resolved_data', resolved_data)
+    return resolved_data

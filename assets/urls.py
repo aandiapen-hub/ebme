@@ -1,10 +1,14 @@
 from django.urls import path
-from .views import (AssetCreateView,
-                    FilteredAssetTableView,
-                    AssetDetailView,
-                    AssetUpdateView,
-                    AssetDeleteView,
-                    AssetBulkUpdateView,
+from .views import (
+    AssetCreateView,
+    FilteredAssetTableView,
+    AssetDetailView,
+    AssetUpdateView,
+    AssetDeleteView,
+    AssetBulkUpdateView,
+    SetEquipmentSoftware,
+    RemoveEquipmentSoftware,
+                
 )
 
 
@@ -16,6 +20,8 @@ urlpatterns = [
     path("delete_asset/<int:pk>",AssetDeleteView.as_view(),name="delete_asset"),
     path("assets/",FilteredAssetTableView.as_view(),name='assets_list'),
     path("bulk_update/",AssetBulkUpdateView.as_view(),name='bulk_update_assets'),
+    path("set_equipment_software/",SetEquipmentSoftware.as_view(),name='set_equipment_software'),
+    path("remove_equipment_software/<int:pk>/",RemoveEquipmentSoftware.as_view(),name='remove_equipment_software'),
     #utils
 
 ]   

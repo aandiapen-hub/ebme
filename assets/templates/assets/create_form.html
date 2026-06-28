@@ -7,7 +7,7 @@
   <div id='asset_details' class="container p-3">
     {% include 'documents/partials/temp_file_group_mini.html' %}
 
-    <div class='mb-3 d-inline-flex'>
+    <div class='mb-3 d-inline-flex gap-2'>
       <label class='form-label' for='barcode'>Scan Barcode</label>
       <input type='text', id='barcode', name='barcode'
         class='form-control'
@@ -29,6 +29,8 @@
         on click call #barcode.focus()
         "
       >Scan Barcode</button>
+
+    <button class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#project_canvas" aria-controls="project_canvas">Commissioning requests</button>
     </div>
 
 
@@ -45,4 +47,27 @@
       <a class='btn btn-secondary' href='{% url "assets:assets_list" %}'>Cancel</a>
   </form>   
   </div>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="project_canvas" aria-labelledby="project_canvas_label">
+  <div class="offcanvas-header">
+    <h5 id="project_canvas_label">Open Requests</h5>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+      <div class="list-group">
+      {% for request in com_requests %}
+      <button type='button',
+        class='list-group-item list-group-item-action'
+        hx-get="{% url 'assets:create_asset' %}?barcode=91{{request.code}}"
+        hx-target="#asset_form"
+        hx-include='#asset_form'
+        hx-swap='outerHTML'
+        hx-select='#asset_form'
+        >{{request}}</button>
+      {% empty %}
+        <p>No open commissioning requests found.</p>
+      {% endfor %}
+</div>
+  </div>
+</div>
 {% endblock %}

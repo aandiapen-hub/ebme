@@ -1,7 +1,9 @@
 from django import forms
+from django.db.models import CommaSeparatedIntegerField
 from .models import Tblassets, Tblmodel, Tblcustomer, TblAssetStatus, Tblppmschedules
 from django_select2.forms import ModelSelect2Widget
 from django.core.exceptions import ValidationError
+from model_information.models import Software, SoftwareModel
 
 from documents.mixins import TempUploadUpdateFormMixin
 
@@ -26,7 +28,6 @@ class AssetUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
             "customerid",
             "serialnumber",
             "modelid",
-            "softwareversion",
             "ppmscheduleid",
             "installationdate",
             "unitprice",
@@ -60,7 +61,6 @@ class AssetUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
             "customerid": "Customer",
             "serialnumber": "Serial No.",
             "modelid": "Model",
-            "softwareversion": "Software Version",
             "ppmscheduleid": "PPM Schedule",
             "installationdate": "Installation Date",
             "unitprice": "Unit Price",
@@ -70,6 +70,7 @@ class AssetUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
             "prod_date": "Production Date",
             "is_test_eq": "Test Equipment",
         }
+
 
 
 class AssetBulkUpdateForm(forms.Form):
@@ -130,9 +131,44 @@ class AssetBulkUpdateForm(forms.Form):
             raise ValidationError({"__all__": "No values entered"})
 
 
-class AssetCreateFromFileForm(forms.Form):
-    ai = forms.BooleanField(
-        required=False,
-        help_text="Use AI to extract non-barcode related information from images",
+class SetEquipmentSoftwareForm(forms.Form):
+    software = forms.ModelChoiceField(
+        queryset=Software.objects.all(),
+        required=True,
+        widget=ModelSelect2Widget(
+            model=Software,
+            search_fields=['brand__icontains','name__icontains'],
+            attrs={
+                "data-minimum-input-length": 0,
+                "data-placeholder": "Select an option",
+                "data-close-on-select": "false",
+            }
+        )
     )
-    group = forms.CharField(widget=forms.HiddenInput, required=False)
+
+    equipment = forms.ModelChoiceField(
+        queryset=Tblassets.objects.all(),
+        required=True,
+        widget=ModelSelect2Widget(
+            model=Tblassets,
+            search_fields=['serialnumber__icontains'],
+            attrs={
+                "data-minimum-input-length": 0,
+                "data-placeholder": "Select an option",
+                "data-close-on-select": "false",
+            }
+        )
+    )
+    
+    def __init__(self, *args, **kwargs):
+        equipment_id = kwargs.pop('equipment_id', None)
+        super().__init__(*args, **kwargs)
+        if equipment_id:
+            equipment = Tblassets.objects.get(pk=equipment_id)
+            compatible_software_ids = equipment.modelid.supported_software.all().values_list('software',flat=True)
+            compatible_software = Software.objects.filter(pk__in=compatible_software_ids)
+
+            self.fields['equipment'].initial = equipment_id
+
+            self.fields['software'].queryset = compatible_software
+            self.fields['software'].initial = compatible_software.last()

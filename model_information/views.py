@@ -6,6 +6,11 @@ from documents.mixins import TempUploadMixin
 
 # import models
 from assets.models import Tblbrands, Tblmodel, Tblcategories, Tblcheckslists
+from .models import(
+    Software,
+    SoftwareModel,
+    EquipmentSoftware,
+)
 
 from django.views.generic import (
     UpdateView,
@@ -499,3 +504,88 @@ class CheckCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
             # Return empty 204 response so HTMX knows it's successful
             return HttpResponse(status=204)
         return super().form_valid(form)
+
+SOFTWARE_SEARCH_FIELDS = [
+    'brand',
+    'name',
+    'part_number',
+]
+
+class SoftwareFilterView(FilteredTableView):
+
+    paginate_by = 25
+    permission_required = "model_information.view_software"
+    model = Software
+    table_class = None
+    template_columns = {"open": "model_information/tables/software_open.html"}
+    template_name = "model_information/softwares.html"
+    universal_search_fields = SOFTWARE_SEARCH_FIELDS
+    default_columns = [
+        'brand',
+        'name',
+        'version',
+        'release_date',
+        'software_type_id',
+    ]
+    bulk_actions = {
+    }
+
+class SoftwareDetailView(DetailView):
+    permission_required = "model_information.view_software"
+    model = Software
+    template_name = "model_information/software_detail.html"
+    context_object_name = 'software'
+
+
+class SoftwareCreateView(CreateView):
+    permission_required = "model_information.add_software"
+    model = Software
+    fields = '__all__'
+    template_name = "model_information/software_create.html"
+    context_object_name = 'software'
+
+    def get_success_url(self):
+        return reverse('model_information:software_detail', kwargs={'pk':self.object.pk})
+
+class SoftwareUpdateView(UpdateView):
+    permission_required = "model_information.change_software"
+    model = Software
+    fields = '__all__'
+    template_name = "model_information/software_update.html"
+    context_object_name = 'software'
+
+    def get_success_url(self):
+        return reverse('model_information:software_detail', kwargs={'pk':self.object.pk})
+
+class SoftwareDeleteView(DeleteView):
+    permission_required = "model_information.delete_software"
+    model = Software
+    template_name = "model_information/software_delete.html"
+    context_object_name = 'software'
+
+    def get_success_url(self):
+        return reverse('model_information:softwares')
+
+class SoftwareModelCreateView(CreateView):
+    permission_required = "model_information.add_softwaremodel"
+    model = SoftwareModel
+    fields = '__all__'
+    template_name = "model_information/software_model_create.html"
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.update(**self.request.GET) 
+        return initial
+
+    def get_success_url(self):
+        return reverse('model_information:software_detail', kwargs={'pk':self.object.software.pk})
+
+class SoftwareModelDeleteView(DeleteView):
+    permission_required = "model_information.delete_softwaremodel"
+    model = SoftwareModel
+    fields = '__all__'
+    template_name = "model_information/software_model_delete.html"
+    context_object_name = 'software_model'
+
+    def get_success_url(self):
+        return reverse('model_information:software_detail', kwargs={'pk':self.object.software.pk})

@@ -7,6 +7,7 @@ from assets.models import (
     Tblbrands,
     Tblcategories,
 )
+from cap_project.models import CommissionRequest
 
 from parts.models import Tblpartslist
 from documents.models import TempUploadGroup, DocumentTypes
@@ -39,13 +40,16 @@ def asset_data_builder(
     part_description=None,
     parts_without_gtin=None,
     suggested_new_part_names=None,
+    ordernumber=None,
+    locationid=None,
+    customerid=None,
+    unitprice=None,
 ):
     return {
         "gtin": {
             "value": gtin,
             "add_gtin": add_gtin,
-        },
-        "asset": {
+        }, "asset": {
             "asset_id": asset_id,
             "serialnumber": serial,
             "customerassetnumber": asset_no,
@@ -54,6 +58,10 @@ def asset_data_builder(
             "prod_date": prod_date,
             "create_asset": create_asset,
             "too_many_assets": too_many_assets,
+            "ordernumber":ordernumber,
+            "locationid":locationid,
+            "customerid":customerid,
+            "unitprice":unitprice,
         },
         "job": {
             "jobs": jobs or [],
@@ -181,6 +189,9 @@ def parse_gs1code(scanned_code=None):
             continue
 
         for es in parsed_gs1.gs1_message.element_strings:
+            if es.ai.ai == '91' and len(parsed_gs1.gs1_message.element_strings)==1:
+                output.update({'com_request': es.value})
+                break 
             if es.ai.data_title == 'INTERNAL':
                 non_gs1_codes.append(code)
                 continue
@@ -190,6 +201,7 @@ def parse_gs1code(scanned_code=None):
                 output["ASSET_NO"] = es.value[-7:]
 
     output['non_gs1_codes'] = non_gs1_codes
+    print(output, 'output****')
     return output
 
 
@@ -399,6 +411,26 @@ def gs1_resolver(parsed_data):
     # -------------------------
     part_number = parsed_data.get("model")
     part_short_name = parsed_data.get("description")
+
+    # -------------------------
+    # 9. Commission Requset 
+    # -------------------------
+    com_request_code = parsed_data.get('com_request')
+    ordernumber = None
+    locationid = None
+    customerid = None
+    unitprice = None
+    if com_request_code:
+        com_request = CommissionRequest.objects.filter(code=com_request_code).first()
+        if com_request:
+            ordernumber = com_request.orderno
+            locationid = com_request.locationid
+            customerid = com_request.customerid
+            unitprice = com_request.unitprice
+
+    part_number = parsed_data.get("model")
+
+    part_short_name = parsed_data.get("description")
     # -------------------------
     # FINAL OUTPUT
     # -------------------------
@@ -424,6 +456,10 @@ def gs1_resolver(parsed_data):
         part_id=part_id,
         part_number=part_number,
         part_short_name=part_short_name,
+        ordernumber=ordernumber,
+        locationid=locationid,
+        customerid=customerid,
+        unitprice=unitprice,
     )
 
 
@@ -583,5 +619,8 @@ def temp_group_resolver(group_id):
         group.save(update_fields=["extracted_json"])
 
 
+def rapid_gs1_resolver(barcode):
+    parsed_barcode = parse_gs1code(scanned_code = barcode)
+    return gs1_resolver(parsed_barcode)
 
 

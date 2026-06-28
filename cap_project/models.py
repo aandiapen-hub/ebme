@@ -165,7 +165,7 @@ class CommissionRequest(models.Model):
 
 
     def __str__(self):
-        return self.name
+        return f"{self.code}-{self.capital_acquisition}"
 
 class CapitalProjectEquipment(models.Model):
     """

@@ -7,7 +7,6 @@
 # Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
 from django.utils.timezone import now
-from django.urls import reverse
 from django.contrib.contenttypes.fields import GenericRelation
 
 
@@ -100,10 +99,15 @@ class Tblassets(models.Model):
     def __str__(self):
         return f"{self.assetid}"
 
+    @property
+    def requires_software(self):
+        software_available = self.modelid.supported_software.exists()
+        has_software = self.installed_software
+        return software_available and not has_software
 
 class AssetView(models.Model):
-    assetid = models.BigIntegerField(
-        db_column="AssetID", blank=True, primary_key=True, verbose_name="Asset ID"
+    assetid = models.OneToOneField(
+        Tblassets, models.DO_NOTHING, db_column='AssetID', primary_key=True, verbose_name="Asset ID"
     )
     customerassetnumber = models.CharField(
         db_column="CustomerAssetNumber",
@@ -223,6 +227,12 @@ class AssetView(models.Model):
     def __str__(self):
         return f"{self.brandname} - {self.modelname} - {self.serialnumber} ({self.categoryname})"
 
+    @property
+    def requires_software(self):
+        software_available = self.modelid.supported_software.exists()
+        has_software = self.assetid.installed_software.exists()
+        print(software_available, has_software)
+        return software_available and not has_software
 
 class JobView(models.Model):
     jobid = models.OneToOneField(
