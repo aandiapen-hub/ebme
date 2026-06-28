@@ -16,7 +16,6 @@
                     {% csrf_token %} 
                     {% bootstrap_form form layout='horizontal' %}
                     <button type="submit" class="btn btn-primary">Save</button>
-                    <a class='btn btn-secondary' href='{% url "model_information:configuration_detail" pk=scope.configuration.pk %}'>Cancel</a>
             </form>
         </div>
     </div>

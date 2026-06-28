@@ -1,8 +1,9 @@
 from django import forms
-from assets.models import Tblbrands, Tblcategories, Tblmodel
+from assets.models import Tblbrands, Tblcategories, Tbllocations, Tblmodel, Tblsites
 from django_select2.forms import ModelSelect2Widget
 
 from documents.mixins import TempUploadUpdateFormMixin
+from model_information.models import EquipmentConfigurationScope
 
 
 class ModelCreateForm(forms.ModelForm):
@@ -109,3 +110,30 @@ class ModelBulkUpdateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.required = False
+
+class ConfigurationScopeCreateForm(forms.ModelForm):
+
+    class Meta:
+        model = EquipmentConfigurationScope
+        fields = '__all__'
+
+        widgets = {
+            'site': ModelSelect2Widget(
+                model=Tblsites,
+                search_fields=["sitename__icontains"],
+                attrs={
+                    "data-placeholder": "Select Site",
+                    "data-minimum-input-length": 0,
+                },
+            ),
+            'location': ModelSelect2Widget(
+                model=Tbllocations,
+                search_fields=["locationname__icontains"],
+                dependent_fields={'site': 'siteid'},
+                attrs={
+                    "data-placeholder": "Select location",
+                    "data-minimum-input-length": 0,
+                },
+            ),
+
+        }

@@ -26,12 +26,12 @@ from django.views.generic import (
 # import django-tables2
 from django_tables2 import tables, SingleTableMixin, columns
 
-from documents.models import TblDocumentLinks
 from documents.services.documents import delete_object_document_links
 from utils.generic_views import BulkUpdateView
 
 # import forms
 from .forms import (
+    ConfigurationScopeCreateForm,
     ModelCreateForm,
     ModelUpdateForm,
     BrandBulkUpdateForm,
@@ -683,7 +683,7 @@ class ConfigurationModelDeleteView(DeleteView):
 class ConfigurationScopeCreateView(CreateView):
     permission_required = "model_information.add_equipmentconfigurationscope"
     model = EquipmentConfigurationScope
-    fields = '__all__'
+    form_class = ConfigurationScopeCreateForm
     template_name = "model_information/configuration_scope_create.html"
     context_object_name = 'scope'
 

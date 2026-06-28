@@ -796,7 +796,7 @@ class Tbllocations(models.Model):
     locationid = models.BigAutoField(primary_key=True)
     locationname = models.CharField()
     departmentname = models.CharField(blank=True, null=True)
-    siteid = models.ForeignKey("Tblsites", models.PROTECT, db_column="siteid")
+    siteid = models.ForeignKey("Tblsites", models.PROTECT, db_column="siteid", related_name='locations')
     customerid = models.ForeignKey(Tblcustomer, models.PROTECT, db_column="customerid")
 
     class Meta:
