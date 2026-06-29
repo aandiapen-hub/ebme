@@ -46,6 +46,8 @@ class Software(models.Model):
 
     version = models.CharField(max_length=100)
 
+    version_number = models.IntegerField(default=1)
+
     part_number = models.CharField(
         max_length=100,
         blank=True,

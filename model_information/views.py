@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.forms import ValidationError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from documents.mixins import TempUploadMixin
@@ -13,6 +14,8 @@ from .models import(
     EquipmentConfigurationModel,
     EquipmentConfigurationScope
 )
+from .services.configuration import create_new_config_version
+from .services.software import add_new_software_version
 
 from django.views.generic import (
     UpdateView,
@@ -22,7 +25,6 @@ from django.views.generic import (
     DetailView,
     FormView,
 )
-
 
 # import django-tables2
 from django_tables2 import tables, SingleTableMixin, columns
@@ -38,6 +40,7 @@ from .forms import (
     BrandBulkUpdateForm,
     ModelBulkUpdateForm,
     AddNewConfigVersionForm,
+    AddNewSoftwareVersionForm,
 )
 
 # import permissions mixins
@@ -551,6 +554,37 @@ class SoftwareCreateView(CreateView):
     def get_success_url(self):
         return reverse('model_information:software_detail', kwargs={'pk':self.object.pk})
 
+class AddNewSoftwareVersion(FormView):
+    permission_required = "model_information.add_software"
+    template_name = "model_information/software_add_version.html"
+    form_class = AddNewSoftwareVersionForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        software_id = self.kwargs.get('pk')
+        context['software'] = Software.objects.get(pk=software_id)
+        return context
+
+
+    def form_valid(self, form):
+        software_id = self.kwargs.get('pk')
+        new_version = form.cleaned_data['new_version']
+        software = Software.objects.get(pk=software_id)
+        try:
+            self.object = add_new_software_version(software, new_version)
+        except ValidationError as e:
+            form.add_error(None, e)
+            return self.form_invalid(form)
+        return HttpResponseRedirect(self.get_success_url())
+    
+    def get_success_url(self):
+        return (
+            reverse(
+                'model_information:software_detail',
+                kwargs={'pk':self.object.pk}
+            )
+        )
+
 class SoftwareUpdateView(UpdateView):
     permission_required = "model_information.change_software"
     model = Software
@@ -637,12 +671,33 @@ class ConfigurationCreateView(CreateView):
 
 class AddNewConfigVersion(FormView):
     permission_required = "model_information.add_equipmentconfiguration"
-    template_name = "model_information/configuration_new_version.html"
+    template_name = "model_information/configuration_add_version.html"
     form_class = AddNewConfigVersionForm
 
-    def form_valid(self, form):
-        pass
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        config_id = self.kwargs.get('pk')
+        context['config'] = EquipmentConfiguration.objects.get(pk=config_id)
+        return context
 
+
+    def form_valid(self, form):
+        config_id = self.kwargs.get('pk')
+        self.object = EquipmentConfiguration.objects.get(pk=config_id)
+        try:
+            self.object = create_new_config_version(self.object)
+        except ValidationError as e:
+            form.add_error(None, e)
+            return self.form_invalid(form)
+        return HttpResponseRedirect(self.get_success_url())
+    
+    def get_success_url(self):
+        return (
+            reverse(
+                'model_information:configuration_detail',
+                kwargs={'pk':self.object.pk}
+            )
+        )
 
 
 class ConfigurationUpdateView(UpdateView):

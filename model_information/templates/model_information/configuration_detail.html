@@ -17,6 +17,7 @@
 
           <a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:configuration_update" pk=config.pk %}'>Update</a>
           <a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:configuration_delete" pk=config.pk %}'>Delete</a>
+          <a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:configuration_add_version" pk=config.pk %}'>New Version</a>
         </div>
     </div>
     <div id='compatible_models'>

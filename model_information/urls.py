@@ -37,7 +37,9 @@ from .views import (
     ConfigurationModelCreateView,
     ConfigurationModelDeleteView,
     ConfigurationScopeCreateView,
-    ConfigurationScopeDeleteView
+    ConfigurationScopeDeleteView,
+    AddNewConfigVersion,
+    AddNewSoftwareVersion,
 )
 
 
@@ -80,6 +82,8 @@ urlpatterns = [
     path("software/add_model",SoftwareModelCreateView.as_view(),name='software_model_create'),
     path("software/delete_model/<int:pk>/",SoftwareModelDeleteView.as_view(),name='software_model_delete'),
 
+    path("software/<int:pk>/add_version/",AddNewSoftwareVersion.as_view(),name='software_add_version'),
+
     path("configuration/",ConfigurationFilterView.as_view(),name='configurations'),
     path("configuration/<int:pk>/update/",ConfigurationUpdateView.as_view(),name='configuration_update'),
     path("configuration/create/",ConfigurationCreateView.as_view(),name='configuration_create'),
@@ -90,4 +94,6 @@ urlpatterns = [
 
     path("configuration/scope/create",ConfigurationScopeCreateView.as_view(),name='configuration_scope_create'),
     path("configuration/scope/<int:pk>/delete/",ConfigurationScopeDeleteView.as_view(),name='configuration_scope_delete'),
+
+    path("configuration/<int:pk>/add_version/",AddNewConfigVersion.as_view(),name='configuration_add_version'),
 ]

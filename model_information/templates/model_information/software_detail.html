@@ -17,6 +17,7 @@
           <p><small class="text-muted">GTIN: </small>{{software.GTIN}}</p>
 <a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:software_update" pk=software.pk %}'>Update</a>
 <a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:software_delete" pk=software.pk %}'>Delete</a>
+<a class='btn btn-sm btn-outline-secondary' href='{% url "model_information:software_add_version" pk=software.pk %}'>Add version</a>
         </div>
 
           <div class="col text-end">

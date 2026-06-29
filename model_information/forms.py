@@ -140,3 +140,6 @@ class ConfigurationScopeCreateForm(forms.ModelForm):
 
 class AddNewConfigVersionForm(forms.Form):
     pass
+
+class AddNewSoftwareVersionForm(forms.Form):
+    new_version = forms.CharField(max_length=50)
