@@ -40,6 +40,8 @@
           <p><small class="text-muted">Schedule: </small>{{asset.ppmscheduleid}}</p>
           <p><small class="text-muted">Last PPM Date: </small>{{asset.lastppmdate}}</p>
           <p><small class="text-muted">Last Repair Date: </small>{{asset.lastrepairdate}}</p>
+          <p><small class="text-muted">Required Config: </small>{{asset.assetid.required_config}}</p>
+          <p><small class="text-muted">Current Config: </small>{{asset.assetid.current_config}}</p>
         </div>
         <div class="col text-end">
           <div id="edit_div" class="dropdown">
@@ -90,26 +92,6 @@
             </li>
             {% empty %}
             <p>No software installed</p>
-            {% endfor %}
-        </ul>
-        <p><small class="text-muted">Required Config: </small>
-        <ul class="list-group">
-          {% for config in required_config %}
-            <li class="list-group-item" aria-current="true">
-            {{config}}
-            </li>
-            {% empty %}
-            <p>No Required Config</p>
-            {% endfor %}
-        </ul>
-        <p><small class="text-muted">Installed Config: </small>
-        <ul class="list-group">
-          {% for config in asset.assetid.installed_config.all %}
-            <li class="list-group-item" aria-current="true">
-            {{config}}
-            </li>
-            {% empty %}
-            <p>No Installed Config</p>
             {% endfor %}
         </ul>
 

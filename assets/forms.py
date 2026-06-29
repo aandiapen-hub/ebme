@@ -208,10 +208,9 @@ class SetEquipmentConfigurationForm(forms.Form):
         super().__init__(*args, **kwargs)
         if equipment_id:
             equipment = Tblassets.objects.get(pk=equipment_id)
-            required_config_id = EquipmentConfiguration.objects.for_asset(equipment)
-            required_config = EquipmentConfiguration.objects.filter(pk__in=required_config_id)
+            required_config = EquipmentConfiguration.objects.resolve(equipment)
 
             self.fields['equipment'].initial = equipment_id
 
-            self.fields['configuration'].queryset = required_config
-            self.fields['configuration'].initial = required_config.last()
+            if required_config:
+                self.fields['configuration'].initial = required_config

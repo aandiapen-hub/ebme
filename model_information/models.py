@@ -201,30 +201,37 @@ class EquipmentConfigurationQuerySet(models.QuerySet):
             model_links__model=model
         )
 
-    def for_location(self, site, location=None):
-        return self.filter(
-            Q(scopes__isnull=True) |
-            Q(
-                scopes__site=site,
-                scopes__location__isnull=True,
-            ) |
-            Q(
-                scopes__site=site,
-                scopes__location=location,
-            )
+    def resolve(self, asset):
+        qs = (
+            self.active()
+            .for_model(asset.modelid)
         )
 
-    def for_asset(self, asset):
-        
-        qs = (
-                self.active().for_model(
-                asset.modelid
-            ).for_location(
-                site=asset.locationid.siteid,
-                location=asset.locationid
-            )
-        )
-        return qs
+        site = asset.locationid.siteid
+        location = asset.locationid
+
+        # 1. Exact location match
+        config = qs.filter(
+            scopes__site=site,
+            scopes__location=location,
+        ).first()
+
+        if config:
+            return config
+
+        # 2. Site-wide match
+        config = qs.filter(
+            scopes__site=site,
+            scopes__location__isnull=True,
+        ).first()
+
+        if config:
+            return config
+
+        # 3. Global match
+        return qs.filter(
+            scopes__isnull=True
+        ).first()
 
 
 class EquipmentConfiguration(models.Model):

@@ -96,7 +96,6 @@ class AssetDetailView(
         context = super().get_context_data(**kwargs)
         context["open_jobs"] = self.object.jobs.filter(jobstatusid__in=[0, 2, 3, 5])
         context['tasks'] = get_equipment_tasks(self.object)
-        context['required_config'] = EquipmentConfiguration.objects.for_asset(self.object)
         
         return context
 

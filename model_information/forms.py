@@ -137,3 +137,6 @@ class ConfigurationScopeCreateForm(forms.ModelForm):
             ),
 
         }
+
+class AddNewConfigVersionForm(forms.Form):
+    pass

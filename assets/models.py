@@ -9,6 +9,8 @@ from django.db import models
 from django.utils.timezone import now
 from django.contrib.contenttypes.fields import GenericRelation
 
+from model_information.models import EquipmentConfigurationLink, EquipmentConfiguration
+
 
 class Tblassets(models.Model):
     assetid = models.BigAutoField(
@@ -104,6 +106,24 @@ class Tblassets(models.Model):
         software_available = self.modelid.supported_software.exists()
         has_software = self.installed_software
         return software_available and not has_software
+
+    @property
+    def required_config(self):
+        return EquipmentConfiguration.objects.resolve(self)
+
+    @property
+    def current_config(self):
+        current_config_link = EquipmentConfigurationLink.objects.filter(
+            equipment=self,
+            is_current=True,
+        ).first()
+        if current_config_link:
+            return current_config_link.configuration
+        return
+
+    @property
+    def requires_configuration(self):
+        return not self.required_config == self.current_config 
 
 class AssetView(models.Model):
     assetid = models.OneToOneField(

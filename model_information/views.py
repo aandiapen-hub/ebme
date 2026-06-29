@@ -20,6 +20,7 @@ from django.views.generic import (
     DeleteView,
     ListView,
     DetailView,
+    FormView,
 )
 
 
@@ -36,6 +37,7 @@ from .forms import (
     ModelUpdateForm,
     BrandBulkUpdateForm,
     ModelBulkUpdateForm,
+    AddNewConfigVersionForm,
 )
 
 # import permissions mixins
@@ -632,6 +634,15 @@ class ConfigurationCreateView(CreateView):
 
     def get_success_url(self):
         return reverse('model_information:configuration_detail', kwargs={'pk':self.object.pk})
+
+class AddNewConfigVersion(FormView):
+    permission_required = "model_information.add_equipmentconfiguration"
+    template_name = "model_information/configuration_new_version.html"
+    form_class = AddNewConfigVersionForm
+
+    def form_valid(self, form):
+        pass
+
 
 
 class ConfigurationUpdateView(UpdateView):

@@ -4,10 +4,10 @@ from urllib.parse import urlencode
 
 def get_equipment_tasks(equipment):
     tasks = []
+    query_params = urlencode({'equipmentid':equipment.pk})
 
     if equipment.requires_software:
         url = reverse( "assets:set_equipment_software")
-        query_params = urlencode({'equipmentid':equipment.pk})
         full_url = f"{url}?{query_params}"
 
         tasks.append({
@@ -15,12 +15,14 @@ def get_equipment_tasks(equipment):
             "label": "Add software",
             "url": full_url
         })
-    '''
-    if equipment.requires_configuration:
+
+    if equipment.assetid.requires_configuration:
+        url = reverse("assets:set_equipment_configuration")
+        full_url = f"{url}?{query_params}"
+        print(full_url)
         tasks.append({
             "type": "configuration",
             "label": "Add configuration",
-            "url": reverse("equipment_config", args=[equipment.pk]),
+            "url": full_url
         })
-    '''
     return tasks
