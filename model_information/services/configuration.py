@@ -7,7 +7,7 @@ def create_new_config_version(config):
     scopes = list(config.scopes.all())
     model_links = list(config.model_links.all())
     config.pk = None
-    config.version += config.version 
+    config.version += 1 
     with transaction.atomic():
         try:
             config.save()

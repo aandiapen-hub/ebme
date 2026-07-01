@@ -8,7 +8,7 @@ def add_new_software_version(software, new_version):
     compatible_models = list(software.compatible_models.all())
     software.pk = None
     software.version = new_version 
-    software.version_number += software.version_number
+    software.version_number +=  1
     with transaction.atomic():
         try:
             software.save()

@@ -204,6 +204,9 @@ class EquipmentConfigurationQuerySet(models.QuerySet):
         )
 
     def resolve(self, asset):
+        if asset.locationid is None:
+            return None
+
         qs = (
             self.active()
             .for_model(asset.modelid)
@@ -245,7 +248,7 @@ class EquipmentConfiguration(models.Model):
 
     name = models.CharField(max_length=200)
     configuration_status = models.ForeignKey(EquipmentConfigurationStatus, on_delete=models.PROTECT)
-    version = models.IntegerField()
+    version = models.IntegerField(default=1)
 
     brand = models.ForeignKey(
         'assets.tblbrands',

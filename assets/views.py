@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import permission_required
 from django.db import transaction
 from assets.services.oustanding_tasks import get_equipment_tasks
 from assets.services.sofware_service import apply_software_change
@@ -17,7 +18,7 @@ from django.views.generic import (
 )
 from datetime import datetime
 
-from model_information.models import EquipmentConfiguration, EquipmentSoftware
+from model_information.models import EquipmentSoftware
 
 from .models import (
     Tblassets,
@@ -35,7 +36,7 @@ from .forms import(
 from utils.generic_views import BulkUpdateView
 
 # import permissions
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from .mixins import CustomerAssetPermissionMixin
 
 from utils.generic_views import FilteredTableView
@@ -171,10 +172,8 @@ class AssetCreateView(
     def get(self, request, *args, **kwargs):
         if request.htmx:
             barcode = request.GET.get("barcode")
-            print('barcode', barcode)
             if barcode:
                 resolved_data = quick_barcode_processor(barcode)
-                print('resolved data received', resolved_data)
                 return self.update_form(resolved_data)
         return super().get(request, *args, **kwargs)
 
@@ -200,13 +199,13 @@ class AssetCreateView(
         context['com_requests'] = CommissionRequest.objects.all()
         return context
 
-class SetEquipmentSoftware(FormView):
+class SetEquipmentSoftware(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     template_name = 'assets/set_equipment_software.html'
     form_class = SetEquipmentSoftwareForm
+    permission_required = 'model_information.add_equipmentsoftware'
     
     def get_success_url(self):
         equipment = self.object.equipment.pk
-        print(self.object, self.object.equipment.pk)
         return reverse('assets:view_asset', kwargs={'pk':equipment})
 
     def get_form_kwargs(self):
@@ -230,9 +229,10 @@ class SetEquipmentSoftware(FormView):
         response = HttpResponseRedirect(self.get_success_url())
         return response
 
-class RemoveEquipmentSoftware(DeleteView):
+class RemoveEquipmentSoftware(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = EquipmentSoftware
     template_name = 'assets/remove_equipment_software.html'
+    permission_required = 'model_information.delete_equipmentsoftware'
     fields = '__all__'
     context_object_name = 'software_equipment'
 
@@ -240,9 +240,10 @@ class RemoveEquipmentSoftware(DeleteView):
         equipment_id = self.object.equipment.pk
         return reverse('assets:view_asset', kwargs={'pk':equipment_id})
 
-class SetEquipmentConfiguration(FormView):
+class SetEquipmentConfiguration(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     template_name = 'assets/set_equipment_configuration.html'
     form_class = SetEquipmentConfigurationForm
+    permission_required = 'model_information.add_equipmentconfigurationlink'
     
     def get_success_url(self):
         equipment = self.object.equipment.pk

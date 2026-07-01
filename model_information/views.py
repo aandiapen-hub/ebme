@@ -7,12 +7,12 @@ from documents.mixins import TempUploadMixin
 
 # import models
 from assets.models import Tblbrands, Tblmodel, Tblcategories, Tblcheckslists
-from .models import(
+from .models import (
     Software,
     SoftwareModel,
     EquipmentConfiguration,
     EquipmentConfigurationModel,
-    EquipmentConfigurationScope
+    EquipmentConfigurationScope,
 )
 from .services.configuration import create_new_config_version
 from .services.software import add_new_software_version
@@ -101,11 +101,8 @@ class BrandBulkUpdateView(BulkUpdateView):
 
 
 class BrandCreateView(
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
-    TempUploadMixin,
-    CreateView):
-
+    LoginRequiredMixin, PermissionRequiredMixin, TempUploadMixin, CreateView
+):
     model = Tblbrands
     fields = "__all__"
     template_name = "model_information/brand_create.html"
@@ -118,6 +115,7 @@ class BrandCreateView(
             self.after_save(form)
 
         return HttpResponseRedirect(self.get_success_url())
+
 
 class BrandDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = Tblbrands
@@ -182,9 +180,8 @@ class ModelUpdateView(
     form_class = ModelUpdateForm
     template_name = "model_information/partials/model_update.html"
     permission_required = "assets.change_tblmodel"
-    success_url_app_view = 'model_information:model_view'
-    initial_mapper = 'update_model'
-
+    success_url_app_view = "model_information:model_view"
+    initial_mapper = "update_model"
 
 
 class ModelBulkUpdateView(BulkUpdateView):
@@ -206,9 +203,8 @@ class ModelCreateView(
     form_class = ModelCreateForm
     template_name = "model_information/partials/model_create.html"
     permission_required = "assets.add_tblmodel"
-    initial_mapper = 'create_model'
+    initial_mapper = "create_model"
     success_url_app_view = "model_information:model_view"
-
 
     def form_valid(self, form):
         with transaction.atomic():
@@ -298,11 +294,7 @@ class FilteredCategoryTableView(
     default_columns = ["categoryid", "categoryname"]
 
 
-class CategoryUpdateView(
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
-    UpdateView
-):
+class CategoryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Tblcategories
     fields = "__all__"
     template_name = "model_information/partials/modal.html"
@@ -325,10 +317,7 @@ class CategoryUpdateView(
 
 
 class CategoryCreateView(
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
-    TempUploadMixin,
-    CreateView
+    LoginRequiredMixin, PermissionRequiredMixin, TempUploadMixin, CreateView
 ):
     model = Tblcategories
     fields = "__all__"
@@ -350,7 +339,6 @@ class CategoryDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
     template_name = "model_information/partials/category_detail.html"
     context_object_name = "category"
     permission_required = "assets.view_tblcategories"
-
 
 
 class CategoryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
@@ -469,7 +457,7 @@ class CheckDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
             with transaction.atomic():
                 delete_object_document_links(self.object)
                 self.object.delete()
-                
+
             if self.request.htmx:
                 return HttpResponse(status=204)
             return HttpResponseRedirect(self.get_success_url())
@@ -512,14 +500,21 @@ class CheckCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
             return HttpResponse(status=204)
         return super().form_valid(form)
 
+
+# -------------
+# configuration
+# -------------
+
 SOFTWARE_SEARCH_FIELDS = [
-    'brand',
-    'name',
-    'part_number',
+    "brand",
+    "name",
+    "part_number",
 ]
 
-class SoftwareFilterView(FilteredTableView):
 
+class SoftwareFilterView(
+    LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
+):
     paginate_by = 25
     permission_required = "model_information.view_software"
     model = Software
@@ -528,47 +523,49 @@ class SoftwareFilterView(FilteredTableView):
     template_name = "model_information/softwares.html"
     universal_search_fields = SOFTWARE_SEARCH_FIELDS
     default_columns = [
-        'brand',
-        'name',
-        'version',
-        'release_date',
-        'software_type_id',
+        "brand",
+        "name",
+        "version",
+        "release_date",
+        "software_type_id",
     ]
-    bulk_actions = {
-    }
+    bulk_actions = {}
 
-class SoftwareDetailView(DetailView):
+
+class SoftwareDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     permission_required = "model_information.view_software"
     model = Software
     template_name = "model_information/software_detail.html"
-    context_object_name = 'software'
+    context_object_name = "software"
 
 
-class SoftwareCreateView(CreateView):
+class SoftwareCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     permission_required = "model_information.add_software"
     model = Software
-    fields = '__all__'
+    fields = "__all__"
     template_name = "model_information/software_create.html"
-    context_object_name = 'software'
+    context_object_name = "software"
 
     def get_success_url(self):
-        return reverse('model_information:software_detail', kwargs={'pk':self.object.pk})
+        return reverse(
+            "model_information:software_detail", kwargs={"pk": self.object.pk}
+        )
 
-class AddNewSoftwareVersion(FormView):
+
+class AddNewSoftwareVersion(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     permission_required = "model_information.add_software"
     template_name = "model_information/software_add_version.html"
     form_class = AddNewSoftwareVersionForm
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        software_id = self.kwargs.get('pk')
-        context['software'] = Software.objects.get(pk=software_id)
+        software_id = self.kwargs.get("pk")
+        context["software"] = Software.objects.get(pk=software_id)
         return context
 
-
     def form_valid(self, form):
-        software_id = self.kwargs.get('pk')
-        new_version = form.cleaned_data['new_version']
+        software_id = self.kwargs.get("pk")
+        new_version = form.cleaned_data["new_version"]
         software = Software.objects.get(pk=software_id)
         try:
             self.object = add_new_software_version(software, new_version)
@@ -576,67 +573,75 @@ class AddNewSoftwareVersion(FormView):
             form.add_error(None, e)
             return self.form_invalid(form)
         return HttpResponseRedirect(self.get_success_url())
-    
+
     def get_success_url(self):
-        return (
-            reverse(
-                'model_information:software_detail',
-                kwargs={'pk':self.object.pk}
-            )
+        return reverse(
+            "model_information:software_detail", kwargs={"pk": self.object.pk}
         )
 
-class SoftwareUpdateView(UpdateView):
+
+class SoftwareUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     permission_required = "model_information.change_software"
     model = Software
-    fields = '__all__'
+    fields = "__all__"
     template_name = "model_information/software_update.html"
-    context_object_name = 'software'
+    context_object_name = "software"
 
     def get_success_url(self):
-        return reverse('model_information:software_detail', kwargs={'pk':self.object.pk})
+        return reverse(
+            "model_information:software_detail", kwargs={"pk": self.object.pk}
+        )
 
-class SoftwareDeleteView(DeleteView):
+
+class SoftwareDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     permission_required = "model_information.delete_software"
     model = Software
     template_name = "model_information/software_delete.html"
-    context_object_name = 'software'
+    context_object_name = "software"
 
     def get_success_url(self):
-        return reverse('model_information:softwares')
+        return reverse("model_information:softwares")
 
-class SoftwareModelCreateView(CreateView):
+
+class SoftwareModelCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     permission_required = "model_information.add_softwaremodel"
     model = SoftwareModel
-    fields = '__all__'
+    fields = "__all__"
     template_name = "model_information/software_model_create.html"
 
     def get_initial(self):
         initial = super().get_initial()
-        initial.update(**self.request.GET) 
+        initial.update(**self.request.GET)
         return initial
 
     def get_success_url(self):
-        return reverse('model_information:software_detail', kwargs={'pk':self.object.software.pk})
+        return reverse(
+            "model_information:software_detail", kwargs={"pk": self.object.software.pk}
+        )
 
-class SoftwareModelDeleteView(DeleteView):
+
+class SoftwareModelDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     permission_required = "model_information.delete_softwaremodel"
     model = SoftwareModel
-    fields = '__all__'
+    fields = "__all__"
     template_name = "model_information/software_model_delete.html"
-    context_object_name = 'software_model'
+    context_object_name = "software_model"
 
     def get_success_url(self):
-        return reverse('model_information:software_detail', kwargs={'pk':self.object.software.pk})
-
+        return reverse(
+            "model_information:software_detail", kwargs={"pk": self.object.software.pk}
+        )
 
 
 SOFTWARE_SEARCH_FIELDS = [
-    'brand',
-    'name',
+    "brand",
+    "name",
 ]
 
-class ConfigurationFilterView(FilteredTableView):
 
+class ConfigurationFilterView(
+    LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
+):
     paginate_by = 25
     permission_required = "model_information.view_equipmentconfiguration"
     model = EquipmentConfiguration
@@ -645,44 +650,46 @@ class ConfigurationFilterView(FilteredTableView):
     template_name = "model_information/configurations.html"
     universal_search_fields = SOFTWARE_SEARCH_FIELDS
     default_columns = [
-        'brand',
-        'configuration_status',
-        'version',
+        "brand",
+        "configuration_status",
+        "version",
     ]
-    bulk_actions = {
-    }
+    bulk_actions = {}
 
-class ConfigurationDetailView(DetailView):
+
+class ConfigurationDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     permission_required = "model_information.view_equipmentconfiguration"
-    model = EquipmentConfiguration 
+    model = EquipmentConfiguration
     template_name = "model_information/configuration_detail.html"
-    context_object_name = 'config'
+    context_object_name = "config"
 
 
-class ConfigurationCreateView(CreateView):
+class ConfigurationCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     permission_required = "model_information.add_equipmentconfiguration"
-    model = EquipmentConfiguration 
-    fields = '__all__'
+    model = EquipmentConfiguration
+    fields = "__all__"
     template_name = "model_information/configuration_create.html"
-    context_object_name = 'config'
+    context_object_name = "config"
 
     def get_success_url(self):
-        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.pk})
+        return reverse(
+            "model_information:configuration_detail", kwargs={"pk": self.object.pk}
+        )
 
-class AddNewConfigVersion(FormView):
+
+class AddNewConfigVersion(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     permission_required = "model_information.add_equipmentconfiguration"
     template_name = "model_information/configuration_add_version.html"
     form_class = AddNewConfigVersionForm
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        config_id = self.kwargs.get('pk')
-        context['config'] = EquipmentConfiguration.objects.get(pk=config_id)
+        config_id = self.kwargs.get("pk")
+        context["config"] = EquipmentConfiguration.objects.get(pk=config_id)
         return context
 
-
     def form_valid(self, form):
-        config_id = self.kwargs.get('pk')
+        config_id = self.kwargs.get("pk")
         self.object = EquipmentConfiguration.objects.get(pk=config_id)
         try:
             self.object = create_new_config_version(self.object)
@@ -690,84 +697,105 @@ class AddNewConfigVersion(FormView):
             form.add_error(None, e)
             return self.form_invalid(form)
         return HttpResponseRedirect(self.get_success_url())
-    
+
     def get_success_url(self):
-        return (
-            reverse(
-                'model_information:configuration_detail',
-                kwargs={'pk':self.object.pk}
-            )
+        return reverse(
+            "model_information:configuration_detail", kwargs={"pk": self.object.pk}
         )
 
 
-class ConfigurationUpdateView(UpdateView):
+class ConfigurationUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     permission_required = "model_information.change_equipmentconfiguration"
-    model = EquipmentConfiguration 
-    fields = '__all__'
+    model = EquipmentConfiguration
+    fields = "__all__"
     template_name = "model_information/configuration_update.html"
-    context_object_name = 'config'
+    context_object_name = "config"
 
     def get_success_url(self):
-        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.pk})
+        return reverse(
+            "model_information:configuration_detail", kwargs={"pk": self.object.pk}
+        )
 
-class ConfigurationDeleteView(DeleteView):
+
+class ConfigurationDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     permission_required = "model_information.delete_equipmentconfiguration"
-    model = EquipmentConfiguration 
-    fields = '__all__'
+    model = EquipmentConfiguration
+    fields = "__all__"
     template_name = "model_information/configuration_delete.html"
-    context_object_name = 'config'
+    context_object_name = "config"
 
     def get_success_url(self):
-        return reverse('model_information:configurations')
+        return reverse("model_information:configurations")
 
-class ConfigurationModelCreateView(CreateView):
+
+class ConfigurationModelCreateView(
+    LoginRequiredMixin, PermissionRequiredMixin, CreateView
+):
     permission_required = "model_information.add_equipmentconfigurationmodel"
     model = EquipmentConfigurationModel
-    fields = '__all__'
+    fields = "__all__"
     template_name = "model_information/configuration_model_create.html"
 
     def get_initial(self):
         initial = super().get_initial()
-        initial.update(**self.request.GET) 
+        initial.update(**self.request.GET)
         return initial
 
     def get_success_url(self):
-        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.configuration.pk})
+        return reverse(
+            "model_information:configuration_detail",
+            kwargs={"pk": self.object.configuration.pk},
+        )
 
 
-class ConfigurationModelDeleteView(DeleteView):
+class ConfigurationModelDeleteView(
+    LoginRequiredMixin, PermissionRequiredMixin, DeleteView
+):
     permission_required = "model_information.delete_equipmentconfigurationmodel"
     model = EquipmentConfigurationModel
-    fields = '__all__'
+    fields = "__all__"
     template_name = "model_information/configuration_model_delete.html"
-    context_object_name = 'config_model'
+    context_object_name = "config_model"
 
     def get_success_url(self):
-        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.configuration.pk})
+        return reverse(
+            "model_information:configuration_detail",
+            kwargs={"pk": self.object.configuration.pk},
+        )
 
 
-class ConfigurationScopeCreateView(CreateView):
+class ConfigurationScopeCreateView(
+    LoginRequiredMixin, PermissionRequiredMixin, CreateView
+):
     permission_required = "model_information.add_equipmentconfigurationscope"
     model = EquipmentConfigurationScope
     form_class = ConfigurationScopeCreateForm
     template_name = "model_information/configuration_scope_create.html"
-    context_object_name = 'scope'
+    context_object_name = "scope"
 
     def get_initial(self):
         initial = super().get_initial()
-        initial.update(**self.request.GET) 
+        initial.update(**self.request.GET)
         return initial
 
     def get_success_url(self):
-        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.configuration.pk})
+        return reverse(
+            "model_information:configuration_detail",
+            kwargs={"pk": self.object.configuration.pk},
+        )
 
 
-class ConfigurationScopeDeleteView(DeleteView):
-    permission_required = "model_information.add_equipmentconfigurationscope"
+class ConfigurationScopeDeleteView(
+    LoginRequiredMixin, PermissionRequiredMixin, DeleteView
+):
+    permission_required = "model_information.delete_equipmentconfigurationscope"
     model = EquipmentConfigurationScope
-    fields = '__all__'
+    fields = "__all__"
     template_name = "model_information/configuration_scope_create.html"
-    context_object_name = 'scope'
+    context_object_name = "scope"
 
     def get_success_url(self):
-        return reverse('model_information:configuration_detail', kwargs={'pk':self.object.configuration.pk})
+        return reverse(
+            "model_information:configuration_detail",
+            kwargs={"pk": self.object.configuration.pk},
+        )

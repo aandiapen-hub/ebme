@@ -1,3 +1,4 @@
+from model_information.services import configuration
 import pytest
 from django.contrib.auth.models import Permission
 from pytest_django.asserts import assertTemplateUsed
@@ -9,6 +10,13 @@ from assets.models import (
     Tblcheckslists,
 )
 from urllib.parse import urlencode
+from model_information.models import(
+    EquipmentConfiguration,
+    EquipmentConfigurationModel,
+    EquipmentConfigurationScope,
+    Software,
+    SoftwareModel
+)
 
 from assets.tests.factories import ModelFactory, CategoryFactory
 from jobs.tests.factories import ChecklistsFactory, TestsCarriedOutFactory
@@ -1222,3 +1230,1085 @@ def test_exitint_model_list_view_renders(client, user, mocker):
     assert response.status_code == 200
     assertTemplateUsed(response, "model_information/partials/existing_model_list.html")
 
+
+# test FilteredJobListView
+@pytest.mark.django_db
+def test_filtered_job_list_view_requires_login(client):
+    url = reverse("jobs:jobs_list")
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_filtered_job_list_view_permission_denied(client, user_setup):
+    user = user_setup
+    client.force_login(user)
+    url = reverse("jobs:jobs_list")
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_filtered_job_list_view_non_staff_with_no_customer(client, user_setup, jobs):
+    jobs = jobs()
+
+    user = user_setup
+    user.customerid = None
+    permission = Permission.objects.get(codename="view_jobview")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("jobs:jobs_list")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "jobs/jobs_list.html")
+
+    # test htmx request
+    response = client.get(url, HTTP_HX_REQUEST="true")
+    table = response.context['table']
+    assert table.data.data.count() == 0
+
+
+# test FilteredJobListView
+@pytest.mark.django_db
+def test_software_filter_view_requires_login(client):
+    url = reverse("model_information:softwares")
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_software_filter_view_permission_denied(client, user_setup):
+    user = user_setup
+    client.force_login(user)
+    url = reverse("model_information:softwares")
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_software_filter_view_renders(client, user_setup, jobs):
+    jobs = jobs()
+
+    user = user_setup
+    user.customerid = None
+    permission = Permission.objects.get(codename="view_software")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("model_information:softwares")
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/softwares.html")
+
+    # test htmx request
+    response = client.get(url, HTTP_HX_REQUEST="true")
+    table = response.context['table']
+    assert table.data.data.count() == 0
+
+# test Software detail view 
+@pytest.mark.django_db
+def test_software_detail_view_requires_login(client, software_factory):
+    software = software_factory()
+    url = reverse("model_information:software_detail", kwargs={'pk':software.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_software_detail_view_permission_denied(client, user, software_factory):
+    user = user()
+    client.force_login(user)
+    software = software_factory()
+    url = reverse("model_information:software_detail", kwargs={'pk':software.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_software_detail_view_renders(client, user, software_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="view_software")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    software = software_factory()
+    url = reverse("model_information:software_detail", kwargs={'pk':software.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/software_detail.html")
+
+# test Software detail view 
+@pytest.mark.django_db
+def test_software_create_view_requires_login(client):
+    url = reverse("model_information:software_create")
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_software_create_view_permission_denied(client, user):
+    user = user()
+    client.force_login(user)
+    url = reverse("model_information:software_create")
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_software_create_view_renders(client, user):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_software")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("model_information:software_create")
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/software_create.html")
+
+
+@pytest.mark.django_db
+def test_software_create_view_posts(client, user, brand, software_type_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_software")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("model_information:software_create")
+
+    software_type = software_type_factory()
+    data = {
+    "brand": brand().pk,
+    "name": "Test Software",
+    "version": "1.0.0",
+    "version_number": 1,
+    "software_type": software_type.pk,
+} 
+    response = client.post(url, data)
+    assert response.status_code == 302
+    assert Software.objects.last().name == 'Test Software'
+
+
+
+# test Software update view 
+@pytest.mark.django_db
+def test_software_update_view_requires_login(client, software_factory):
+    software = software_factory()
+    url = reverse("model_information:software_update", kwargs={'pk':software.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_software_update_view_permission_denied(client, user, software_factory):
+    user = user()
+    client.force_login(user)
+    software = software_factory()
+    url = reverse("model_information:software_update", kwargs={'pk':software.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_software_update_view_renders(client, user, software_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="change_software")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    software = software_factory()
+    url = reverse("model_information:software_update", kwargs={'pk':software.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/software_update.html")
+
+
+@pytest.mark.django_db
+def test_software_update_view_posts(client, user, software_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="change_software")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    software = software_factory()
+    url = reverse("model_information:software_update", kwargs={'pk':software.pk})
+
+    data = {
+    "brand": software.brand.pk,
+    "name": "Test Software",
+    "version": "1.0.0",
+    "version_number": 3,
+    "software_type": software.software_type.pk,
+} 
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert Software.objects.get(pk=software.pk).name == 'Test Software'
+
+
+# test Software create new version view 
+@pytest.mark.django_db
+def test_add_software_version_view_requires_login(client, software_factory):
+    software = software_factory()
+    url = reverse("model_information:software_add_version", kwargs={'pk':software.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_add_software_version_view_permission_denied(client, user, software_factory):
+    user = user()
+    client.force_login(user)
+    software = software_factory()
+    url = reverse("model_information:software_add_version", kwargs={'pk':software.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_add_software_version_view_renders(client, user, software_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_software")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    software = software_factory()
+    url = reverse("model_information:software_add_version", kwargs={'pk':software.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/software_add_version.html")
+
+
+@pytest.mark.django_db
+def test_add_software_version_view_posts(client, user, software_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_software")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    software = software_factory()
+    
+    url = reverse("model_information:software_add_version", kwargs={'pk':software.pk})
+
+    data = {
+            'new_version': 'new_test_version'
+    } 
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    latest = Software.objects.filter(name=software.name, brand=software.brand).exclude(pk=software.pk).first()
+    assert latest.version_number == int(software.version_number) + 1
+    assert latest.version == 'new_test_version'
+
+
+
+# test Software delete view 
+@pytest.mark.django_db
+def test_software_delete_view_requires_login(client, software_factory):
+    software = software_factory()
+    url = reverse("model_information:software_delete", kwargs={'pk':software.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_software_delete_view_permission_denied(client, user, software_factory):
+    user = user()
+    client.force_login(user)
+    software = software_factory()
+    url = reverse("model_information:software_delete", kwargs={'pk':software.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_software_delete_view_renders(client, user, software_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_software")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    software = software_factory()
+    url = reverse("model_information:software_delete", kwargs={'pk':software.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/software_delete.html")
+
+
+@pytest.mark.django_db
+def test_add_software_delete_view_posts(client, user, software_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_software")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    software = software_factory()
+    
+    url = reverse("model_information:software_delete", kwargs={'pk':software.pk})
+
+    data = {} 
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert not Software.objects.filter(pk=software.pk).exists()
+
+
+
+# test Software model create view 
+@pytest.mark.django_db
+def test_software_model_create_view_requires_login(client):
+    url = reverse("model_information:software_model_create")
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_software_model_create_view_permission_denied(client, user):
+    user = user()
+    client.force_login(user)
+    url = reverse("model_information:software_model_create")
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_software_model_create_view_renders(client, user):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_softwaremodel")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("model_information:software_model_create")
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/software_model_create.html")
+
+
+@pytest.mark.django_db
+def test_add_software_model_create_view_posts(client, user, software_factory, model):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_softwaremodel")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    software = software_factory()
+    model = model()
+    
+    url = reverse("model_information:software_model_create")
+
+    data = {
+        'software': software.pk,
+        'model': model.pk
+    } 
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert SoftwareModel.objects.last().software == software
+    assert SoftwareModel.objects.last().model == model
+
+# test Software model delete view 
+@pytest.mark.django_db
+def test_software_model_delete_view_requires_login(client, software_model_factory):
+    sm = software_model_factory()
+    url = reverse("model_information:software_model_delete", kwargs={'pk': sm.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_software_model_delete_view_permission_denied(client, user, software_model_factory):
+    user = user()
+    client.force_login(user)
+    sm = software_model_factory()
+    url = reverse("model_information:software_model_delete", kwargs={'pk': sm.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_software_model_delete_view_renders(client, user, software_model_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_softwaremodel")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    sm = software_model_factory()
+    url = reverse("model_information:software_model_delete", kwargs={'pk': sm.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/software_model_delete.html")
+
+
+@pytest.mark.django_db
+def test_add_software_model_delete_view_posts(client, user, software_model_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_softwaremodel")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    sm = software_model_factory()
+    url = reverse("model_information:software_model_delete", kwargs={'pk': sm.pk})
+
+    data = {} 
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert not SoftwareModel.objects.filter(pk=sm.pk).exists()
+
+
+# test equipment configuration filter view 
+@pytest.mark.django_db
+def test_equipment_configuration_filter_view_requires_login(client):
+    url = reverse("model_information:configurations")
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_equipment_configuration_filter_view_permission_denied(client, user):
+    user = user()
+    client.force_login(user)
+    url = reverse("model_information:configurations")
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_equipment_configuration_filter_view_renders(client, user):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="view_equipmentconfiguration")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("model_information:configurations")
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/configurations.html")
+
+
+# test equipment configuration filter view 
+@pytest.mark.django_db
+def test_equipment_configuration_detail_view_requires_login(client, equipment_configuration_factory):
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_detail", kwargs={'pk':config.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_equipment_configuration_detail_view_permission_denied(client, user, equipment_configuration_factory):
+    user = user()
+    client.force_login(user)
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_detail", kwargs={'pk':config.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_equipment_configuration_detail_view_renders(client, user, equipment_configuration_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="view_equipmentconfiguration")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_detail", kwargs={'pk':config.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/configuration_detail.html")
+
+
+# test equipment configuration create view 
+@pytest.mark.django_db
+def test_equipment_configuration_create_view_requires_login(client):
+    url = reverse("model_information:configuration_create")
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_equipment_configuration_create_view_permission_denied(client, user):
+    user = user()
+    client.force_login(user)
+    url = reverse("model_information:configuration_create")
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_equipment_configuration_create_view_renders(client, user):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentconfiguration")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("model_information:configuration_create")
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/configuration_create.html")
+
+
+@pytest.mark.django_db
+def test_equipment_configuration_create_view_posts(
+        client,
+        user,
+        brand,
+        equipment_configuration_status_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentconfiguration")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("model_information:configuration_create")
+
+    config_name = 'test_config'
+    data = {
+        'name': config_name,
+        'configuration_status': equipment_configuration_status_factory().pk,
+        'brand': brand().pk,
+        'version': 1
+    }
+
+    response = client.post(url, data)
+    assert response.status_code == 302 
+    
+    assert EquipmentConfiguration.objects.last().name == config_name
+
+
+# test add new config version view 
+@pytest.mark.django_db
+def test_add_new_config_version_view_requires_login(client, equipment_configuration_factory):
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_add_version", kwargs={'pk':config.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_add_new_config_version_view_permission_denied(client, user, equipment_configuration_factory):
+    user = user()
+    client.force_login(user)
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_add_version", kwargs={'pk':config.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_add_new_config_version_view_renders(client, user, equipment_configuration_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentconfiguration")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_add_version", kwargs={'pk':config.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/configuration_add_version.html")
+
+
+@pytest.mark.django_db
+def test_add_new_config_version_view_posts(
+        client,
+        user,
+        equipment_configuration_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentconfiguration")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_add_version", kwargs={'pk':config.pk})
+
+    data = {}
+
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert EquipmentConfiguration.objects.last().name == config.name
+    assert EquipmentConfiguration.objects.last().version == config.version+1
+
+
+
+# test configuration_update view 
+@pytest.mark.django_db
+def test_configuration_update_view_requires_login(client, equipment_configuration_factory):
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_update", kwargs={'pk':config.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_configuration_update_view_permission_denied(client, user, equipment_configuration_factory):
+    user = user()
+    client.force_login(user)
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_update", kwargs={'pk':config.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_configuration_update_view_renders(client, user, equipment_configuration_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="change_equipmentconfiguration")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_update", kwargs={'pk':config.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/configuration_update.html")
+
+
+@pytest.mark.django_db
+def test_configuration_update_view_posts(
+        client,
+        user,
+        equipment_configuration_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="change_equipmentconfiguration")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_update", kwargs={'pk':config.pk})
+    new_config_name = 'new_config_testx'
+    data = {
+        'name': new_config_name,
+        'configuration_status': config.configuration_status.pk,
+        'brand': config.brand.pk,
+        'version': 1
+    }
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert EquipmentConfiguration.objects.get(pk=config.pk).name == new_config_name
+
+
+# test configuration_delete view 
+@pytest.mark.django_db
+def test_configuration_delete_view_requires_login(client, equipment_configuration_factory):
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_delete", kwargs={'pk':config.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_configuration_delete_view_permission_denied(client, user, equipment_configuration_factory):
+    user = user()
+    client.force_login(user)
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_delete", kwargs={'pk':config.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_configuration_delete_view_renders(client, user, equipment_configuration_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_equipmentconfiguration")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_delete", kwargs={'pk':config.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/configuration_delete.html")
+
+
+@pytest.mark.django_db
+def test_configuration_delete_view_posts(
+        client,
+        user,
+        equipment_configuration_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_equipmentconfiguration")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    config = equipment_configuration_factory()
+    url = reverse("model_information:configuration_delete", kwargs={'pk':config.pk})
+    data = {}
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert not EquipmentConfiguration.objects.filter(pk=config.pk).exists()
+
+
+# test configuration model create view 
+@pytest.mark.django_db
+def test_configuration_model_create_view_requires_login(client):
+    url = reverse("model_information:configuration_model_create")
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_configuration_model_create_view_permission_denied(client, user):
+    user = user()
+    client.force_login(user)
+    url = reverse("model_information:configuration_model_create")
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_configuration_model_create_view_renders(client, user):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentconfigurationmodel")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("model_information:configuration_model_create")
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/configuration_model_create.html")
+
+
+@pytest.mark.django_db
+def test_configuration_model_create_view_posts(
+    client,
+    user,
+    model,
+    equipment_configuration_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentconfigurationmodel")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    config = equipment_configuration_factory()
+    modelx = model()
+    url = reverse("model_information:configuration_model_create")
+    data = {
+        'configuration': config.pk,
+        'model': modelx.pk
+    }
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert not EquipmentConfigurationModel.objects.last().configuration == configuration
+    assert not EquipmentConfigurationModel.objects.last().model == model
+
+
+# test configuration model delete view 
+@pytest.mark.django_db
+def test_configuration_model_delete_view_requires_login(client, equipment_configuration_model_factory):
+    sm = equipment_configuration_model_factory()
+    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_configuration_model_delete_view_permission_denied(client, user, equipment_configuration_model_factory):
+    user = user()
+    client.force_login(user)
+    sm = equipment_configuration_model_factory()
+    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_configuration_model_delete_view_renders(client, user, equipment_configuration_model_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_equipmentconfigurationmodel")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    sm = equipment_configuration_model_factory()
+    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/configuration_model_delete.html")
+
+
+@pytest.mark.django_db
+def test_configuration_software_model_delete_view_posts(client, user, equipment_configuration_model_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_equipmentconfigurationmodel")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    sm = equipment_configuration_model_factory()
+    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+
+    data = {} 
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert not EquipmentConfigurationModel.objects.filter(pk=sm.pk).exists()
+
+# test configuration scope create view 
+@pytest.mark.django_db
+def test_configuration_scope_create_view_requires_login(client):
+    url = reverse("model_information:configuration_scope_create")
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_configuration_scope_create_view_permission_denied(client, user):
+    user = user()
+    client.force_login(user)
+    url = reverse("model_information:configuration_scope_create")
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_configuration_scope_create_view_renders(client, user):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentconfigurationscope")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("model_information:configuration_scope_create")
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/configuration_scope_create.html")
+
+
+@pytest.mark.django_db
+def test_configuration_scope_create_view_posts(
+    client,
+    user,
+    site,
+    equipment_configuration_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentconfigurationscope")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    config = equipment_configuration_factory()
+    site = site()
+    url = reverse("model_information:configuration_scope_create")
+    data = {
+        'configuration': config.pk,
+        'site': site.pk
+    }
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert EquipmentConfigurationScope.objects.last().site == site
+
+# test configuration model delete view 
+@pytest.mark.django_db
+def test_configuration_scope_delete_view_requires_login(client, equipment_configuration_scope_factory):
+    sm = equipment_configuration_scope_factory()
+    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_configuration_scope_delete_view_permission_denied(client, user, equipment_configuration_scope_factory):
+    user = user()
+    client.force_login(user)
+    sm = equipment_configuration_scope_factory()
+    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_configuration_scope_delete_view_renders(client, user, equipment_configuration_scope_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_equipmentconfigurationscope")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    sm = equipment_configuration_scope_factory()
+    url = reverse("model_information:configuration_scope_delete", kwargs={'pk': sm.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/configuration_scope_delete.html")
+
+
+@pytest.mark.django_db
+def test_configuration_scope_delete_view_posts(client, user, equipment_configuration_scope_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_equipmentconfigurationscope")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    sm = equipment_configuration_scope_factory()
+    url = reverse("model_information:configuration_scope_delete", kwargs={'pk': sm.pk})
+
+    data = {} 
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert not EquipmentConfigurationScope.objects.filter(pk=sm.pk).exists()

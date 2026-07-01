@@ -5,7 +5,7 @@ from factory.django import DjangoModelFactory
 from assets.models import (
     Tblassets, Tblbrands, Tblmodel, Tblcustomer,
     TblAssetStatus, Tblcategories, Tblppmschedules,
-    
+    Tbllocations, Tblsites
 )
 
 CATEGORY_NAMES = ["suction", "diathermy","monitor"]
@@ -43,6 +43,22 @@ class ModelFactory(DjangoModelFactory):
     brandid = factory.SubFactory(BrandFactory)
     categoryid = factory.SubFactory(CategoryFactory)
 
+class SiteFactory(DjangoModelFactory):
+    class Meta:
+        model = Tblsites
+        django_get_or_create = ("sitename",)
+
+    sitename = factory.Sequence(lambda n: f"Site {n}")
+
+class LocationFactory(DjangoModelFactory):
+    class Meta:
+        model = Tbllocations
+
+    locationname = factory.Sequence(lambda n: f"Location {n}")
+    departmentname = factory.Faker("word")
+
+    siteid = factory.SubFactory(SiteFactory)
+    customerid = factory.SubFactory(CustomerFactory)
 
 ASSET_STATUS = ["Active", "Quarantined", "Decommissioned"]
 class AssetStatusFactory(DjangoModelFactory):

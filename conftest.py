@@ -5,7 +5,13 @@ from assets.tests.factories import(
     AssetStatusFactory,
     ModelFactory,
     BrandFactory,
-    CategoryFactory
+    CategoryFactory,
+    SiteFactory,
+)
+from model_information.tests.factories import (
+    SoftwareModelFactory,
+    EquipmentSoftwareFactory,
+    EquipmentConfigurationModelFactory,
 )
 from parts.tests.factories import PartFactory
 from users.tests.factories import UserFactory
@@ -87,6 +93,10 @@ def asset_status():
     return AssetStatusFactory
 
 @pytest.fixture
+def site():
+    return SiteFactory
+
+@pytest.fixture
 def brand():
     return BrandFactory
 
@@ -103,3 +113,18 @@ def checklists():
     def _multiple_checks(count=10, **kwargs):
         return ChecklistsFactory.create_batch(count, **kwargs)
     return _multiple_checks
+
+
+
+@pytest.fixture
+def software_model_factory():
+    return SoftwareModelFactory
+
+
+@pytest.fixture
+def equipment_software_factory():
+    return EquipmentSoftwareFactory
+
+@pytest.fixture
+def equipment_configuration_model_factory():
+    return EquipmentConfigurationModelFactory

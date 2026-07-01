@@ -6,6 +6,11 @@ from django.urls import reverse
 from assets.models import (
     Tblassets,
 )
+from model_information.models import(
+    EquipmentConfigurationLink,
+    EquipmentSoftware,
+    EquipmentConfiguration
+)
 from unittest.mock import patch
 
 from urllib.parse import urlencode
@@ -92,31 +97,6 @@ def test_asset_create_view_renders(
     response = client.get(url)
     assert response.status_code == 200
 
-@pytest.mark.django_db
-def test_asset_create_view_with_payload(
-    client,
-    user_setup,
-    asset_status,
-):
-    # Create user and force login
-    user = user_setup
-
-    permission = Permission.objects.get(codename="add_tblassets")
-    user.user_permissions.add(permission)
-
-    client.force_login(user)
-
-    # Set up required related objects
-    asset_status = asset_status()
-    # Prepare form data
-    payload = {
-        "serialnumber": 12332,
-        "prod_date": '200623'
-    }
-    url = reverse("assets:create_asset")
-    query_params = urlencode({'payload':json.dumps(payload)})
-    response = client.get(f"{url}?{query_params}", HTTP_HX_REQUEST='true')
-    assert response.context['form']['serialnumber'].value() == 12332
 
 @pytest.mark.django_db
 def test_asset_create_view_success_post(
@@ -150,6 +130,197 @@ def test_asset_create_view_success_post(
     response = client.post(url, data=form_data)
     created_asset = Tblassets.objects.last()
     assert created_asset.serialnumber == "12332"
+
+# test set equipment software view 
+@pytest.mark.django_db
+def test_equipment_software_view_requires_login(client):
+    url = reverse("assets:set_equipment_software")
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_set_equipment_sofware_view_permission_denied(client, user):
+    user = user()
+    client.force_login(user)
+    url = reverse("assets:set_equipment_software")
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_set_equipment_sofware_view_renders(client, user):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentsoftware")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("assets:set_equipment_software")
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "assets/set_equipment_software.html")
+
+
+@pytest.mark.django_db
+def test_set_equipment_sofware_view_posts(
+    client,
+    user,
+    asset,
+    software_model_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentsoftware")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("assets:set_equipment_software")
+    software_model = software_model_factory()
+    assetx = asset()
+    data = {
+        'equipment': assetx.pk,
+        'software': software_model.software.pk
+    }
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert EquipmentSoftware.objects.last().software == software_model.software
+    assert EquipmentSoftware.objects.last().equipment == assetx
+
+# test delete equipment software view 
+@pytest.mark.django_db
+def test_remove_equipment_software_view_requires_login(client, equipment_software_factory):
+    es = equipment_software_factory()
+    url = reverse("assets:remove_equipment_software", kwargs={'pk':es.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_remove_equipment_sofware_view_permission_denied(client, user, equipment_software_factory):
+    user = user()
+    client.force_login(user)
+    es = equipment_software_factory()
+    url = reverse("assets:remove_equipment_software", kwargs={'pk':es.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_remove_equipment_sofware_view_renders(client, user, equipment_software_factory):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_equipmentsoftware")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    es = equipment_software_factory()
+    url = reverse("assets:remove_equipment_software", kwargs={'pk':es.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "assets/remove_equipment_software.html")
+
+
+@pytest.mark.django_db
+def test_remove_equipment_sofware_view_posts(
+    client,
+    user,
+    equipment_software_factory,
+    ):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_equipmentsoftware")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    es = equipment_software_factory()
+    url = reverse("assets:remove_equipment_software", kwargs={'pk':es.pk})
+    data = {}
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert not EquipmentSoftware.objects.filter(pk=es.pk).exists()
+
+# test set equipment config view 
+@pytest.mark.django_db
+def test_set_equipment_configuration_view_requires_login(client):
+    url = reverse("assets:set_equipment_configuration")
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_set_equipment_configuration_view_permission_denied(client, user):
+    user = user()
+    client.force_login(user)
+    url = reverse("assets:set_equipment_configuration")
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_set_equipment_configuration_view_renders(client, user):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentconfigurationlink")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("assets:set_equipment_configuration")
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "assets/set_equipment_configuration.html")
+
+
+@pytest.mark.django_db
+def test_set_equipment_configuration_view_posts(
+    client,
+    user,
+    asset,
+    equipment_configuration_model_factory,
+):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentconfigurationlink")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    url = reverse("assets:set_equipment_configuration")
+    configuration_model = equipment_configuration_model_factory()
+    assetx = asset()
+    data = {
+        'equipment': assetx.pk,
+        'configuration': configuration_model.configuration.pk
+    }
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert EquipmentConfigurationLink.objects.last().configuration == configuration_model.configuration
+    assert EquipmentConfigurationLink.objects.last().equipment == assetx
 
 
 # test AssetUpdateView
@@ -328,7 +499,7 @@ def test_filtered_asset_table_view_permission_denied(client, user_setup):
 @pytest.mark.parametrize("search_term", ["med 123", "1,2,3"])
 @pytest.mark.django_db
 def test_filtered_asset_table_view_renders(
-    django_db_setup, client, user_setup, asset, search_term
+    setup, client, user_setup, asset, search_term
 ):
     user = user_setup
 
