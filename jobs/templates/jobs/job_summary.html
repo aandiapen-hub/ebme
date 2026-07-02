@@ -48,10 +48,10 @@
             <p>{{ job.technicianid}}</p>
 
             <small class="text-muted">Start Date:</small>
-            <p>{{ job.jobstartdate|date:"Y-m-d" }} </p>
+            <p>{{ job.startdate|date:"Y-m-d" }} </p>
 
             <small class="{% if not job.enddate %} bg-warning {% else %} text-muted {% endif %}">End Date:</small>
-            <p>{{ job.jobenddate|date:"Y-m-d" }} </p>
+            <p>{{ job.enddate|date:"Y-m-d" }} </p>
           </div>
           <div class="col text-end">
             <div id="edit_div" class="dropdown">
@@ -104,16 +104,16 @@
         <div class="row bg-white p-4 rounded ">
           <div class="col-sm">
                 <small class="text-muted">Checklist:</small>
-                <p>{{ job.job_view.testsperjob|linebreaksbr }} </p>
+                <p>{{ job.testsperjob|linebreaksbr }} </p>
             </div>    
             <div class="col-sm">
                 <small class="text-muted">Parts Cost:</small> £{{ job.total_cost }}<br>
                 <small class="text-muted">Spare Parts:</small>
-                <p>{{ job.job_view.partsperjob|linebreaksbr }} </p>
+                <p>{{ job.partsperjob|linebreaksbr }} </p>
             </div>       
             <div class="col-sm">
               <small class="text-muted">Test Eq:</small>
-              {% for eq_used in job.test_eq_used.all %}
+              {% for eq_used in job.job.test_eq_used.all %}
               <p>{{eq_used.test_eq.modelid}} - {{eq_used.test_eq.serialnumber}}</p>
               {% empty %}
               <p>No test equipment used.</p>

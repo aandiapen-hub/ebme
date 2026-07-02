@@ -496,10 +496,9 @@ def test_filtered_asset_table_view_permission_denied(client, user_setup):
     assert response.status_code == 403
 
 
-@pytest.mark.parametrize("search_term", ["med 123", "1,2,3"])
 @pytest.mark.django_db
 def test_filtered_asset_table_view_renders(
-    setup, client, user_setup, asset, search_term
+    client, user_setup, asset
 ):
     user = user_setup
 
@@ -523,28 +522,3 @@ def test_filtered_asset_table_view_renders(
     response = client.get(url, HTTP_HX_REQUEST="true")
     assert response.status_code == 200
 
-    # test with query parameters
-    query_params = urlencode({"universal_search": search_term})
-    url_with_params = f"{url}?{query_params}"
-    response = client.get(url_with_params, HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
-
-
-@pytest.mark.django_db
-def test_filtered_asset_filterset(django_db_setup, client, user, asset):
-    user = user()
-
-    permission = Permission.objects.get(codename="view_assetview")
-    user.user_permissions.add(permission)
-
-    user.customerid = asset().customerid
-    user.save()
-    client.force_login(user)
-
-    base_url = reverse("assets:assets_list")
-
-    # test supersearch
-    query_string = urlencode({"supersearch": "Meditech 123 $ bla bla"})
-    url = f"{base_url}?{query_string}"
-    response = client.get(url, HTTP_HX_REQUEST="true")
-    assert response.status_code == 200

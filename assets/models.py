@@ -126,9 +126,7 @@ class Tblassets(models.Model):
         return not self.required_config == self.current_config 
 
 class AssetView(models.Model):
-    assetid = models.OneToOneField(
-        Tblassets, models.DO_NOTHING, db_column='AssetID', primary_key=True, verbose_name="Asset ID"
-    )
+    assetid = models.CharField(db_column='AssetID', primary_key=True, verbose_name="Asset ID")
     customerassetnumber = models.CharField(
         db_column="CustomerAssetNumber",
         max_length=255,
@@ -248,20 +246,20 @@ class AssetView(models.Model):
         return f"{self.brandname} - {self.modelname} - {self.serialnumber} ({self.categoryname})"
 
     @property
+    def asset(self):
+        return Tblassets.objects.get(pk=self.assetid)
+
+    @property
     def requires_software(self):
         software_available = self.modelid.supported_software.exists()
-        has_software = self.assetid.installed_software.exists()
-        print(software_available, has_software)
+        has_software = self.asset.installed_software.exists()
         return software_available and not has_software
 
 class JobView(models.Model):
-    jobid = models.OneToOneField(
-        "Tbljob",
-        on_delete=models.DO_NOTHING,
+    jobid = models.CharField(
         primary_key=True,
         db_column='JobID',
         verbose_name="Job",
-        related_name='job_view'
     )
     startdate = models.DateField(blank=True, null=True, verbose_name="Start Date")
     enddate = models.DateField(blank=True, null=True, verbose_name="End Date")
@@ -285,7 +283,7 @@ class JobView(models.Model):
         verbose_name="Technician",
     )
     assetid = models.ForeignKey(
-        AssetView, models.PROTECT, db_column="AssetID", related_name="jobs"
+        Tblassets, models.PROTECT, db_column="AssetID", related_name="job_view"
     )
     technician_name = models.CharField(
         db_column="Technician Name",
@@ -395,6 +393,9 @@ class JobView(models.Model):
     def __str__(self):
         return f"{self.jobid} - {self.model} - {self.serialnumber} - {self.jobstatus} - {self.customer} "
 
+    @property
+    def job(self):
+        return Tbljob.objects.get(pk=self.pk)
 
 class Tblbrands(models.Model):
     brandid = models.BigAutoField(

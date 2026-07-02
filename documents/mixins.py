@@ -82,6 +82,7 @@ class TempUploadMixin:
         file_name=None,
     ):
         temp_group_id = self.get_temp_group_id()
+        self.delete_temp_group = form.cleaned_data.get('delete_temp_files_after_save', False)
 
         if not temp_group_id:
             return
@@ -92,7 +93,7 @@ class TempUploadMixin:
                 content_object=content_object,
                 file_name=file_name
             )
-        if form.cleaned_data.get('delete_temp_files_after_save', False):
+        if self.delete_temp_group:
             TempUploadGroup.objects.get(pk=temp_group_id).delete()
 
     def has_temp_group(self):
@@ -131,7 +132,7 @@ class TempUploadMixin:
 
     def get_success_url(self):
         temp_id = self.get_temp_group_id()
-        if temp_id:
+        if temp_id and not self.delete_temp_group:
             return reverse('documents:temp_group', kwargs={'pk': temp_id})
         else:
             return reverse(self.success_url_app_view, kwargs={'pk': self.object.pk})

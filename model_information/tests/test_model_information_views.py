@@ -19,7 +19,7 @@ from model_information.models import(
 )
 
 from assets.tests.factories import ModelFactory, CategoryFactory
-from jobs.tests.factories import ChecklistsFactory, TestsCarriedOutFactory
+from jobs.tests.factories import  TestsCarriedOutFactory
 # test brand views
 
 

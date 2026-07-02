@@ -136,8 +136,8 @@ def test_part_delete_view_post_successful(client, user, part):
 
 
 @pytest.mark.django_db
-def test_part_delete_view_post_unsuccessful(client, user, part, job):
-    part = part()
+def test_part_delete_view_post_unsuccessful(client, user, active_spare_part, job):
+    part = active_spare_part
     Tblpartsused.objects.create(
         jobid= job(),
         quantity= 1,

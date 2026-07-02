@@ -19,7 +19,6 @@ def map_delivery_note(resolved_data):
 def map_asset_data(resolved_data):
     payload = resolved_data.get("asset", None)
     for field, value in payload.items():
-        print(field, value)
         if field == "prod_date" and isinstance(value,str):
             value = datetime.strptime(value, "%y%m%d").date()
 

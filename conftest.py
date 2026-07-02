@@ -17,7 +17,7 @@ from parts.tests.factories import PartFactory
 from users.tests.factories import UserFactory
 from jobs.tests.factories import JobFactory
 from procurement.tests.factories import SupplierFactory
-from parts.tests.factories import TblPartModelFactory
+from parts.tests.factories import TblPartModelFactory, TblPartsPriceFactory
 from jobs.tests.factories import ChecklistsFactory
 
 
@@ -70,7 +70,12 @@ def model():
 
 @pytest.fixture
 def active_spare_part():
-    return PartFactory(inactive=False)
+    def _part():
+        part = PartFactory(inactive=False)
+        price = TblPartsPriceFactory(partid = part)
+        return part
+    return _part()
+        
 
 @pytest.fixture
 def assets():

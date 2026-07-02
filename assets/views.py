@@ -43,7 +43,7 @@ from utils.generic_views import FilteredTableView
 
 UNIVERSAL_SEARCH_FIELDS = [
     "serialnumber__icontains",
-    "assetid__pk__icontains",
+    "assetid__icontains",
     "modelname__icontains",
     "brandname__icontains",
     "categoryname__icontains",
@@ -95,7 +95,7 @@ class AssetDetailView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["open_jobs"] = self.object.jobs.filter(jobstatusid__in=[0, 2, 3, 5])
+        context["open_jobs"] = self.object.asset.jobs.filter(jobstatusid__in=[0, 2, 3, 5])
         context['tasks'] = get_equipment_tasks(self.object)
         
         return context

@@ -16,10 +16,9 @@ def get_equipment_tasks(equipment):
             "url": full_url
         })
 
-    if equipment.assetid.requires_configuration:
+    if equipment.asset.requires_configuration:
         url = reverse("assets:set_equipment_configuration")
         full_url = f"{url}?{query_params}"
-        print(full_url)
         tasks.append({
             "type": "configuration",
             "label": "Add configuration",

@@ -791,7 +791,7 @@ class ConfigurationScopeDeleteView(
     permission_required = "model_information.delete_equipmentconfigurationscope"
     model = EquipmentConfigurationScope
     fields = "__all__"
-    template_name = "model_information/configuration_scope_create.html"
+    template_name = "model_information/configuration_scope_delete.html"
     context_object_name = "scope"
 
     def get_success_url(self):

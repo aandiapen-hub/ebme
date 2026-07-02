@@ -201,7 +201,6 @@ def parse_gs1code(scanned_code=None):
                 output["ASSET_NO"] = es.value[-7:]
 
     output['non_gs1_codes'] = non_gs1_codes
-    print(output, 'output****')
     return output
 
 
@@ -608,7 +607,6 @@ def temp_group_resolver(group_id):
         return
 
     data = group.extracted_json.get("merged_gs1_ai", None)
-    print('pre resolved data', data)
     if data is None:
         data = group.extracted_json.get("merged_parsed_barcode", {}).get('values',{})
 

@@ -52,7 +52,7 @@ from .reports.service_reports import generate_service_report
 SEARCHFILEDS = [
     "modelid__modelname__icontains",
     "serialnumber__icontains",
-    "assetid__assetid__icontains",
+    "assetid__pk__icontains",
     "brandname__icontains",
     "jobid__icontains",
     "jobstatus__icontains",
@@ -179,7 +179,7 @@ class JobDetailView(
     CustomerJobPermissionMixin,
     DetailView,
 ):
-    model = Tbljob 
+    model = JobView 
     template_name = "jobs/job_summary.html"
     context_object_name = "job"
     permission_required = "assets.view_jobview"

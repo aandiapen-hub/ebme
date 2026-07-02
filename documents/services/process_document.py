@@ -68,7 +68,6 @@ def extract_information_from_temp_group(group_id):
             ai_data = extract_group_info_with_ai(group)
         except Exception as e:
             ai_data = {}
-            print(e)
             pass
         group.extracted_json.update(
             {"ai": ai_data, }
@@ -96,11 +95,9 @@ def quick_group_processor(temporary_upload):
     keys = ("text", "parsed")
 
     barcode_lists = list(group.temp_uploads.all().values_list("barcode_data", flat=True))
-    print('barcode_lists', barcode_lists)
     flattened_barcode_list = [
         barcode for barcode_list in barcode_lists for barcode in barcode_list
     ]
-    print('flattened barcode_lists', flattened_barcode_list)
     keys = ("text", "parsed")
     barcode_list = [
         {key: barcode.get(key, None) for key in keys}
@@ -116,5 +113,4 @@ def quick_group_processor(temporary_upload):
 
 def quick_barcode_processor(barcode):
     resolved_data = rapid_gs1_resolver(barcode)
-    print('resolved_data', resolved_data)
     return resolved_data

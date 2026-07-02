@@ -29,7 +29,7 @@
 <div id='all_jobs' class="row g-3 m-1">
     <h4 class="text-secondary">Job History </h4>
 
-    {% for job in asset.jobs.all  %}
+    {% for job in asset.asset.job_view.all  %}
         {% if job not in open_jobs %}
             <div class="col-sm-6 mb-3 mb-sm-0">
                 <div class="card border-success ">

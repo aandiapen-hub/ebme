@@ -159,8 +159,7 @@ def test_job_update_view_post_successfully(
             "test_eq-0-id": "",
             "test_eq-0-test_eq": test_eq.pk,
             # checklist formset
-            "checklist-TOTAL_FORMS": "1",
-            "checklist-INITIAL_FORMS": "0",
+            "checklist-TOTAL_FORMS": "1", "checklist-INITIAL_FORMS": "0",
             "checklist-MIN_NUM_FORMS": "0",
             "checklist-MAX_NUM_FORMS": "1000",
             "checklist-0-testid": "",
