@@ -332,6 +332,7 @@ class EquipmentConfigurationScope(models.Model):
     )
 
     class Meta:
+        managed = False
         db_table = "equipment_configuration_scope"
         constraints = [
             models.UniqueConstraint(
