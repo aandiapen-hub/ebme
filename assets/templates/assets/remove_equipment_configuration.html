@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+
+{% block content %}
+  <div id='asset_details' class="container p-3">
+    <h3>Remove {{config.configuration}} from {{config.equipment}}</h3>
+      <form id='asset_form' method='POST' action="{{request.path}}">
+          {{ form.media }} 
+          {% csrf_token %}
+      {% bootstrap_form form layout='horizontal' %}
+          <button class="btn btn-primary" type="submit">Remove</button>
+  </form>   
+  </div>
+
+{% endblock %}

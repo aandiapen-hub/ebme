@@ -185,6 +185,7 @@ class EquipmentConfigurationStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        managed = False
         db_table = "equipment_configuration_status"
         ordering = ["sort_order"]
 

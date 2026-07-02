@@ -9,6 +9,7 @@ from assets.tests.factories import(
     SiteFactory,
 )
 from model_information.tests.factories import (
+    EquipmentConfigurationLinkFactory,
     SoftwareModelFactory,
     EquipmentSoftwareFactory,
     EquipmentConfigurationModelFactory,
@@ -133,3 +134,7 @@ def equipment_software_factory():
 @pytest.fixture
 def equipment_configuration_model_factory():
     return EquipmentConfigurationModelFactory
+
+@pytest.fixture
+def equipment_configuration_link():
+    return EquipmentConfigurationLinkFactory

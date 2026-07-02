@@ -9,6 +9,7 @@ from .views import (
     SetEquipmentSoftware,
     RemoveEquipmentSoftware,
     SetEquipmentConfiguration,
+    RemoveEquipmentConfiguration,
                 
 )
 
@@ -24,4 +25,6 @@ urlpatterns = [
     path("set_equipment_software/",SetEquipmentSoftware.as_view(),name='set_equipment_software'),
     path("remove_equipment_software/<int:pk>/",RemoveEquipmentSoftware.as_view(),name='remove_equipment_software'),
     path("set_equipment_configuration/",SetEquipmentConfiguration.as_view(),name='set_equipment_configuration'),
+    path("remove_equipment_software/<int:pk>/",RemoveEquipmentSoftware.as_view(),name='remove_equipment_software'),
+    path("remove_equipment_configuration/<int:pk>/",RemoveEquipmentConfiguration.as_view(),name='remove_equipment_configuration'),
 ]

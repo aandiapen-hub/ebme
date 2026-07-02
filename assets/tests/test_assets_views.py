@@ -322,6 +322,67 @@ def test_set_equipment_configuration_view_posts(
     assert EquipmentConfigurationLink.objects.last().configuration == configuration_model.configuration
     assert EquipmentConfigurationLink.objects.last().equipment == assetx
 
+# test delete equipment configuration view 
+@pytest.mark.django_db
+def test_remove_equipment_configuration_link_view_requires_login(client, equipment_configuration_link):
+    es = equipment_configuration_link()
+    url = reverse("assets:remove_equipment_configuration", kwargs={'pk':es.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_remove_equipment_configuration_link_view_permission_denied(client, user, equipment_configuration_link):
+    user = user()
+    client.force_login(user)
+    es = equipment_configuration_link()
+    url = reverse("assets:remove_equipment_configuration", kwargs={'pk':es.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_remove_equipment_configuration_link_view_renders(client, user, equipment_configuration_link):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_equipmentconfigurationlink")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    es = equipment_configuration_link()
+    url = reverse("assets:remove_equipment_configuration", kwargs={'pk':es.pk})
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assertTemplateUsed(response, "assets/remove_equipment_configuration.html")
+
+
+@pytest.mark.django_db
+def test_remove_equipment_configuration_link_view_posts(
+    client,
+    user,
+    equipment_configuration_link,
+    ):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="delete_equipmentconfigurationlink")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    es = equipment_configuration_link()
+    url = reverse("assets:remove_equipment_configuration", kwargs={'pk':es.pk})
+    data = {}
+    response = client.post(url, data)
+
+    assert response.status_code == 302 
+    assert not EquipmentConfigurationLink.objects.filter(pk=es.pk).exists()
 
 # test AssetUpdateView
 @pytest.mark.django_db

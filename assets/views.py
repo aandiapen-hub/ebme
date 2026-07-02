@@ -18,7 +18,7 @@ from django.views.generic import (
 )
 from datetime import datetime
 
-from model_information.models import EquipmentSoftware
+from model_information.models import EquipmentConfigurationLink, EquipmentSoftware
 
 from .models import (
     Tblassets,
@@ -268,6 +268,18 @@ class SetEquipmentConfiguration(LoginRequiredMixin, PermissionRequiredMixin, For
         
         response = HttpResponseRedirect(self.get_success_url())
         return response
+
+class RemoveEquipmentConfiguration(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    model = EquipmentConfigurationLink
+    template_name = 'assets/remove_equipment_configuration.html'
+    permission_required = 'model_information.delete_equipmentconfigurationlink'
+    fields = '__all__'
+    context_object_name = 'config'
+
+    def get_success_url(self):
+        equipment_id = self.object.equipment.pk
+        return reverse('assets:view_asset', kwargs={'pk':equipment_id})
+
 
 class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):
     model = AssetView

@@ -41,7 +41,12 @@
           <p><small class="text-muted">Last PPM Date: </small>{{asset.lastppmdate}}</p>
           <p><small class="text-muted">Last Repair Date: </small>{{asset.lastrepairdate}}</p>
           <p><small class="text-muted">Required Config: </small>{{asset.assetid.required_config}}</p>
-          <p><small class="text-muted">Current Config: </small>{{asset.assetid.current_config}}</p>
+          <p>
+            <small class="text-muted">Current Config: </small>{{asset.assetid.current_config}}
+            {% if asset.assetid.current_config %}
+            <a class='btn btn-sm btn-outline-secondary' href='{% url "assets:remove_equipment_configuration" pk=asset.assetid.current_config.pk %}'>Remove</a>
+            {% endif %}
+          </p>
         </div>
         <div class="col text-end">
           <div id="edit_div" class="dropdown">
