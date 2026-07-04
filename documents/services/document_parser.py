@@ -242,8 +242,8 @@ def find_asset_by_serial_and_model(serial, model):
         return None
 
     return Tblassets.objects.filter(
-        serialnumber=serial, modelid=model
-    ).prefetch_related("jobs") .first()
+        serialnumber__icontains=serial, modelid=model
+    ).prefetch_related("jobs").first()
 
 
 def resolve_gtin(gtin):
