@@ -2,6 +2,7 @@ import biip
 from django.db.models import Q
 from assets.models import (
     AssetView,
+    Tblassets,
     Tblmodel,
     JobView,
     Tblbrands,
@@ -240,7 +241,7 @@ def find_asset_by_serial_and_model(serial, model):
     if not (serial and model):
         return None
 
-    return AssetView.objects.filter(
+    return Tblassets.objects.filter(
         serialnumber=serial, modelid=model
     ).prefetch_related("jobs") .first()
 

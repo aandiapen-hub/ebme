@@ -323,7 +323,6 @@ class CategoryCreateView(
     fields = "__all__"
     template_name = "model_information/category_create.html"
     permission_required = "assets.add_tblcategories"
-    success_url = reverse_lazy("model_information:categorylist")
     success_url_app_view = "model_information:category_detail"
 
     def form_valid(self, form):
@@ -336,9 +335,10 @@ class CategoryCreateView(
 
 class CategoryDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = Tblcategories
-    template_name = "model_information/partials/category_detail.html"
+    template_name = "model_information/category_detail.html"
     context_object_name = "category"
     permission_required = "assets.view_tblcategories"
+    context_object_name = 'category'
 
 
 class CategoryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):

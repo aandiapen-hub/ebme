@@ -74,7 +74,6 @@ class Tblassets(models.Model):
     asset_status_id = models.ForeignKey(
         "TblAssetStatus",
         models.PROTECT,
-        blank=True,
         db_column="asset_status_id",
         verbose_name="Status",
     )
@@ -570,13 +569,15 @@ class Tblmodel(models.Model):
         "Tblbrands",
         models.PROTECT,
         db_column="BrandID",
-        verbose_name='Brand'
+        verbose_name='Brand',
+        related_name='model'
     )
     categoryid = models.ForeignKey(
         "Tblcategories",
         on_delete=models.PROTECT,
         db_column="categoryid",
-        verbose_name='Category'
+        verbose_name='Category',
+        related_name='model'
     )
     gtin = models.CharField(
         blank=True, null=True,

@@ -1,7 +1,23 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h6>Category</h6>
 
-<H3>{{category}}</H3>
+<div id="job_details" class='container'>
+  <h4>Category: {{category}}</h4>
+        <div class="row bg-white p-4 rounded">
+          <div class="col">
+            <small class="text-muted">Name:</small>
+            <p>{{ category.categoryname}}</p>
+            <small class="text-muted">Description:</small>
+            <p>{{ category.categorydescription}}</p>
+            <small class="text-muted">GMDN:</small>
+            <p>{{ category.gmdnname}}({{ category.gmdncode}})</p>
+              <a href='{% url "model_information:update_category" pk=category.pk %}' class='btn btn-sm btn-outline-secondary'> Update </a>
+              <a href='{% url "model_information:delete_category" pk=category.pk %}' class='btn btn-sm btn-outline-secondary'> Delete </a>
+          </div>
+          <div class="col">
+          </div>
+      </div>
+
+</div>
 {% endblock content %}

@@ -11,15 +11,10 @@
 
     <!-- Button to create a new category -->
     {% if perms.assets.add_tblcategories %}
-        <button
-        hx-get="{% url 'model_information:create_category'%}"
-        hx-target="#modals-here"
-        hx-trigger="click"
-        data-bs-toggle="modal"
-        data-bs-target="#modals-here"
+        <a href="{% url 'model_information:create_category'%}"
         class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-plus-lg"></i> 
-        </button>   
+        </a>   
     {% endif %}
 </div>   
 
