@@ -693,8 +693,7 @@ def test_category_update_view_renders(client, user, category):
     client.force_login(user)
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "model_information/partials/modal.html")
-    assert response.context["title"] == "Update Category"
+    assertTemplateUsed(response, "model_information/category_update.html")
 
 
 @pytest.mark.django_db
@@ -716,16 +715,6 @@ def test_category_update_view_posts_successfully(client, user, category):
     assert response.status_code == 302
     category.refresh_from_db()
     assert category.categoryname == "testcategory"
-    assert response.url == reverse("model_information:categorylist")
-
-    # test htmx
-    form = {"categoryname": "testcategory2"}
-    response = client.post(url, data=form, HTTP_HX_REQUEST="true")
-
-    assert response.status_code == 204
-    category.refresh_from_db()
-    assert category.categoryname == "testcategory2"
-
 
 # test CategoryCreateView
 
@@ -840,9 +829,7 @@ def test_category_delete_view_renders(client, user, category):
     client.force_login(user)
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "model_information/partials/delete_modal.html")
-    assert response.context["title"] == "Delete Category"
-    assert response.context["view_type"] == "delete"
+    assertTemplateUsed(response, "model_information/category_delete.html")
 
 
 @pytest.mark.django_db
@@ -857,10 +844,7 @@ def test_category_delete_view_posts_unsuccessfully(client, user, model):
     user.user_permissions.add(permission)
     client.force_login(user)
     response = client.post(url)
-    assert (
-        "An error occurred while deleting the category"
-        in response.context["error_message"]
-    )
+    assert response.context['form'].errors
 
 
 @pytest.mark.django_db

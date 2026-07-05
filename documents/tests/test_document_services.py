@@ -165,6 +165,7 @@ def test_payload_post_with_date(
 
     response = client.get(url)
     assert response.status_code == 200
-    assert response.context['form'].initial['prod_date'] == '230423'
+    from datetime import date
+    assert response.context['form'].initial['prod_date'] == date(2023, 4, 23)
 
 

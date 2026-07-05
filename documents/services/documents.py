@@ -52,7 +52,6 @@ def create_document_from_file(
         raise ValidationError("No file found!")
 
     if uploaded_file:
-        print('original size', len(uploaded_file.read()))
         mime_type = uploaded_file.content_type
         if 'image/' in mime_type:
             content = Image.open(uploaded_file)
@@ -74,7 +73,6 @@ def create_document_from_file(
 
     # resize images
     if "image/" in mime_type:
-        print('processin image')
         img = resizeimg(content)
         
         img = ImageOps.exif_transpose(img)
@@ -82,7 +80,6 @@ def create_document_from_file(
         content.save(buffer, format="JPEG", quality=85, optimize=True)
         # Get the resized image bytes
         content = buffer.getvalue()
-        print('final size', len(content))
         file_hash = hashlib.sha256(content).hexdigest()
 
     # --------------------------------------

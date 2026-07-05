@@ -1,5 +1,4 @@
 import pytest
-import json
 from django.contrib.auth.models import Permission
 from pytest_django.asserts import assertTemplateUsed
 from django.urls import reverse
@@ -9,11 +8,9 @@ from assets.models import (
 from model_information.models import(
     EquipmentConfigurationLink,
     EquipmentSoftware,
-    EquipmentConfiguration
 )
 from unittest.mock import patch
 
-from urllib.parse import urlencode
 
 # test AssetCreateView
 @pytest.mark.django_db
@@ -442,6 +439,7 @@ def test_asset_update_view_valid_data_updates_object(client, user_setup, asset):
             "serialnumber": "updated_serialnumber",
             "customerid": asset.customerid.customerid,  # Include the primary key of the customer
             "modelid": asset.modelid.modelid,
+            "asset_status_id": asset.asset_status_id.pk,
         },
     )
 

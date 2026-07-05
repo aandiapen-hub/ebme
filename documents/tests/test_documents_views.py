@@ -65,12 +65,13 @@ def test_document_create_view_post_successfully(client, user_setup, asset, docum
     query_params = urlencode({"object_id": asset.pk, "content_type": content_type})
     url = f"{base_url}?{query_params}"
 
+    doc_type = document_type()
     # test html
     test_file = SimpleUploadedFile(
         "test.txt", b"Test content", content_type="text/plain"
     )
     form = {
-        "document_type_id": document_type(),
+        "document_type_id": doc_type,
         "document_name": "test_document",
         "document_description": "test_document_description",
         "document_bytea": test_file,
@@ -82,11 +83,11 @@ def test_document_create_view_post_successfully(client, user_setup, asset, docum
 
     # test htmx
     test_file2 = SimpleUploadedFile(
-        "test.txt", b"Test content2 ", content_type="text/plain"
+        "test.txt", b"Test contesdfdskfjknt2 ", content_type="text/plain"
     )
 
     form2 = {
-        "document_type_id": document_type(),
+        "document_type_id": doc_type,
         "document_name": "test_document2",
         "document_description": "test_document_description",
         "document_bytea": test_file2,
@@ -1183,7 +1184,6 @@ def test_document_update_view_post_htmx(client, user, document_link, customer):
 @pytest.mark.django_db
 def test_document_update_view_post_invalid_form(client, test_file, user, document, customer):
     document1 = document('equipment_gs1.jpg')
-    document2 = document('delivery_note.jpeg')
     user = user()
 
     permission = Permission.objects.get(codename="change_tbldocuments")
@@ -1197,7 +1197,6 @@ def test_document_update_view_post_invalid_form(client, test_file, user, documen
     test_file = test_file('delivery_note.jpeg')
 
     form = {
-        "document_name": "test_document",
         "document_description": "test_document_description",
         "document_bytea": test_file
     }
