@@ -1,9 +1,10 @@
 import hashlib
+from io import BytesIO
 from django.db import transaction, IntegrityError
 from documents.models import TblDocuments, TblDocumentLinks, TempUploadGroup, TemporaryUpload
 from django.core.exceptions import ValidationError
 from documents.services.process_document import quick_group_processor
-from PIL import Image
+from PIL import Image, ImageOps
 import uuid
 import io
 from django.contrib.contenttypes.models import ContentType
@@ -45,31 +46,48 @@ def create_document_from_file(
     content_object=None,
     document_description=None,
 ):
+    file_hash = None
+
     if document is None and uploaded_file is None and temp_file is None and content is None:
         raise ValidationError("No file found!")
 
     if uploaded_file:
-        content = uploaded_file.read()
+        print('original size', len(uploaded_file.read()))
         mime_type = uploaded_file.content_type
+        if 'image/' in mime_type:
+            content = Image.open(uploaded_file)
+        else:
+            content = uploaded_file.read()
+            file_hash = hashlib.sha256(content).hexdigest()
+
         document_name = document_name or uploaded_file.name
 
     if temp_file:
         if "image/" in mime_type:
-            Image.open(temp_file.file.path).convert("RGB")
-            content = resizeimg(content)
+            content = Image.open(temp_file.file.path).convert("RGB")
         else:
             with open(temp_file.file.path, "rb") as f:
                 content = f.read()
         document_name = temp_file.original_name
         mime_type = temp_file.mime_type
 
+
+    # resize images
+    if "image/" in mime_type:
+        print('processin image')
+        img = resizeimg(content)
+        
+        img = ImageOps.exif_transpose(img)
+        buffer = BytesIO()
+        content.save(buffer, format="JPEG", quality=85, optimize=True)
+        # Get the resized image bytes
+        content = buffer.getvalue()
+        print('final size', len(content))
+        file_hash = hashlib.sha256(content).hexdigest()
+
     # --------------------------------------
     # check if document already exists in DB
     # --------------------------------------
-    if content:
-        file_hash = hashlib.sha256(content).hexdigest()
-    else:
-        file_hash = None
 
     customer = resolve_customer(content_object)
 
@@ -125,16 +143,9 @@ def create_document_from_file(
 
     return document
 
-
-def resizeimg(img):
-    # Calculate new size (50%)
-    new_width = img.width // 2
-    new_height = img.height // 2
-
-    # Resize
-    resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-
-    return resized_img
+def resizeimg(img, max_size=(2000, 2000)):
+    img.thumbnail(max_size, Image.Resampling.LANCZOS)
+    return img
 
 
 def convert_images_to_pdf(image_files):

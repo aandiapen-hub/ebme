@@ -297,17 +297,15 @@ class FilteredCategoryTableView(
 class CategoryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Tblcategories
     fields = "__all__"
-    template_name = "model_information/partials/modal.html"
-    success_url = reverse_lazy("model_information:categorylist")
+    template_name = "model_information/category_update.html"
     permission_required = "assets.change_tblcategories"
 
     def form_valid(self, form):
         self.object = form.save()
-        if self.request.htmx:
-            response = HttpResponse("", status=204)
-            response["HX-Trigger"] = "closeModal"
-            return response
         return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('model_information:category_detail', kwargs={'pk':self.object.pk})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -343,17 +341,16 @@ class CategoryDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
 
 class CategoryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = Tblcategories
-    template_name = "model_information/partials/delete_modal.html"
+    template_name = "model_information/category_delete.html"
     permission_required = "assets.delete_tblcategories"
     success_url = reverse_lazy("model_information:categorylist")
+    context_object_name = 'category'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = "Delete Category"
-        context["view_type"] = "delete"
         return context
 
-    def post(self, request, *args, **kwargs):
+    def form_valid(self, form):
         self.object = self.get_object()
         success_url = self.get_success_url()
         try:
@@ -364,11 +361,8 @@ class CategoryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
 
         except Exception as e:
             # Return an error message as plain text (not JSON)
-            context = self.get_context_data()
-            context["error_message"] = (
-                f"An error occurred while deleting the category. Error Details: {str(e)}"
-            )
-            return self.render_to_response(context)
+            form.add_error(None, str('Category could not be deleted.'))
+            return self.form_invalid(form)
 
 
 class ChecklistsTable(tables.Table):

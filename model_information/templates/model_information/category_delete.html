@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<div class='container'>
+  <H3>Delete Category: {{category}}</H3>
+  <form method='POST' action=''> 
+    {% csrf_token %}
+    {% bootstrap_form form %}
+      {% bootstrap_button button_type="submit" content="Delete" %}
+    <a href="{% url 'model_information:category_detail' pk=category.pk %}"
+      class='btn btn-secondary'>Cancel</a>
+  </form>
+</div>
+{% endblock content %}
