@@ -274,7 +274,7 @@ class AssetDataContext(
         )
 
         suggested_actions = MatchedGroup(
-            title='Create new records',
+            title='Recommended Actions',
             confidence='Full',
             items=[],
             color='primary')
@@ -309,8 +309,8 @@ class AssetDataContext(
         return {
             'key_data_extracted': get_key_information(self.resolved_data),
             'groups': [
-                exact_match_group,
                 suggested_actions,
+                exact_match_group,
                 partial_matches,
             ]}
 
