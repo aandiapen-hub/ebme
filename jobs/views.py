@@ -163,7 +163,6 @@ class JobUpdateView(
         context.update(self.get_formsets())
         return context
 
-
     def form_valid(self, form):
         context = self.get_context_data()
         formsets = [context[prefix] for prefix in JOB_FORMSETS]
@@ -280,6 +279,7 @@ class TestEqListView(
         formset_type = self.request.GET.get('formset_type') 
         config = FORMSET_CONFIG[formset_type]
         context['prefix'] = config["prefix"]
+        context['pk_field'] = config["pk_field"]
         return context
 
 class SparePartsListView(
@@ -339,6 +339,7 @@ class ChecklistListView(
         formset_type = self.request.GET.get('formset_type')
         config = FORMSET_CONFIG[formset_type]
         context['prefix'] = config["prefix"]
+        context['pk_field'] = config["pk_field"]
         return context
 
 
