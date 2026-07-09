@@ -1,0 +1,60 @@
+{% load django_bootstrap5 %}
+
+<div class='container-flex mb-2' id='{{formset.prefix}}_eq_container'>
+  <div class='d-flex flex-row gap-3'>
+    <h3>
+      {{formset.title}}
+    </h3>
+    <button id='{{formset.prefix}}_list_button' class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#{{formset.prefix}}_canvas" aria-controls="{{formset.prefix}}_canvas">Add</button>
+  </div>
+
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="{{formset.prefix}}_canvas" aria-labelledby="{{formset.prefix}}_canvas_label">
+    <div class="offcanvas-header">
+      <h5 id="{{formset.prefix}}_canvas_label">Select Test Eq</h5>
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      {{formset}}
+      <div hx-get='{{ formset.get_list_url }}'
+          hx-trigger='click once from:#{{formset.prefix}}_list_button'
+          hx-swap='innerHTML'
+        hx-target='this'></div>
+    </div>
+  </div>
+
+
+      <div id='{{formset.prefix}}-management'>
+      {{ formset.management_form }}
+
+      </div>
+      <div id="{{ formset.prefix }}-container" class='d-flex flex-column'>
+        {{ formset.media}}
+        {% for form in formset %}
+
+            {% partialdef form_row inline %}
+                  <div class='d-flex flex-row justify-content-between align-items-end'>
+                  <p>{{form.display_label }}</p>
+                  {% bootstrap_form form %}
+                  </div>
+            {% endpartialdef %}
+
+        {% endfor %}
+      </div>
+  </div>
+
+
+{% partialdef row %} 
+      <input
+          type="hidden"
+          name="{{ prefix }}-TOTAL_FORMS"
+          id="id_{{ prefix }}-TOTAL_FORMS"
+          value="{{ total_forms|add:1 }}"
+          hx-swap-oob="true"
+      />
+            {% partial form_row %}
+
+{% endpartialdef %}
+
+
+
+

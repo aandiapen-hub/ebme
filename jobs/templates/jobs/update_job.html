@@ -28,9 +28,9 @@
                 {% csrf_token %}
               {% include 'partials/form_with_comparison.html' %}
 
-              {% include 'jobs/partials/job_checklist_update.html' %}
-              {% include 'jobs/partials/job_test_eq.html' %}
-              {% include 'jobs/partials/job_parts_used.html' %}
+              {% include 'jobs/partials/job_checklist_update.html' with formset=checklist %}
+              {% include 'jobs/partials/job_test_eq.html' with formset=test_eq %}
+              {% include 'jobs/partials/job_parts_used.html' with formset=parts_used %}
 
             </form>
         </div>

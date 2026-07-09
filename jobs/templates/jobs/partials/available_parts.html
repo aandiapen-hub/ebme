@@ -2,7 +2,7 @@
 
     _='on load or click
       wait 400ms
-      set ids to value of <input[name$="input_id"]/> in #{{ prefix }}-container 
+      set ids to value of <input[name$={{pk_field}}]/> in #{{ prefix }}-container 
       set buttons to <button/> in me
       for button in buttons
       if @data-value of button is in ids
@@ -14,7 +14,7 @@
       id='add_test_eq_button'
       class='list-group-item list-group-item-action '
       data-value='{{part.pk}}'
-      hx-get="{% url 'jobs:add_formset_row' formset_type='parts_used' %}?sparepartid={{part.pk}}"
+      hx-get="{% url 'jobs:add_formset_row' formset_type=prefix %}?sparepartid={{part.pk}}"
       hx-include="#{{prefix}}-management input, #{{ prefix }}-container input"
       hx-swap="afterbegin"
       hx-target="#{{ prefix }}-container"

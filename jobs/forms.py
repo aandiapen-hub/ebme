@@ -80,14 +80,14 @@ class TestEqUsedForm(forms.ModelForm):
             )
             if test_eq_id:
                 obj = Tblassets.objects.get(pk=test_eq_id)
-                self.fields['test_eq'].label = (
+                self.display_label = (
                 f"{obj.modelid.categoryid}-"
                 f"{obj.modelid}: "
                 f"{obj.serialnumber}"
             )
 
         if test_eq:
-            self.fields['test_eq'].label = (
+            self.display_label = (
                 f"{test_eq.modelid.categoryid}-"
                 f"{test_eq.modelid}: "
                 f"{test_eq.serialnumber}"
@@ -154,10 +154,10 @@ class ChecklistForm(forms.ModelForm):
             )
             if check_id:
                 obj = Tblcheckslists.objects.filter(pk=check_id).first()
-                self.fields['checkid'].label = obj
+                self.display_label = obj
 
         if check:
-            self.fields['checkid'].label = self.instance.checkid
+            self.display_label = self.instance.checkid
 
         self.fields['resultid'].label = ''
 
@@ -189,12 +189,9 @@ class PartsUsedForm(forms.ModelForm):
             )
             if part_id:
                 obj = Tblpartslist.objects.filter(pk=part_id).first()
-                self.fields['partid'].label = str(obj)
+                self.display_label = str(obj)
         if part:
-            self.fields['partid'].label = (
-                    f"{self.instance.partid.short_name}- "
-                    f"{self.instance.partid.part_number}"
-            )
+            self.display_label = str(part)
 
 PartsUsedFormset = forms.inlineformset_factory(
     Tbljob, Tblpartsused, form=PartsUsedForm, extra=0, can_delete=True

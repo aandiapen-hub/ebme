@@ -2,7 +2,7 @@
 
     _='on load or click
       wait 400ms
-      set ids to value of <input[name$="input_id"]/> in #{{ prefix }}-container 
+      set ids to value of <input[name$={{pk_field}}]/> in #{{ prefix }}-container 
       set buttons to <button/> in me
       for button in buttons
       if @data-value of button is in ids

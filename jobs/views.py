@@ -1,5 +1,6 @@
 import datetime
-import json
+from urllib.parse import urlencode
+from django.urls import reverse
 from django.db.models import Q
 from django.db import transaction, IntegrityError, DatabaseError
 from utils.dynamic_formset import AddFormsetRowView
@@ -14,7 +15,6 @@ from django.views.generic import (
     DetailView,
     UpdateView,
     ListView,
-    TemplateView,
 )
 
 from assets.models import (
@@ -99,6 +99,21 @@ JOB_FORMSETS = {
     "checklist": ChecklistFormset,
     "parts_used": PartsUsedFormset,
 }
+JOB_FORMSET_CONFIG = {
+    "parts_used": {
+            'lookup_view': "jobs:parts_list",
+            'title':'Spare Parts'
+    },
+    "test_eq": {
+        'lookup_view': 'jobs:test_eq_list',
+        'title':'Test Equipment',
+    },
+    "checklist": {
+            'lookup_view':"jobs:check_list",
+            'title': 'Checklist'
+    }
+
+}
 
 class JobUpdateView(
     LoginRequiredMixin,
@@ -118,14 +133,28 @@ class JobUpdateView(
         formsets = {}
         for prefix, formset in JOB_FORMSETS.items():
             if self.request.POST:
-                formsets[prefix] = formset(
+                formset = formset(
                     self.request.POST, instance=self.object, prefix=prefix
                 )
             else:
-                formsets[prefix] = formset(
+                formset = formset(
                     instance=self.object, prefix=prefix
                 )
 
+            formset_config = JOB_FORMSET_CONFIG.get(prefix, {})
+            # add url for list of new formset value option
+            list_app_view = formset_config.get('lookup_view', None)
+
+            if list_app_view:
+                url = reverse(list_app_view)
+                query_params = urlencode({
+                    'formset_type': prefix,
+                    'modelid': self.object.assetid.modelid.pk,
+                })
+                formset.get_list_url = f"{url}?{query_params}"
+                formset.title = formset_config.get('title', None)
+
+            formsets[prefix] = formset
         return formsets
 
     def get_context_data(self, **kwargs):
@@ -159,6 +188,7 @@ class JobUpdateView(
         return HttpResponseRedirect(self.get_success_url())
 
     def form_invalid(self, form):
+        print('form invalid')
         context = self.get_context_data(form=form)
         return self.render_to_response(context)
 
@@ -279,6 +309,7 @@ class SparePartsListView(
         
         config = FORMSET_CONFIG[formset_type]
         context['prefix'] = config["prefix"]
+        context['pk_field'] = config["pk_field"]
         return context
 
 
@@ -297,8 +328,9 @@ class ChecklistListView(
 
         # qs = qs.filter(Q(inactive=False)|Q(inactive__isnull=True))
 
-        modelid = self.kwargs['modelid']
-        qs = qs.filter(modelid=modelid)
+        modelid = self.request.GET.get('modelid', None)
+        if modelid:
+            qs = qs.filter(modelid=modelid)
 
         return qs
 
@@ -313,7 +345,8 @@ class ChecklistListView(
 FORMSET_CONFIG = {
     "parts_used": {
         "prefix": "parts_used",
-        "row_template_name":"jobs/partials/job_parts_used.html#row",
+        "title": 'Parts',
+        "row_template_name": None,
         "formset": PartsUsedFormset,
         "lookup_param": "sparepartid",
         "model": Tblpartslist,
@@ -326,7 +359,8 @@ FORMSET_CONFIG = {
     },
     "test_eq": {
         "prefix": "test_eq",
-        "row_template_name":"jobs/partials/job_test_eq.html#row",
+        "title": 'Test eq',
+        "row_template_name": None,
         "formset": TestEqFormset,
         "lookup_param": "assetid",
         "model": Tblassets,
@@ -337,7 +371,8 @@ FORMSET_CONFIG = {
     },
     "checklist": {
         "prefix": "checklist",
-        "row_template_name":"jobs/partials/job_checklist_update.html#row",
+        "title": 'Checklist',
+        "row_template_name": None,
         "formset": ChecklistFormset,
         "lookup_param": "testid",
         "model": Tblcheckslists,
