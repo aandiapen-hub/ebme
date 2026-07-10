@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 from django.urls import reverse
 from django.db.models import Q
 from django.db import transaction, IntegrityError, DatabaseError
-from utils.dynamic_formset import AddFormsetRowView
+from utils.dynamic_formset import AddFormsetRowView, FormsetOptionsListView
 
 # import permissions
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -261,36 +261,62 @@ class JobCreateView(
         return self.render_to_response(context)
 
 
-class TestEqListView(
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
-    ListView
-):
+FORMSET_CONFIG = {
+    "parts_used": {
+        "prefix": "parts_used",
+        "title": 'Parts',
+        "row_template_name": None,
+        "formset": PartsUsedFormset,
+        "model": Tblpartslist,
+        "pk_field": "partid",
+        "lookup_field": 'partid',
+        "initial": lambda obj: {
+            "partid": obj.pk,
+            "unitprice": None,
+            "quantity": 1,
+        },
+    },
+    "test_eq": {
+        "prefix": "test_eq",
+        "title": 'Test eq',
+        "row_template_name": None,
+        "formset": TestEqFormset,
+        "model": Tblassets,
+        "pk_field": "assetid",
+        "lookup_field": 'test_eq',
+        "initial": lambda obj: {
+            "test_eq": obj.pk,
+        },
+    },
+    "checklist": {
+        "prefix": "checklist",
+        "title": 'Checklist',
+        "row_template_name": None,
+        "formset": ChecklistFormset,
+        "model": Tblcheckslists,
+        "pk_field": "testid",
+        "lookup_field": 'checkid',
+        "initial": lambda obj: {
+            "checkid": obj.pk,
+        },
+    },
+}
+
+
+class TestEqListView(FormsetOptionsListView):
     model = Tblassets
     permission_required = "assets.change_tbljob"
     template_name = 'jobs/partials/available_test_eq.html'
-    context_object_name = 'test_eq'
+    config = FORMSET_CONFIG
 
     def get_queryset(self):
        return super().get_queryset().filter(is_test_eq=True, asset_status_id=1)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        formset_type = self.request.GET.get('formset_type') 
-        config = FORMSET_CONFIG[formset_type]
-        context['prefix'] = config["prefix"]
-        context['pk_field'] = config["pk_field"]
-        return context
 
-class SparePartsListView(
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
-    ListView
-):
+class SparePartsListView(FormsetOptionsListView):
     model = Tblpartslist 
-    template_name = 'jobs/partials/available_parts.html'
     permission_required = "assets.change_tbljob"
-    context_object_name = 'parts'
+    config = FORMSET_CONFIG
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -303,25 +329,11 @@ class SparePartsListView(
 
         return qs
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        formset_type = self.request.GET.get('formset_type') 
-        
-        config = FORMSET_CONFIG[formset_type]
-        context['prefix'] = config["prefix"]
-        context['pk_field'] = config["pk_field"]
-        return context
 
-
-class ChecklistListView(
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
-    ListView
-):
+class ChecklistListView(FormsetOptionsListView):
     model = Tblcheckslists 
     permission_required = "assets.change_tbljob"
-    template_name = 'jobs/partials/available_checks.html'
-    context_object_name = 'checks'
+    config = FORMSET_CONFIG
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -334,55 +346,6 @@ class ChecklistListView(
 
         return qs
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        formset_type = self.request.GET.get('formset_type')
-        config = FORMSET_CONFIG[formset_type]
-        context['prefix'] = config["prefix"]
-        context['pk_field'] = config["pk_field"]
-        return context
-
-
-FORMSET_CONFIG = {
-    "parts_used": {
-        "prefix": "parts_used",
-        "title": 'Parts',
-        "row_template_name": None,
-        "formset": PartsUsedFormset,
-        "lookup_param": "sparepartid",
-        "model": Tblpartslist,
-        "pk_field": "partid",
-        "initial": lambda obj: {
-            "partid": obj.pk,
-            "unitprice": None,
-            "quantity": 1,
-        },
-    },
-    "test_eq": {
-        "prefix": "test_eq",
-        "title": 'Test eq',
-        "row_template_name": None,
-        "formset": TestEqFormset,
-        "lookup_param": "assetid",
-        "model": Tblassets,
-        "pk_field": "assetid",
-        "initial": lambda obj: {
-            "test_eq": obj.pk,
-        },
-    },
-    "checklist": {
-        "prefix": "checklist",
-        "title": 'Checklist',
-        "row_template_name": None,
-        "formset": ChecklistFormset,
-        "lookup_param": "testid",
-        "model": Tblcheckslists,
-        "pk_field": "testid",
-        "initial": lambda obj: {
-            "checkid": obj.pk,
-        },
-    },
-}
 
 
 class JobAddFormsetRowView(AddFormsetRowView):

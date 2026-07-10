@@ -14,7 +14,6 @@
       <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
-      {{formset}}
       <div hx-get='{{ formset.get_list_url }}'
           hx-trigger='click once from:#{{formset.prefix}}_list_button'
           hx-swap='innerHTML'
@@ -25,7 +24,6 @@
 
       <div id='{{formset.prefix}}-management'>
       {{ formset.management_form }}
-
       </div>
       <div id="{{ formset.prefix }}-container" class='d-flex flex-column'>
         {{ formset.media}}
@@ -33,8 +31,9 @@
 
             {% partialdef form_row inline %}
                   <div class='d-flex flex-row justify-content-between align-items-end'>
-                  <p>{{form.display_label }}</p>
+                  <p class="mb-0 flex-shrink-0" style="width: 300px;">{{form.display_label }}</p>
                   {% bootstrap_form form %}
+
                   </div>
             {% endpartialdef %}
 

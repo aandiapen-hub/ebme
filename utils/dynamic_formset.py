@@ -4,12 +4,31 @@ from django import forms
 import json
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.views.generic import (
+    ListView,
+)
 
+'''
+
+config_example ={"test_eq":
+                    {
+                    "prefix": ,
+                    "title": , 
+                    "row_template_name": None,
+                    "formset": ,
+                    "model": Tblassets, # parent model used for lookup
+                    "pk_field": pk_field of parent model
+                    "initial": lambda obj: {
+                        "fieldx": obj.fieldy, used to apply initial data to formset
+                },
+}
+'''
 class AddFormsetRowView(
     LoginRequiredMixin,
     PermissionRequiredMixin,
     TemplateView
 ):
+
     permission_required = "assets.change_tbljob"
     formset_config = None # Override in child
     template_name  = 'partials/dynamic_formset.html#row'
@@ -18,20 +37,21 @@ class AddFormsetRowView(
     def get_template_names(self):
         formset_type = self.kwargs["formset_type"]
         config = self.formset_config[formset_type]
+        # use default template or one set from the config
         return [config.get('row_template_name', None) or 'partials/dynamic_formset.html#row']
 
     def get(self, request, *args, **kwargs):
         formset_type = self.kwargs["formset_type"]
         config = self.formset_config[formset_type]
-        new_item_id = self.request.GET.get(config["lookup_param"], None)
+        self.new_item_id = self.request.GET.get("lookup_id", None)
 
         existing_ids = {
             value
             for key, value in request.GET.items()
-            if key.startswith(formset_type) and key.endswith(config["pk_field"]) and value
+            if key.startswith(formset_type) and key.endswith(config["lookup_field"]) and value
         }
 
-        if new_item_id in existing_ids:
+        if self.new_item_id in existing_ids:
             response = HttpResponse(status=200)
             response["HX-Trigger"] = json.dumps({
                 "deliveries_updated": True,
@@ -53,11 +73,10 @@ class AddFormsetRowView(
 
 
         # prefill form before rendering
-        lookup_param = self.request.GET.get(config["lookup_param"], None)
-        if lookup_param:
+        if self.new_item_id:
             obj = get_object_or_404(
                 config["model"],
-                **{config["pk_field"]: lookup_param},
+                **{config["pk_field"]: self.new_item_id},
 
             )
             initial = config["initial"](obj)
@@ -76,3 +95,24 @@ class AddFormsetRowView(
         context["form"] = form
         return context
 
+
+
+class FormsetOptionsListView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    ListView
+):
+    model = None # has to be overriden in child 
+    config = None # has to be overriden in child
+    template_name = 'formsets/formset_options.html' # can be overriden
+    permission_required = None # has to be overriden
+
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        formset_type = self.request.GET.get('formset_type') 
+        config = self.config[formset_type] 
+        context['prefix'] = config["prefix"]
+        context['pk_field'] = config["pk_field"]
+        context['lookup_field'] = config['lookup_field']
+        return context

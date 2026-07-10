@@ -606,8 +606,8 @@ class Tblpartsused(models.Model):
         db_column="JobID",
         related_name='parts_used'
     )
-    quantity = models.IntegerField(
-        db_column="Quantity", default=1
+    quantity = models.PositiveIntegerField(
+        db_column="Quantity", default=1,
     )
     partsusedid = models.BigAutoField(
         db_column="PartsUsedID", primary_key=True

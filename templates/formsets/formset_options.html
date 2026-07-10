@@ -1,25 +1,29 @@
+
 <ul class="list-group"
 
     _='on load or click
       wait 400ms
-      set ids to value of <input[name$={{pk_field}}]/> in #{{ prefix }}-container 
+      set ids to value of <input[name$={{lookup_field}}]/> in #{{ prefix }}-container 
+      log ids
       set buttons to <button/> in me
       for button in buttons
       if @data-value of button is in ids
       add .active to button
       '
 >
-  {% for part in parts %}
+  {% for obj in object_list  %}
     <button type="button"
-      id='add_test_eq_button'
+      id='add_{{prefix}}_button'
       class='list-group-item list-group-item-action '
-      data-value='{{part.pk}}'
-      hx-get="{% url 'jobs:add_formset_row' formset_type=prefix %}?sparepartid={{part.pk}}"
+      data-value='{{obj.pk}}'
+      hx-get="{% url 'jobs:add_formset_row' formset_type=prefix %}?lookup_id={{obj.pk}}"
       hx-include="#{{prefix}}-management input, #{{ prefix }}-container input"
       hx-swap="afterbegin"
       hx-target="#{{ prefix }}-container"
   >
-    {{part.part_number}}: {{part.short_name}}
+    {% block option_view %}
+    {{ obj }}
+    {% endblock %}
     </button>
   {% endfor %}
 </ul>
