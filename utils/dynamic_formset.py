@@ -102,8 +102,6 @@ class AddFormsetRowView(
 
 
 class FormsetOptionsListView(
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
     ListView
 ):
     model = None # has to be overriden in child 

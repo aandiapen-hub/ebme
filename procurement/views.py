@@ -85,7 +85,7 @@ class PoCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         return initial
 
 
-FORMSET_CONFIG = {
+PO_FORMSET_CONFIG = {
     "po_line": {
         "prefix": "po_line",
         "row_template_name": None,
@@ -95,6 +95,7 @@ FORMSET_CONFIG = {
         "lookup_field": 'item',
         'lookup_view': "procurement:po_item_option_list",
         'lookup_query_params': {
+            'supplier_id': lambda view:view.object.supplier.pk
         },
         'title':'Items',
         "initial": lambda obj: {
@@ -107,16 +108,19 @@ FORMSET_CONFIG = {
 class PoItemOptionListView(FormsetOptionsListView):
     model = Tblpartslist
     permission_required = "procurement.change_tblpurchaseorder"
-    config = FORMSET_CONFIG
-    app_name = 'procurement' 
+    config = PO_FORMSET_CONFIG
+    add_formset_row_view = 'procurement:add_formset_row' 
 
     def get_queryset(self):
-        qs = super().get_queryset()[:10]
+        qs = super().get_queryset()
+        supplier_id = self.request.GET.get('supplier_id', None)
+        if supplier_id:
+            qs = qs.filter(supplier_id=supplier_id)
         return qs
 
 class PoAddFormsetRowView(AddFormsetRowView):
     permission_required = "procurement.change_tblpurchaseorder"
-    formset_config = FORMSET_CONFIG
+    formset_config = PO_FORMSET_CONFIG
 
 class PoUpdateView(
     LoginRequiredMixin,
@@ -128,7 +132,7 @@ class PoUpdateView(
     template_name = "procurement/po_update.html"
     form_class = PoCreateForm
     permission_required = "procurement.change_tblpurchaseorder"
-    config = FORMSET_CONFIG
+    config = PO_FORMSET_CONFIG
 
     def get_success_url(self):
         return reverse("procurement:po_detail", kwargs={"pk": self.object.pk})

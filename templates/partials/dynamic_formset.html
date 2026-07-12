@@ -14,7 +14,7 @@
       <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
-      <div hx-get='{{ formset.get_list_url }}'
+      <div hx-get={{ formset.get_list_url }}
           hx-trigger='click once from:#{{formset.prefix}}_list_button'
           hx-swap='innerHTML'
         hx-target='this'></div>
