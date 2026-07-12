@@ -32,7 +32,7 @@ class AddFormsetRowView(
     TemplateView
 ):
 
-    permission_required = "assets.change_tbljob"
+    permission_required = None
     formset_config = None # Override in child
     template_name  = 'partials/dynamic_formset.html#row'
 
@@ -84,8 +84,9 @@ class AddFormsetRowView(
             )
             initial = config["initial"](obj)
 
-        formset = config["formset"].form
-        form = formset(prefix=f"{prefix}-{total_forms}", initial=initial)
+        form = config["formset"].form
+
+        form = form(prefix=f"{prefix}-{total_forms}", initial=initial)
 
         if config["formset"].can_delete:
             form.fields["DELETE"] = forms.BooleanField(
@@ -127,6 +128,7 @@ class FormsetOptionsListView(
 class CustomFormsetForm(forms.ModelForm):
     lookup_model = None
     lookup_field = None
+    obj_str_repr = str 
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -138,10 +140,10 @@ class CustomFormsetForm(forms.ModelForm):
                 or self.initial.get(self.lookup_field)
                 )
             if obj_id:
-                obj = self.lookup_model.objects.filter(pk=self.lookup_field).first()
-                self.display_label = str(obj)
+                obj = self.lookup_model.objects.filter(pk=obj_id).first()
+                self.display_label = self.obj_str_repr(obj)
         if obj:
-            self.display_label = str(obj)
+            self.display_label = self.obj_str_repr(obj)
 
 
 class FormsetMixin:
@@ -168,7 +170,7 @@ class FormsetMixin:
                     query_params_dict = {}
                     query_params_dict['formset_type']= prefix
                     for k, v in formset_config.get('lookup_query_params', {}).items():
-                        query_params_dict[k] = v(self)
+                        query_params_dict[k] = v(self) if callable(v) else v
                     
                     query_params = urlencode(query_params_dict)
                     formset.get_list_url = f"{url}?{query_params}"
