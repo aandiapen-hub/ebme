@@ -7,6 +7,9 @@ from django.shortcuts import get_object_or_404
 from django.views.generic import (
     ListView,
 )
+from django.db import transaction
+from urllib.parse import urlencode
+from django.urls import reverse
 
 '''
 
@@ -106,13 +109,96 @@ class FormsetOptionsListView(
     config = None # has to be overriden in child
     template_name = 'formsets/formset_options.html' # can be overriden
     permission_required = None # has to be overriden
+    add_formset_row_view = None
 
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         formset_type = self.request.GET.get('formset_type') 
         config = self.config[formset_type] 
-        context['prefix'] = config["prefix"]
+        prefix = config["prefix"]
+        context['prefix'] = prefix
         context['pk_field'] = config["pk_field"]
         context['lookup_field'] = config['lookup_field']
+        context['add_url'] = reverse(self.add_formset_row_view, kwargs={'formset_type':prefix})
         return context
+
+
+class CustomFormsetForm(forms.ModelForm):
+    lookup_model = None
+    lookup_field = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        obj = getattr(self.instance, self.lookup_field, None)
+
+        if not obj:
+            obj_id = (
+                self.data.get(self.add_prefix(self.lookup_field))
+                or self.initial.get(self.lookup_field)
+                )
+            if obj_id:
+                obj = self.lookup_model.objects.filter(pk=self.lookup_field).first()
+                self.display_label = str(obj)
+        if obj:
+            self.display_label = str(obj)
+
+
+class FormsetMixin:
+    config = None
+
+    def get_formsets(self):
+            formsets = {}
+            for prefix, formset_config in self.config.items():
+                formset = formset_config['formset']
+                if self.request.POST:
+                    formset = formset(
+                        self.request.POST, instance=self.object, prefix=prefix
+                    )
+                else:
+                    formset = formset(
+                        instance=self.object, prefix=prefix
+                    )
+
+                # add url for list of new formset value option
+                list_app_view = formset_config.get('lookup_view', None)
+
+                if list_app_view:
+                    url = reverse(list_app_view)
+                    query_params_dict = {}
+                    query_params_dict['formset_type']= prefix
+                    for k, v in formset_config.get('lookup_query_params', {}).items():
+                        query_params_dict[k] = v(self)
+                    
+                    query_params = urlencode(query_params_dict)
+                    formset.get_list_url = f"{url}?{query_params}"
+                    print('url', formset.get_list_url)
+                    formset.title = formset_config.get('title', None)
+
+                formsets[prefix] = formset
+            return formsets
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(self.get_formsets())
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formsets = [context[prefix] for prefix in self.config.keys()]
+
+        if not all(formset.is_valid() for formset in formsets):
+            return self.form_invalid(form)
+
+        try:
+            with transaction.atomic():
+                self.object = form.save()
+
+                for formset in formsets:
+                    formset.instance = self.object
+                    formset.save()
+
+        except Exception as e:
+            form.add_error(None, f"Database integrity error: {e}")
+            return self.form_invalid(form)
+

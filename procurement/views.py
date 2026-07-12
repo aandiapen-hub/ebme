@@ -1,7 +1,11 @@
 from django.db import transaction
 import json
 from django.contrib import messages
-
+from utils.dynamic_formset import(
+    AddFormsetRowView,
+    FormsetOptionsListView,
+    FormsetMixin,
+)
 from documents.services.payloads import (
     get_formset_initial,
 )
@@ -12,6 +16,7 @@ from .services.delivery_note import delivery_items_formset_get_context
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from django.utils.timezone import now
+from parts.models import Tblpartslist
 
 from documents.services.documents import (
     delete_object_document_links,
@@ -80,49 +85,63 @@ class PoCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         return initial
 
 
-class PoUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+FORMSET_CONFIG = {
+    "po_line": {
+        "prefix": "po_line",
+        "row_template_name": None,
+        "formset": PoLineFormset,
+        "model": Tblpartslist,
+        "pk_field": "partid",
+        "lookup_field": 'item',
+        'lookup_view': "procurement:po_item_option_list",
+        'lookup_query_params': {
+        },
+        'title':'Items',
+        "initial": lambda obj: {
+            "item": obj.pk,
+            "quantity": 1,
+        },
+    },
+}
+
+class PoItemOptionListView(FormsetOptionsListView):
+    model = Tblpartslist
+    permission_required = "procurement.change_tblpurchaseorder"
+    config = FORMSET_CONFIG
+    app_name = 'procurement' 
+
+    def get_queryset(self):
+        qs = super().get_queryset()[:10]
+        return qs
+
+class PoAddFormsetRowView(AddFormsetRowView):
+    permission_required = "procurement.change_tblpurchaseorder"
+    formset_config = FORMSET_CONFIG
+
+class PoUpdateView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    FormsetMixin,
+    UpdateView,
+):
     model = TblPurchaseOrder
     template_name = "procurement/po_update.html"
     form_class = PoCreateForm
     permission_required = "procurement.change_tblpurchaseorder"
+    config = FORMSET_CONFIG
 
     def get_success_url(self):
         return reverse("procurement:po_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        if self.request.POST:
-            context["formset"] = PoLineFormset(self.request.POST, instance=self.object)
-        else:
-            supplier_id = self.object.supplier_id
-            context["formset"] = PoLineFormset(
-                instance=self.object, supplier_id=supplier_id
-            )
+        context.update(super().get_formsets())
         return context
 
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        form = self.get_form()
-        formset = PoLineFormset(
-            self.request.POST, instance=self.object
-        )  # You'll need to define this
 
-        if form.is_valid() and formset.is_valid():
-            return self.form_valid(form, formset)
-        else:
-            return self.form_invalid(form, formset)
-
-    def form_valid(self, form, formset):
-        self.object = form.save()
-        formset.instance = self.object
-        formset.save()
+    def form_valid(self, form):
+        super().form_valid(form)
         return HttpResponseRedirect(self.get_success_url())
-
-    def form_invalid(self, form, formset):
-        context = self.get_context_data(form=form)
-        context["formset"] = formset
-        return self.render_to_response(context)
 
 
 class PoDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):

@@ -10,58 +10,29 @@ from .models import (
 from parts.models import Tblpartslist
 from django.forms import BaseInlineFormSet
 
+from utils.dynamic_formset import CustomFormsetForm
 from django_select2.forms import ModelSelect2Widget
 from django.forms import inlineformset_factory
 
 
-class PoLineForm(forms.ModelForm):
+class PoLineForm(CustomFormsetForm):
+    lookup_model = Tblpartslist
+    lookup_field = 'item'
+
     class Meta:
         model = TblPoLines
         fields = ["item", "qty_ordered", "line_description", "unit_price", "vat"]
         widgets = {
-            "item": ModelSelect2Widget(
-                model=Tblpartslist,
-                search_fields=[
-                    "part_number__icontains",
-                    "short_name__icontains",
-                    "description__icontains",
-                    "supplier_id__supplier_name__icontains",
-                ],
-                attrs={
-                    "class": "django-select2",
-                    "data-placeholder": "Select Item",
-                    "data-minimum-input-length": 0,
-                },
-            )
+            "item": forms.HiddenInput,
+            "vat": forms.HiddenInput,
         }
-
-    def __init__(self, *args, **kwargs):
-        self.supplier_id = kwargs.pop("supplier_id", None)
-        super().__init__(*args, **kwargs)
-        self.fields["item"].widget.queryset = Tblpartslist.objects.filter(
-            supplier_id=self.supplier_id
-        )
-        for name, field in self.fields.items():
-            if not isinstance(field.widget, ModelSelect2Widget):
-                field.widget.attrs.update({"class": "form-control"})
-
-
-class PoLineBaseFormSet(BaseInlineFormSet):
-    def __init__(self, *args, **kwargs):
-        self.supplier_id = kwargs.pop("supplier_id", None)
-        super().__init__(*args, **kwargs)
-
-    def _construct_form(self, i, **kwargs):
-        kwargs["supplier_id"] = self.supplier_id
-        return super()._construct_form(i, **kwargs)
 
 
 PoLineFormset = inlineformset_factory(
     TblPurchaseOrder,
     TblPoLines,
     form=PoLineForm,
-    formset=PoLineBaseFormSet,
-    extra=3,
+    extra=0,
     can_delete=True,
 )
 

@@ -7,6 +7,7 @@ from .views import (
     PoCreateView,
     PoDetailView,
     PoDeleteView,
+    PoItemOptionListView,
     PoUpdateView,
     DeliveryCreateView,
     DeliveryUpdateView,
@@ -15,6 +16,7 @@ from .views import (
     InvoicesDetailView,
     InvoicesUpdateView,
     InvoicesDeleteView,
+    PoAddFormsetRowView,
 )
 
 app_name = "procurement"
@@ -24,6 +26,9 @@ urlpatterns = [
     path("purchase_orders/<int:pk>/detail/", PoDetailView.as_view(), name="po_detail"),
     path("purchase_orders/<int:pk>/delete/", PoDeleteView.as_view(), name="po_delete"),
     path("purchase_orders/<int:pk>/update/", PoUpdateView.as_view(), name="po_update"),
+    path("purchase_orders/item_options/", PoItemOptionListView.as_view(), name="po_item_option_list"),
+    path("procurement/add_formset_row/<str:formset_type>/", PoAddFormsetRowView.as_view(), name="add_formset_row"),
+
     path(
         "gen_purchase_orders/<int:pk>/", GeneratePurchaseOrder.as_view(), name="gen_po"
     ),

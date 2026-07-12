@@ -14,7 +14,7 @@
       id='add_{{prefix}}_button'
       class='list-group-item list-group-item-action '
       data-value='{{obj.pk}}'
-      hx-get="{{add_url}}?lookup_id={{obj.pk}}"
+            hx-get="{{add_url}}?lookup_id={{obj.pk}}"
       hx-include="#{{prefix}}-management input, #{{ prefix }}-container input"
       hx-swap="afterbegin"
       hx-target="#{{ prefix }}-container"
