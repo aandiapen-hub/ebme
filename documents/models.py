@@ -15,7 +15,7 @@ from django.conf import settings
 
 from io import BytesIO
 from django.core.files.base import ContentFile
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 class DocumentTypes(models.IntegerChoices):
@@ -146,6 +146,7 @@ class TemporaryUpload(models.Model):
             if ext in [".jpg", ".jpeg", ".png"]:
                 self.file.open("rb")
                 img = Image.open(self.file).copy()
+                img = ImageOps.exif_transpose(img)
 
                 # Convert PNG with transparency to RGB
                 if img.mode in ("RGBA", "P"):

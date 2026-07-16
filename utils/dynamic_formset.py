@@ -10,7 +10,9 @@ from django.views.generic import (
 from django.db import transaction
 from urllib.parse import urlencode
 from django.urls import reverse
+from django.views.generic import UpdateView
 
+from django.core.exceptions import ValidationError
 '''
 
 config_example ={"test_eq":
@@ -144,7 +146,7 @@ class CustomFormsetForm(forms.ModelForm):
             self.display_label = self.obj_str_repr(obj)
 
 
-class FormsetMixin:
+class FormsetMixin(UpdateView):
     config = None
 
     def get_formsets(self):
@@ -172,7 +174,6 @@ class FormsetMixin:
                     
                     query_params = urlencode(query_params_dict)
                     formset.get_list_url = f"{url}?{query_params}"
-                    print('url', formset.get_list_url)
                     formset.title = formset_config.get('title', None)
 
                 formsets[prefix] = formset
@@ -188,7 +189,7 @@ class FormsetMixin:
         formsets = [context[prefix] for prefix in self.config.keys()]
 
         if not all(formset.is_valid() for formset in formsets):
-            return self.form_invalid(form)
+            raise ValidationError('Save not successful')
 
         try:
             with transaction.atomic():
@@ -201,4 +202,9 @@ class FormsetMixin:
         except Exception as e:
             form.add_error(None, f"Database integrity error: {e}")
             return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        context = self.get_context_data(form=form)
+        context.update(self.get_formsets())
+        return self.render_to_response(context)
 

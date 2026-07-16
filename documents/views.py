@@ -575,6 +575,7 @@ class TempUploadMergedDataUpdate(LoginRequiredMixin, PermissionRequiredMixin, Fo
     def form_valid(self, form):
         data = self.group.extracted_json.get('merged_gs1_ai')
         for key, value in form.cleaned_data.items():
+            print('values', key, value)
             if isinstance(value, QuerySet):
                 data[key] = list(value.values_list("pk", flat=True))
             else:

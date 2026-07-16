@@ -109,6 +109,7 @@ def create_document_from_file(
             document.set_content(content, file_hash=file_hash)
 
         # update without new content
+        print('document', document)
         if document is not None:
             document.document_name = document_name
             document.description = document_description

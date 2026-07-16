@@ -150,7 +150,6 @@ class JobUpdateView(
     CustomerJobPermissionMixin,
     TempUploadMixin,
     FormsetMixin,
-    UpdateView,
 ):
     model = Tbljob
     form_class = JobUpdateForm
@@ -172,13 +171,13 @@ class JobUpdateView(
         try:
             with transaction.atomic():
                 # saving of formset and form handled in FormsetMixin
-                super().form_valid(form)
+                response = super().form_valid(form)
                 # save document related records from TempUploadMixin
                 self.after_save(form)
 
         except Exception as e:
             form.add_error(None, f"Error while saving: {e}")
-            return self.form_invalid(form)
+            return super().form_invalid(form)
 
         return HttpResponseRedirect(self.get_success_url())
 

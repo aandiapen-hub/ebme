@@ -139,6 +139,7 @@ class PartsUsedForm(CustomFormsetForm):
             'partid':forms.HiddenInput,
         }
 
+
 PartsUsedFormset = forms.inlineformset_factory(
     Tbljob, Tblpartsused, form=PartsUsedForm, extra=0, can_delete=True
 )

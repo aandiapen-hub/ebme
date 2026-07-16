@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.contenttypes.models import ContentType
+from procurement.reports import purchase_order
 
 from .models import (
     TblDocuments,
@@ -207,8 +208,22 @@ class AssetDataUpdate(forms.Form):
 class ServiceReportDataUpdate(forms.Form):
     SERIAL = forms.CharField(required=False)
 
+class StringListField(forms.Field):
+    widget = forms.Textarea
+
+    def prepare_value(self, value):
+        if isinstance(value, list):
+            return "\n".join(value)
+        return value
+
+    def to_python(self, value):
+        if not value:
+            return []
+        return [line.strip() for line in value.splitlines() if line.strip()]
+
+
 class DeliveryNoteDataUpdate(forms.Form):
-    po = forms.CharField(required=False)
+    purchase_order = StringListField(required=False)
 
 def get_temp_group_data_update_formclass(group_type):
     GROUP_TYPE_FORM_MAP = {

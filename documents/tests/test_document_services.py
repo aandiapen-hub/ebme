@@ -58,6 +58,7 @@ def test_payload_post_with_save_document(
     user,
     asset_data_temp_group,
     asset_id_temp_document,
+    document_type,
     brand,
     category,
     
