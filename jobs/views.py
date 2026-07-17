@@ -160,13 +160,6 @@ class JobUpdateView(
     def get_success_url(self):
         return reverse_lazy("jobs:job_summary", kwargs={"pk": self.object.jobid})
 
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["assetid"] = self.request.GET.get("assetid", None)
-        context.update(super().get_formsets())
-        return context
-
     def form_valid(self, form):
         try:
             with transaction.atomic():
@@ -174,12 +167,11 @@ class JobUpdateView(
                 response = super().form_valid(form)
                 # save document related records from TempUploadMixin
                 self.after_save(form)
+                return response
 
         except Exception as e:
             form.add_error(None, f"Error while saving: {e}")
             return super().form_invalid(form)
-
-        return HttpResponseRedirect(self.get_success_url())
 
 
 
@@ -254,7 +246,10 @@ class JobCreateView(
 
 
 
-class TestEqListView(FormsetOptionsListView):
+class TestEqListView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    FormsetOptionsListView):
     model = Tblassets
     permission_required = "assets.change_tbljob"
     template_name = 'jobs/partials/available_test_eq.html'
@@ -265,7 +260,11 @@ class TestEqListView(FormsetOptionsListView):
        return super().get_queryset().filter(is_test_eq=True, asset_status_id=1)
 
 
-class SparePartsListView(FormsetOptionsListView):
+class SparePartsListView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    FormsetOptionsListView):
+
     model = Tblpartslist 
     permission_required = "assets.change_tbljob"
     config = FORMSET_CONFIG
@@ -283,7 +282,11 @@ class SparePartsListView(FormsetOptionsListView):
         return qs
 
 
-class ChecklistListView(FormsetOptionsListView):
+class ChecklistListView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    FormsetOptionsListView):
+
     model = Tblcheckslists 
     permission_required = "assets.change_tbljob"
     config = FORMSET_CONFIG

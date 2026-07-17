@@ -25,8 +25,8 @@ urlpatterns = [
     path("jobs/generate-report", GenerateReportView.as_view(), name="gen_report"),
     # bulk update job
     path("job_bulk_update", JobBulkUpdateView.as_view(), name="bulk_update_jobs"),
-    path("jobs/test_eq_list", TestEqListView.as_view(), name="test_eq_list"),
-    path("jobs/parts_list", SparePartsListView.as_view(), name="parts_list"),
-    path("jobs/checklist_list/", ChecklistListView.as_view(), name="check_list"),
+    path("jobs/test_eq_list/<str:formset_type>/", TestEqListView.as_view(), name="test_eq_list"),
+    path("jobs/parts_list/<str:formset_type>/", SparePartsListView.as_view(), name="parts_list"),
+    path("jobs/checklist_list/<str:formset_type>/", ChecklistListView.as_view(), name="check_list"),
     path("jobs/add_formset_row/<str:formset_type>/", JobAddFormsetRowView.as_view(), name="add_formset_row"),
 ]

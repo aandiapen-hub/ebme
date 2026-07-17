@@ -817,8 +817,10 @@ def test_generate_job_report_view_renders_error(client, customer, user, jobs):
 
 # test Add formset
 @pytest.mark.django_db
-def test_generate_test_eq_list_view_requires_login(client):
-    url = reverse("jobs:test_eq_list")
+def test_generate_test_eq_list_view_requires_login(client, assets, asset_status):
+    asset_status = asset_status(asset_status_id=1)
+    test_eq = assets(count=10, is_test_eq=True, asset_status_id=asset_status)
+    url = reverse("jobs:test_eq_list", kwargs={'formset_type':'test_eq'})
     response = client.get(url)
 
     assert response.status_code == 302
@@ -828,7 +830,7 @@ def test_generate_test_eq_list_view_requires_login(client):
 @pytest.mark.django_db
 def test_generate_test_eq_listview_permission_required(client, user):
     client.force_login(user())
-    url = reverse("jobs:test_eq_list")
+    url = reverse("jobs:test_eq_list", kwargs={'formset_type':'test_eq'})
     response = client.get(url)
 
     assert response.status_code == 403
@@ -844,19 +846,17 @@ def test_generate_test_eq_listview_renders(client, user, assets, asset_status):
     user.user_permissions.add(permission)
     client.force_login(user)
     
-    url = reverse("jobs:test_eq_list")
-    query_params = urlencode({'formset_type':'test_eq'})
-    full_url = f"{url}?{query_params}"
-    response = client.get(full_url)
+    url = reverse("jobs:test_eq_list", kwargs={'formset_type':'test_eq'})
+    response = client.get(url)
 
     assert response.status_code == 200
-    assert response.context['test_eq'].count() == 10
+    assert response.context['object_list'].count() == 10
 
 
 # test add parts formset
 @pytest.mark.django_db
 def test_generate_parts_list_view_requires_login(client):
-    url = reverse("jobs:parts_list")
+    url = reverse("jobs:parts_list", kwargs={'formset_type':'parts_used'})
     response = client.get(url)
 
     assert response.status_code == 302
@@ -866,7 +866,7 @@ def test_generate_parts_list_view_requires_login(client):
 @pytest.mark.django_db
 def test_generate_parts_list_permission_required(client, user):
     client.force_login(user())
-    url = reverse("jobs:parts_list")
+    url = reverse("jobs:parts_list", kwargs={'formset_type':'parts_used'})
     response = client.get(url)
 
     assert response.status_code == 403
@@ -885,20 +885,20 @@ def test_generate_parts_list_view_renders(client, user, asset, part_model):
     user.user_permissions.add(permission)
     client.force_login(user)
     
-    url = reverse("jobs:parts_list")
-    query_params = urlencode({'modelid':asset.modelid.pk, 'formset_type': 'parts_used'})
+    url = reverse("jobs:parts_list", kwargs={'formset_type':'parts_used'})
+    query_params = urlencode({'modelid':asset.modelid.pk})
     full_url = f"{url}?{query_params}"
     response = client.get(full_url)
 
     assert response.status_code == 200
-    assert response.context['parts'].count() == 3
+    assert response.context['object_list'].count() == 3
 
 
 # test add check formset
 @pytest.mark.django_db
 def test_generate_check_list_view_requires_login(client, asset):
     asset = asset()
-    url = reverse("jobs:check_list", kwargs={'modelid':asset.modelid.pk, })
+    url = reverse("jobs:check_list", kwargs={'formset_type':'checklist'})
     response = client.get(url)
 
     assert response.status_code == 302
@@ -909,7 +909,7 @@ def test_generate_check_list_view_requires_login(client, asset):
 def test_generate_check_list_permission_required(client, user, asset):
     asset = asset()
     client.force_login(user())
-    url = reverse("jobs:check_list", kwargs={'modelid':asset.modelid.pk, })
+    url = reverse("jobs:check_list", kwargs={'formset_type':'checklist'})
     response = client.get(url)
 
     assert response.status_code == 403
@@ -924,10 +924,10 @@ def test_generate_check_list_view_renders(client, user, asset, checklists):
     user.user_permissions.add(permission)
     client.force_login(user)
     
-    url = reverse("jobs:check_list", kwargs={'modelid':asset.modelid.pk, })
+    url = reverse("jobs:check_list", kwargs={'formset_type':'checklist'})
     query_params = urlencode({'formset_type': 'checklist'})
     full_url = f"{url}?{query_params}"
     response = client.get(full_url)
 
     assert response.status_code == 200
-    assert response.context['checks'].count() == 10
+    assert response.context['object_list'].count() == 10

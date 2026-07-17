@@ -13,6 +13,7 @@ from django.urls import reverse
 from django.views.generic import UpdateView
 
 from django.core.exceptions import ValidationError
+from django.http import HttpResponse, HttpResponseRedirect
 '''
 
 config_example ={"test_eq":
@@ -115,7 +116,7 @@ class FormsetOptionsListView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset_type = self.request.GET.get('formset_type') 
+        formset_type = self.kwargs.get('formset_type') 
         config = self.config[formset_type] 
         prefix = config["prefix"]
         context['prefix'] = prefix
@@ -166,9 +167,8 @@ class FormsetMixin(UpdateView):
                 list_app_view = formset_config.get('lookup_view', None)
 
                 if list_app_view:
-                    url = reverse(list_app_view)
+                    url = reverse(list_app_view, kwargs={'formset_type': prefix})
                     query_params_dict = {}
-                    query_params_dict['formset_type']= prefix
                     for k, v in formset_config.get('lookup_query_params', {}).items():
                         query_params_dict[k] = v(self) if callable(v) else v
                     
@@ -188,6 +188,7 @@ class FormsetMixin(UpdateView):
         context = self.get_context_data()
         formsets = [context[prefix] for prefix in self.config.keys()]
 
+
         if not all(formset.is_valid() for formset in formsets):
             raise ValidationError('Save not successful')
 
@@ -203,8 +204,10 @@ class FormsetMixin(UpdateView):
             form.add_error(None, f"Database integrity error: {e}")
             return self.form_invalid(form)
 
+        response = HttpResponseRedirect(self.get_success_url())
+        return response
+
     def form_invalid(self, form):
         context = self.get_context_data(form=form)
         context.update(self.get_formsets())
         return self.render_to_response(context)
-
