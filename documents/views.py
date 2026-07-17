@@ -487,7 +487,6 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
                 group=self.object.group
             ).count()
             if group_document_count == 1:
-                print('new grup')
                 context = {"group": self.object.group, "temp_files": [self.object]}
                 response = render(
                     self.request,
@@ -497,7 +496,6 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
                 response['HX-Retarget'] = '#images_div'
                 return response
             else:
-                print('add to existing grup')
                 context = {"file": self.object, "group": self.object.group }
                 response = render(
                     self.request, "documents/partials/temp_file.html", context
@@ -575,7 +573,6 @@ class TempUploadMergedDataUpdate(LoginRequiredMixin, PermissionRequiredMixin, Fo
     def form_valid(self, form):
         data = self.group.extracted_json.get('merged_gs1_ai')
         for key, value in form.cleaned_data.items():
-            print('values', key, value)
             if isinstance(value, QuerySet):
                 data[key] = list(value.values_list("pk", flat=True))
             else:

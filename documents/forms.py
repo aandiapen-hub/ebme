@@ -213,7 +213,8 @@ class StringListField(forms.Field):
 
     def prepare_value(self, value):
         if isinstance(value, list):
-            return "\n".join(value)
+            str_list = [str(v) for v in value]
+            return "\n".join(str_list)
         return value
 
     def to_python(self, value):
