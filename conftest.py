@@ -112,7 +112,10 @@ def category():
 
 @pytest.fixture
 def part_model():
-    return TblPartModelFactory
+    def output(inactive=False, model=None):
+        part = PartFactory(inactive=inactive)
+        return TblPartModelFactory(part=part, model=model)
+    return output
 
 @pytest.fixture
 def checklists():

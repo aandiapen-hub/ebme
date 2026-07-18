@@ -1,5 +1,6 @@
 import hashlib
 from io import BytesIO
+from os import dup
 from django.db import transaction, IntegrityError
 from documents.models import TblDocuments, TblDocumentLinks, TempUploadGroup, TemporaryUpload
 from django.core.exceptions import ValidationError
@@ -39,8 +40,8 @@ def create_document_from_file(
     document=None,
     uploaded_file=None,
     content=None,
+    document_type_id=None,
     mime_type=None,
-    document_type_id,
     temp_file=None,
     document_name=None,
     content_object=None,
@@ -48,9 +49,11 @@ def create_document_from_file(
 ):
     file_hash = None
 
+    # check if no document or content has been passed for create or update
     if document is None and uploaded_file is None and temp_file is None and content is None:
         raise ValidationError("No file found!")
 
+    # if content is an uploaded_file
     if uploaded_file:
         mime_type = uploaded_file.content_type
         if 'image/' in mime_type:
@@ -61,6 +64,7 @@ def create_document_from_file(
 
         document_name = document_name or uploaded_file.name
 
+    # if content is a temp file
     if temp_file:
         if "image/" in mime_type:
             content = Image.open(temp_file.file.path).convert("RGB")
@@ -69,9 +73,10 @@ def create_document_from_file(
                 content = f.read()
         document_name = temp_file.original_name
         mime_type = temp_file.mime_type
+        file_hash = hashlib.sha256(content).hexdigest()
 
 
-    # resize images
+    # resize if content is an image 
     if "image/" in mime_type:
         img = resizeimg(content)
         
@@ -85,54 +90,67 @@ def create_document_from_file(
     # --------------------------------------
     # check if document already exists in DB
     # --------------------------------------
+    duplicates = TblDocuments.objects.filter(document_hash=file_hash)
+    if document:
+        duplicates = duplicates.exclude(pk=document.pk)
+    duplicate_exists = duplicates.exists()
 
+    # assign customer to document
     customer = resolve_customer(content_object)
 
+    # process document save
     with transaction.atomic():
+
         # ------------------------------------------------
         # Updating an existing document
         # ------------------------------------------------
+        if document: 
+            print('updating existing document')
+            if content:
+                if duplicate_exists:
+                    raise ValidationError(f'Document already exists in database, duplicate:{duplicates.first()}') 
+                else:
+                    print('document for update with new content')
+                    document.document_name = document_name
+                    document.mime_type = mime_type
+                    document.description = document_description
+                    document.document_type_id = document_type_id
+                    document.set_content(content, file_hash=file_hash)
 
-        # First check if content already exists
-        if document is not None and file_hash:
-            duplicate = TblDocuments.objects.filter(document_hash=file_hash).exclude(
-                pk=document.pk
-            )
-            if duplicate.exists():
-                raise ValidationError("This uploaded file already exists.")
 
-        # update with content if the content is valid
-        if document is not None and content:
-            document.document_name = document_name
-            document.mime_type = mime_type
-            document.description = document_description
-            document.set_content(content, file_hash=file_hash)
-
-        # update without new content
-        print('document', document)
-        if document is not None:
-            document.document_name = document_name
-            document.description = document_description
+            else:
+                # update without new content
+                print('document for update with no content')
+                document.document_name = document_name
+                document.document_type_id = document_type_id
+                document.description = document_description
 
         else:
+            print('creating new document')
             # ------------------------------------------------
-            # creating new document and links
+            # creating new document
             # ------------------------------------------------
 
-            # first check if document exists by hash
-            document = TblDocuments.objects.filter(document_hash=file_hash).first()
-            if document is None:
+            # content already exists in dababase
+            if duplicate_exists:
+                print('content for new document matches existing document')
+                document = duplicates.first()
+            else:
+                print('content for new document not in database')
                 document = TblDocuments(
                     document_name=document_name,
                     mime_type=mime_type,
                     document_description=document_description,
                 )
-            document.set_content(content, file_hash=file_hash)
+                document.set_content(content)
 
         try:
             document.save()
-        except IntegrityError:
-            raise ValidationError("This file already exists.")
+        except IntegrityError as e:
+            raise ValidationError(e)
+        # ------------------------------------------------
+        # creating links
+        # ------------------------------------------------
 
         if content_object:
             link_document_to_object(
@@ -170,10 +188,12 @@ def save_temp_files(group, content_object, file_name=None):
     """
     Save all files permanently and link them to the row/table.
     """
-
+    print('temp_group_id', group)
     temp_group = TempUploadGroup.objects.filter(pk=group).first()
+    print('temp_group', temp_group)
     temp_files = temp_group.temp_uploads.all()
 
+    print('temp_files', temp_files)
     image_files = [file for file in temp_files if "image/" in file.mime_type]
 
     non_image_files = [

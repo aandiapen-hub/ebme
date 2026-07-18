@@ -150,6 +150,7 @@ class PartCreateView(
         try:
             with transaction.atomic():
                 self.object = form.save()
+                self.after_save(form)
         except IntegrityError as e:
             form.add_error(None, str(e))
             return self.form_invalid(form)

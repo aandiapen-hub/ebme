@@ -239,7 +239,6 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, TempUpload
             formset.instance = self.object
             formset.save()
 
-            self.save_temp_files(form, self.object)
             self.after_save(form)
 
         return HttpResponseRedirect(self.get_success_url())

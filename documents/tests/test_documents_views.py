@@ -1134,7 +1134,7 @@ def test_document_update_view_post(client, user, document_link, customer):
 
 
     test_file = SimpleUploadedFile(
-        "test.txt", b"Test content", content_type="text/plain"
+        "test.txt", b"Test content_XXX1232XX", content_type="text/plain"
     )
     form = {
         "document_name": "test_document",
