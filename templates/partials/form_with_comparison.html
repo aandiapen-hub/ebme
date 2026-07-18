@@ -1,6 +1,7 @@
 {% load django_bootstrap5 %}
 {% load custom_tags %}
 
+{% bootstrap_form_errors form type='non_fields' %} 
 {% for field in form %}
   {% bootstrap_field field layout='horizontal' %}
   {% with original=form.original|get_original:field.html_name %}

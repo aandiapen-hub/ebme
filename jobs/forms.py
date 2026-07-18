@@ -55,6 +55,17 @@ class JobUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
             "workdone": "Work Done",
         }
 
+    def clean(self):
+        data = super().clean()
+        start = data.get('jobstartdate')
+        end = data.get('jobenddate')
+        if start and end and start > end:
+            self.add_error('jobstartdate','Invalid Date')
+            self.add_error('jobenddate','Invalid Date')
+            raise ValidationError(
+                'Job end date has to be on or after start date',
+            )
+        return data
 
 class TestEqUsedForm(CustomFormsetForm):
     lookup_model = Tblassets
