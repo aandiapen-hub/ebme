@@ -66,6 +66,7 @@ def create_document_from_file(
 
     # if content is a temp file
     if temp_file:
+        print('temp file ', temp_file, mime_type)
         if "image/" in mime_type:
             content = Image.open(temp_file.file.path).convert("RGB")
         else:
@@ -78,6 +79,7 @@ def create_document_from_file(
 
     # resize if content is an image 
     if "image/" in mime_type:
+        print('image being processed before saving')
         img = resizeimg(content)
         
         img = ImageOps.exif_transpose(img)
@@ -90,10 +92,13 @@ def create_document_from_file(
     # --------------------------------------
     # check if document already exists in DB
     # --------------------------------------
-    duplicates = TblDocuments.objects.filter(document_hash=file_hash)
-    if document:
-        duplicates = duplicates.exclude(pk=document.pk)
-    duplicate_exists = duplicates.exists()
+    print('hash*****', file_hash)
+    duplicate_exists = False
+    if file_hash:
+        duplicates = TblDocuments.objects.filter(document_hash=file_hash)
+        if document:
+            duplicates = duplicates.exclude(pk=document.pk)
+        duplicate_exists = duplicates.exists()
 
     # assign customer to document
     customer = resolve_customer(content_object)
