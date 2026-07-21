@@ -57,19 +57,24 @@ class AddFormsetRowView(
     def get_config(self):
         return self.formset_config[self.get_formset_type]
 
+    @cached_property
+    def new_item_id(self):
+        if self.request.GET:
+            return self.request.GET.get("lookup_id", None)
+        else:
+            return self.request.POST.get("lookup_id", None)
+
+
     def get_template_names(self):
         config = self.get_config
         # use default template or one set from the config
         return [config.get('row_template_name', None) or 'partials/dynamic_formset.html#row']
 
     def new_item_valid(self):
-        config = self.formset_config[self.get_formset_type]
         if self.new_item_id is None:
-            if self.request.GET:
-                self.new_item_id = self.request.GET.get("lookup_id", None)
-            else:
-                self.new_item_id = self.request.POST.get("lookup_id", None)
+            return True
 
+        config = self.formset_config[self.get_formset_type]
         if self.request.GET:
             added_items = self.request.GET.items()
         else:
@@ -204,6 +209,7 @@ class FormsetOptionsListView(
         qs = super().get_queryset()
         config = self.get_config 
         q_filter = config.get('lookup_filter', None)
+        print('q filter', q_filter)
         if q_filter:
             return qs.filter(q_filter)
         return qs

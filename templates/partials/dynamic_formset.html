@@ -1,25 +1,60 @@
 {% load django_bootstrap5 %}
 
-<div class='container-flex mb-2' id='{{formset.prefix}}_eq_container'>
-  <div class='d-flex flex-row gap-3'>
-    <h3>
-      {{formset.title}}
-    </h3>
-    <button id='{{formset.prefix}}_list_button' class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#{{formset.prefix}}_canvas" aria-controls="{{formset.prefix}}_canvas">Add</button>
-  </div>
+<div class="container-flex mb-2" id="{{ formset.prefix }}_eq_container">
 
-  <div class="offcanvas offcanvas-end" tabindex="-1" id="{{formset.prefix}}_canvas" aria-labelledby="{{formset.prefix}}_canvas_label">
-    <div class="offcanvas-header">
-      <h5 id="{{formset.prefix}}_canvas_label">Select Test Eq</h5>
-      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    <div class="d-flex flex-row gap-3 align-items-center">
+        <h3 class="mb-0">{{ formset.title }}</h3>
+
+        <button
+            id="{{ formset.prefix }}_list_button"
+            class="btn btn-outline-secondary btn-sm"
+            type="button"
+            data-bs-toggle="modal"
+            data-bs-target="#{{ formset.prefix }}_modal">
+            Add
+        </button>
     </div>
-    <div class="offcanvas-body">
-      <div hx-get={{ formset.get_list_url }}
-          hx-trigger='click once from:#{{formset.prefix}}_list_button'
-          hx-swap='innerHTML'
-        hx-target='this'></div>
+
+    <div
+        class="modal fade"
+        id="{{ formset.prefix }}_modal"
+        tabindex="-1"
+        aria-labelledby="{{ formset.prefix }}_modal_label"
+        aria-hidden="true">
+
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="{{ formset.prefix }}_modal_label">
+                        Select Test Eq
+                    </h5>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+
+                    <div
+                        hx-get="{{ formset.get_list_url }}"
+                        hx-trigger="click once from:#{{ formset.prefix }}_list_button"
+                        hx-target="this"
+                        hx-swap="innerHTML">
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
     </div>
-  </div>
+
+</div>
 
 
       <div id='{{formset.prefix}}-management'>
@@ -29,13 +64,29 @@
         {{ formset.media}}
         {% for form in formset %}
 
-            {% partialdef form_row inline %}
-                  <div class='d-flex flex-row justify-content-between align-items-end'>
-                  <p class="mb-0 flex-shrink-0" style="width: 300px;">{{form.display_label }}</p>
-                  {% bootstrap_form form %}
+          {% partialdef form_row inline %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
 
-                  </div>
-            {% endpartialdef %}
+                        <div class="col-12 col-lg-3">
+                            <strong>{{ form.display_label }}</strong>
+                        </div>
+
+                        {% for field in form.visible_fields %}
+                            <div class="col-12 col-md-6 col-xl-3">
+                                {% bootstrap_field field %}
+                            </div>
+                        {% endfor %}
+
+                        {% for hidden in form.hidden_fields %}
+                            {{ hidden }}
+                        {% endfor %}
+
+                    </div>
+                </div>
+            </div>
+          {% endpartialdef %}
 
         {% endfor %}
       </div>

@@ -122,7 +122,7 @@ FORMSET_CONFIG = {
         "model": Tblassets,
         "pk_field": "assetid",
         "lookup_field": 'test_eq',
-        "lookup_filter": Q(is_test_eq=True)|Q(asset_status_id=1),
+        "lookup_filter": Q(is_test_eq=True)&Q(asset_status_id=1),
         'lookup_view': 'jobs:test_eq_list',
         'title':'Test Equipment',
         "initial": lambda obj: {
@@ -136,7 +136,7 @@ FORMSET_CONFIG = {
         "model": Tblcheckslists,
         "pk_field": "testid",
         "lookup_field": 'checkid',
-        "lookup_filter": Q(inactive=False)|Q(inactive__isnull=True),
+        "lookup_filter": None ,
         'lookup_view':"jobs:check_list",
         'lookup_query_params': {
                     'modelid': lambda view: view.object.assetid.modelid.pk,
