@@ -568,7 +568,6 @@ def delivery_resolver(parsed_data):
     create_delivery = False
 
     if po_number:
-        print('po_number', po_number, type(po_number))
         po = TblPurchaseOrder.objects.filter(po_id__in=po_number).first()
         if po:
             po_id = po.pk

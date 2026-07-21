@@ -1,5 +1,4 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.views.generic import TemplateView
 from django import forms
 import json
 from django.http import HttpResponse
@@ -10,10 +9,13 @@ from django.views.generic import (
 from django.db import transaction
 from urllib.parse import urlencode
 from django.urls import reverse
-from django.views.generic import UpdateView
+from django.views.generic import UpdateView, FormView
 
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse, HttpResponseRedirect
+from documents.forms import TempFileUploadForm
+from documents.services.documents import save_temp_document
+from functools import cached_property
 '''
 
 config_example ={"test_eq":
@@ -32,32 +34,64 @@ config_example ={"test_eq":
 class AddFormsetRowView(
     LoginRequiredMixin,
     PermissionRequiredMixin,
-    TemplateView
+    FormView
 ):
 
+    form_class = TempFileUploadForm
     permission_required = None
     formset_config = None # Override in child
     template_name  = 'partials/dynamic_formset.html#row'
+    scanner_config_map = None
+    resolved_data = None
 
+    @cached_property
+    def get_formset_type(self):
+        if self.resolved_data:
+            formset_type, self.new_item_id = self.map_scanner_output_to_config()
+        else:
+            formset_type = self.kwargs["formset_type"]
+
+        return formset_type
+
+    @cached_property
+    def get_config(self):
+        return self.formset_config[self.get_formset_type]
 
     def get_template_names(self):
-        formset_type = self.kwargs["formset_type"]
-        config = self.formset_config[formset_type]
+        config = self.get_config
         # use default template or one set from the config
         return [config.get('row_template_name', None) or 'partials/dynamic_formset.html#row']
 
-    def get(self, request, *args, **kwargs):
-        formset_type = self.kwargs["formset_type"]
-        config = self.formset_config[formset_type]
-        self.new_item_id = self.request.GET.get("lookup_id", None)
+    def new_item_valid(self):
+        config = self.formset_config[self.get_formset_type]
+        if self.new_item_id is None:
+            if self.request.GET:
+                self.new_item_id = self.request.GET.get("lookup_id", None)
+            else:
+                self.new_item_id = self.request.POST.get("lookup_id", None)
 
+        if self.request.GET:
+            added_items = self.request.GET.items()
+        else:
+            added_items = self.request.POST.items()
+        # check if item is already added to formset
         existing_ids = {
             value
-            for key, value in request.GET.items()
-            if key.startswith(formset_type) and key.endswith(config["lookup_field"]) and value
+            for key, value in added_items
+            if key.startswith(self.get_formset_type) and key.endswith(config["lookup_field"]) and value
         }
+        item_exists = str(self.new_item_id) in existing_ids 
+        # check if item is available
+        item_available = config[
+                'model'
+            ].objects.filter(
+                config['lookup_filter']
+            ).filter(pk=self.new_item_id).exists()
+        
+        return not item_exists and item_available
 
-        if self.new_item_id in existing_ids:
+    def get(self, request, *args, **kwargs):
+        if not self.new_item_valid():
             response = HttpResponse(status=200)
             response["HX-Trigger"] = json.dumps({
                 "deliveries_updated": True,
@@ -70,12 +104,56 @@ class AddFormsetRowView(
 
         return super().get(request, *args, **kwargs)
 
+    def form_valid(self, form):
+        file = self.request.FILES.get("files")
+        scanned_code = self.request.POST.get("scanned_code", None)
+        try:
+            obj = save_temp_document(
+                user=self.request.user,
+                file=file,
+                scanned_code=scanned_code
+            )
+
+        except ValidationError as e:
+            return HttpResponse(status=404)
+
+        obj.group.refresh_from_db()
+        self.resolved_data = obj.group.extracted_json.get('resolved', None)
+        if not self.resolved_data:
+            return HttpResponse(status=404)
+        else:
+            response = self.render_to_response(self.get_context_data())
+            if not self.new_item_valid():
+                response = HttpResponse(status=200)
+                response["HX-Trigger"] = json.dumps({
+                    "deliveries_updated": True,
+                    "show_message": {
+                        "message": "Already added",
+                        "level": "warning",
+                    },
+                })
+            else:
+                response['HX-Retarget'] = f'#{ self.get_config['prefix'] }-container'
+            return response
+
+
+    def map_scanner_output_to_config(self):
+        for k, v in self.scanner_config_map.items():
+            value = v['value'](self.resolved_data)
+            if value:
+                return v['formset_type'], value
+
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset_type = self.kwargs["formset_type"]
-        config = self.formset_config[formset_type]
+
+        config = self.get_config
         prefix = config["prefix"]
-        total_forms = int(self.request.GET[f"{prefix}-TOTAL_FORMS"])
+
+        if self.request.GET:
+            total_forms = int(self.request.GET[f"{prefix}-TOTAL_FORMS"])
+        else:
+            total_forms = int(self.request.POST[f"{prefix}-TOTAL_FORMS"])
 
 
         # prefill form before rendering
@@ -104,6 +182,7 @@ class AddFormsetRowView(
 
 
 
+
 class FormsetOptionsListView(
     ListView
 ):
@@ -113,11 +192,25 @@ class FormsetOptionsListView(
     permission_required = None # has to be overriden
     add_formset_row_view = None
 
+    @cached_property
+    def get_formset_type(self):
+        return self.kwargs.get('formset_type') 
+
+    @cached_property
+    def get_config(self):
+        return self.config[self.get_formset_type]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        config = self.get_config 
+        q_filter = config.get('lookup_filter', None)
+        if q_filter:
+            return qs.filter(q_filter)
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset_type = self.kwargs.get('formset_type') 
-        config = self.config[formset_type] 
+        config = self.get_config 
         prefix = config["prefix"]
         context['prefix'] = prefix
         context['pk_field'] = config["pk_field"]

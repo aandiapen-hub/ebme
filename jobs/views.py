@@ -103,6 +103,7 @@ FORMSET_CONFIG = {
         "model": Tblpartslist,
         "pk_field": "partid",
         "lookup_field": 'partid',
+        "lookup_filter": Q(inactive=False)|Q(inactive__isnull=True),
         'lookup_view': "jobs:parts_list",
         'lookup_query_params': {
                     'modelid': lambda view: view.object.assetid.modelid.pk,
@@ -121,6 +122,7 @@ FORMSET_CONFIG = {
         "model": Tblassets,
         "pk_field": "assetid",
         "lookup_field": 'test_eq',
+        "lookup_filter": Q(is_test_eq=True)|Q(asset_status_id=1),
         'lookup_view': 'jobs:test_eq_list',
         'title':'Test Equipment',
         "initial": lambda obj: {
@@ -134,6 +136,7 @@ FORMSET_CONFIG = {
         "model": Tblcheckslists,
         "pk_field": "testid",
         "lookup_field": 'checkid',
+        "lookup_filter": Q(inactive=False)|Q(inactive__isnull=True),
         'lookup_view':"jobs:check_list",
         'lookup_query_params': {
                     'modelid': lambda view: view.object.assetid.modelid.pk,
@@ -256,10 +259,6 @@ class TestEqListView(
     config = FORMSET_CONFIG
     add_formset_row_view = 'jobs:add_formset_row' 
 
-    def get_queryset(self):
-       return super().get_queryset().filter(is_test_eq=True, asset_status_id=1)
-
-
 class SparePartsListView(
     LoginRequiredMixin,
     PermissionRequiredMixin,
@@ -273,7 +272,7 @@ class SparePartsListView(
     def get_queryset(self):
         qs = super().get_queryset()
 
-        qs = qs.filter(Q(inactive=False)|Q(inactive__isnull=True))
+        qs = qs.filter()
 
         modelid = self.request.GET.get('modelid')
         if modelid:
@@ -294,9 +293,6 @@ class ChecklistListView(
 
     def get_queryset(self):
         qs = super().get_queryset()
-
-        # qs = qs.filter(Q(inactive=False)|Q(inactive__isnull=True))
-
         modelid = self.request.GET.get('modelid', None)
         if modelid:
             qs = qs.filter(modelid=modelid)
@@ -304,10 +300,21 @@ class ChecklistListView(
         return qs
 
 
+SCANNER_CONFIG_MAP = {
+    'assetid': {
+        'value': lambda data: data.get('asset', {}).get('asset_id', None),
+        'formset_type': 'test_eq'
+    },
+    'partid': {
+        'value': lambda data: data.get('part', {}).get('part_id', None),
+        'formset_type': 'parts_used'
+    }
+}
 
 class JobAddFormsetRowView(AddFormsetRowView):
     permission_required = "assets.change_tbljob"
     formset_config = FORMSET_CONFIG
+    scanner_config_map = SCANNER_CONFIG_MAP
 
 
 class JobDeleteView(

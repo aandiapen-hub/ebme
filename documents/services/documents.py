@@ -66,7 +66,6 @@ def create_document_from_file(
 
     # if content is a temp file
     if temp_file:
-        print('temp file ', temp_file, mime_type)
         if "image/" in mime_type:
             content = Image.open(temp_file.file.path).convert("RGB")
         else:
@@ -79,7 +78,6 @@ def create_document_from_file(
 
     # resize if content is an image 
     if "image/" in mime_type:
-        print('image being processed before saving')
         img = resizeimg(content)
         
         img = ImageOps.exif_transpose(img)
@@ -92,7 +90,6 @@ def create_document_from_file(
     # --------------------------------------
     # check if document already exists in DB
     # --------------------------------------
-    print('hash*****', file_hash)
     duplicate_exists = False
     if file_hash:
         duplicates = TblDocuments.objects.filter(document_hash=file_hash)
@@ -110,12 +107,10 @@ def create_document_from_file(
         # Updating an existing document
         # ------------------------------------------------
         if document: 
-            print('updating existing document')
             if content:
                 if duplicate_exists:
                     raise ValidationError(f'Document already exists in database, duplicate:{duplicates.first()}') 
                 else:
-                    print('document for update with new content')
                     document.document_name = document_name
                     document.mime_type = mime_type
                     document.description = document_description
@@ -125,23 +120,19 @@ def create_document_from_file(
 
             else:
                 # update without new content
-                print('document for update with no content')
                 document.document_name = document_name
                 document.document_type_id = document_type_id
                 document.description = document_description
 
         else:
-            print('creating new document')
             # ------------------------------------------------
             # creating new document
             # ------------------------------------------------
 
             # content already exists in dababase
             if duplicate_exists:
-                print('content for new document matches existing document')
                 document = duplicates.first()
             else:
-                print('content for new document not in database')
                 document = TblDocuments(
                     document_name=document_name,
                     mime_type=mime_type,
@@ -193,12 +184,9 @@ def save_temp_files(group, content_object, file_name=None):
     """
     Save all files permanently and link them to the row/table.
     """
-    print('temp_group_id', group)
     temp_group = TempUploadGroup.objects.filter(pk=group).first()
-    print('temp_group', temp_group)
     temp_files = temp_group.temp_uploads.all()
 
-    print('temp_files', temp_files)
     image_files = [file for file in temp_files if "image/" in file.mime_type]
 
     non_image_files = [

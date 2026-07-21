@@ -1,5 +1,7 @@
 from django.urls import reverse
 from urllib.parse import urlencode
+
+from parts.models import Tblpartslist
 from .context import BaseDocumentContextBuilder
 from .context_action import(
     Action,
@@ -68,6 +70,29 @@ def get_model(data, temp_group_id=None):
             title=f"{model}",
             description='',
             obj=model,
+            actions=actions
+        )
+        return [item] 
+    return []
+
+def get_part(data, temp_group_id=None):
+    part_id = data.get("part", {}).get("part_id")
+    if part_id:
+        part = Tblpartslist.objects.get(pk=part_id)
+        actions = []
+        actions.append(
+            Action(
+                label='Open',
+                enabled=True,
+                url=reverse('parts:part_detail', kwargs={'pk': part.pk}),
+                color='primary'
+            )
+        )
+        item = MatchedItem(
+            item_type='part',
+            title=f"{part}",
+            description='',
+            obj=part,
             actions=actions
         )
         return [item] 
@@ -270,6 +295,9 @@ class AssetDataContext(
             self.resolved_data,  self.get_temp_group_id()
         )
         exact_match_group.items += get_model(
+            self.resolved_data,  self.get_temp_group_id()
+        )
+        exact_match_group.items += get_part(
             self.resolved_data,  self.get_temp_group_id()
         )
 

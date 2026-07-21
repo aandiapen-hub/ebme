@@ -86,6 +86,7 @@ def extract_information_from_temp_group(group_id):
 
 
 def quick_group_processor(temporary_upload):
+    print('solving group data quickin group processor')
     group = temporary_upload.group
 
     barcode_data = temporary_upload.barcode_data
