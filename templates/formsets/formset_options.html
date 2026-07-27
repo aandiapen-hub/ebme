@@ -1,27 +1,121 @@
-<ul class="list-group"
+{% load django_bootstrap5 %}
 
-    _='on load or click
-      wait 400ms
-      set ids to value of <input[name$={{lookup_field}}]/> in #{{ prefix }}-container 
-      set buttons to <button/> in me
-      for button in buttons
-      if @data-value of button is in ids
-      add .active to button
-      '
->
-  {% for obj in object_list  %}
-    <button type="button"
-      id='add_{{prefix}}_button'
-      class='list-group-item list-group-item-action '
-      data-value='{{obj.pk}}'
-      hx-get="{{add_url}}?lookup_id={{obj.pk}}"
-      hx-include="#{{prefix}}-management input, #{{ prefix }}-container input"
-      hx-swap="afterbegin"
-      hx-target="#{{ prefix }}-container"
+{% if filter_form %}
+  <form method="get"
+  hx-get='{{ request.get_full_path }}'
+  hx-trigger='submit'
+  hx-target='#option_list'
+  hx-select='#option_list'
   >
-    {% block option_view %}
-    {{ obj }}
-    {% endblock %}
-    </button>
-  {% endfor %}
-</ul>
+
+      <input 
+          type="search"
+          name="q"
+          class="form-control"
+          placeholder="Search..."
+      >
+      <button type="submit" class="btn btn-primary">
+          Search
+      </button>
+  </form>
+{% endif %}
+<div id='option_list'>
+  <ul class="list-group"
+
+      _='on load or click
+        wait 400ms
+        set ids to value of <input[name$={{lookup_field}}]/> in #{{ prefix }}-container 
+        set buttons to <button/> in me
+        for button in buttons
+        if @data-value of button is in ids
+        add .active to button
+        '
+  >
+    {% for obj in object_list  %}
+      <button type="button"
+        id='add_{{prefix}}_button'
+        class='list-group-item list-group-item-action '
+        data-value='{{obj.pk}}'
+        hx-get="{{add_url}}?lookup_id={{obj.pk}}"
+        hx-include="#{{prefix}}-management input, #{{ prefix }}-container input"
+        hx-swap="afterbegin"
+        hx-target="#{{ prefix }}-container"
+    >
+      {% block option_view %}
+      {{ obj }}
+      {% endblock %}
+      </button>
+    {% endfor %}
+  </ul>
+
+  {% if page_obj.has_other_pages %}
+  <nav aria-label="Page navigation">
+
+      <ul class="pagination">
+
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+              <a class="page-link"
+                href="#"
+                hx-get="{{ request.path }}{% querystring page=page_obj.previous_page_number %}"
+                hx-target='#option_list'
+                hx-select='#option_list'
+                hx-swap="innerHTML">
+                  Previous
+              </a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+              <span class="page-link">
+                  Previous
+              </span>
+          </li>
+          {% endif %}
+
+
+          {% for num in page_obj.paginator.page_range %}
+          <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+
+              {% if page_obj.number == num %}
+                  <span class="page-link">
+                      {{ num }}
+                  </span>
+              {% else %}
+                  <a class="page-link"
+                    href="#"
+                    hx-get='{{ request.path }}{% querystring page=num %}'
+                    hx-target='#option_list'
+                    hx-select='#option_list'
+                    hx-swap="innerHTML">
+                      {{ num }}
+                  </a>
+              {% endif %}
+
+          </li>
+          {% endfor %}
+
+
+          {% if page_obj.has_next %}
+          <li class="page-item">
+              <a class="page-link"
+                href="#"
+                hx-get="{{ request.path }}{% querystring page=page_obj.next_page_number %}"
+                hx-target='#option_list'
+                hx-select='#option_list'
+                hx-swap="innerHTML">
+                  Next
+              </a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+              <span class="page-link">
+                  Next
+              </span>
+          </li>
+          {% endif %}
+
+      </ul>
+
+  </nav>
+  {% endif %}
+</div>

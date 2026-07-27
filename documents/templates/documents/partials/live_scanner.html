@@ -1,0 +1,200 @@
+<!-- Button trigger modal -->
+{% if not quick_scanner %}
+
+
+<div id='live_scanner' hidden>
+
+  <button type="button" class="btn btn-outline-secondary btn-sm"
+    _='on click trigger stop on #scanner then add @hidden to #live_scanner then show #start_live_scanner_button'
+    >Close Live Scan </button>
+
+  <p>{{group_id}}</p>
+<div id="scanner"
+     _="
+
+        on start
+            set my.running to true
+            call startScanner()
+
+            repeat while my.running
+                call scanFrame(me)
+                wait 50ms
+            end
+        end
+
+        on stop
+            set my.running to false
+            call stopScanner()
+        end
+
+        on barcode_found
+            log #scanner_input{{group_id}}
+            put event.detail.code into #scanner_input{{group_id}}.value
+            call showDetection(event.detail.result)
+            call showIndicator('✓ Scanned')
+            set form to #add_image{{ group_id }}
+            call form.requestSubmit() 
+            then wait 100ms then form.reset()
+        end
+">
+
+    <div style="position:relative;display:inline-block;">
+        <video id="video" autoplay playsinline muted></video>
+
+        <canvas id="overlay"
+                style="position:absolute;inset:0;pointer-events:none;">
+        </canvas>
+    </div>
+
+    <p id="status">Starting...</p>
+
+    <div id="scan-indicator" class="scan-indicator">
+        ✓ Scanned
+    </div>
+
+</div>
+
+<script type="module">
+import {
+    prepareZXingModule,
+    readBarcodes
+} from "https://cdn.jsdelivr.net/npm/zxing-wasm@2.2.4/+esm";
+
+await prepareZXingModule();
+
+const video = document.querySelector("#video");
+const overlay = document.querySelector("#overlay");
+const overlayCtx = overlay.getContext("2d");
+
+const frame = document.createElement("canvas");
+const frameCtx = frame.getContext("2d");
+const status = document.querySelector('#status')
+
+const scanned = new Set();
+
+let stream;
+
+async function startScanner() {
+
+    status.textContent = "Opening camera...";
+
+    stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+            facingMode: "environment"
+        }
+    });
+
+    video.srcObject = stream;
+
+    await new Promise(r => video.onloadedmetadata = r);
+
+    await video.play();
+
+    frame.width = video.videoWidth;
+    frame.height = video.videoHeight;
+
+    status.textContent =
+        `Camera ${video.videoWidth} × ${video.videoHeight}`;
+}
+
+function stopScanner() {
+
+    stream?.getTracks().forEach(t => t.stop());
+    stream = null;
+    video.srcObject = null;
+}
+
+async function scanFrame(el) {
+
+    if (!video.videoWidth) return;
+
+    frameCtx.drawImage(video,0,0,frame.width,frame.height);
+
+    const image = frameCtx.getImageData(
+        0,
+        0,
+        frame.width,
+        frame.height
+    );
+
+    try {
+
+        const results = await readBarcodes(image,{
+            formats:["DataMatrix","Code128"]
+        });
+
+        for (const result of results) {
+
+            if (scanned.has(result.text)) continue;
+
+            scanned.add(result.text);
+
+            el.dispatchEvent(
+                new CustomEvent("barcode_found",{
+                    detail:{
+                        code:result.text,
+                        result
+                    }
+                })
+            );
+
+            break;
+        }
+
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function showDetection(result){
+
+    overlay.width = video.videoWidth;
+    overlay.height = video.videoHeight;
+
+    overlayCtx.clearRect(0,0,overlay.width,overlay.height);
+
+    const p = result.position;
+
+    overlayCtx.beginPath();
+    overlayCtx.moveTo(p.topLeft.x,p.topLeft.y);
+    overlayCtx.lineTo(p.topRight.x,p.topRight.y);
+    overlayCtx.lineTo(p.bottomRight.x,p.bottomRight.y);
+    overlayCtx.lineTo(p.bottomLeft.x,p.bottomLeft.y);
+    overlayCtx.closePath();
+
+    overlayCtx.lineWidth = 4;
+    overlayCtx.strokeStyle = "#00ff00";
+    overlayCtx.fillStyle = "rgba(0,255,0,.2)";
+
+    overlayCtx.fill();
+    overlayCtx.stroke();
+
+    setTimeout(() =>
+        overlayCtx.clearRect(0,0,overlay.width,overlay.height),
+        400
+    );
+}
+
+function showIndicator(text){
+
+    const el = document.querySelector("#scan-indicator");
+
+    el.textContent = text;
+    el.classList.add("show");
+
+    clearTimeout(el.timer);
+
+    el.timer = setTimeout(
+        ()=>el.classList.remove("show"),
+        1000
+    );
+}
+
+window.startScanner = startScanner;
+window.stopScanner = stopScanner;
+window.scanFrame = scanFrame;
+window.showDetection = showDetection;
+window.showIndicator = showIndicator;
+</script>
+</div>
+{% endif %}

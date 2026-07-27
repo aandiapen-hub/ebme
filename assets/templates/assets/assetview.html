@@ -40,11 +40,19 @@
           <p><small class="text-muted">Schedule: </small>{{asset.ppmscheduleid}}</p>
           <p><small class="text-muted">Last PPM Date: </small>{{asset.lastppmdate}}</p>
           <p><small class="text-muted">Last Repair Date: </small>{{asset.lastrepairdate}}</p>
-          <p><small class="text-muted">Required Config: </small>{{asset.assetid.required_config}}</p>
+          <p><small class="text-muted">Required Config: </small>
+              {% if asset.assetid.required_config %}
+                {{asset.assetid.required_config}}
+              {% else %}
+                None
+              {% endif %}
+          </p>
           <p>
             <small class="text-muted">Current Config: </small>{{asset.assetid.current_config}}
             {% if asset.assetid.current_config %}
             <a class='btn btn-sm btn-outline-secondary' href='{% url "assets:remove_equipment_configuration" pk=asset.assetid.current_config.pk %}'>Remove</a>
+            {% else %}
+            None
             {% endif %}
           </p>
         </div>
@@ -109,31 +117,9 @@
 
     <!--List Jobs -->
     <div id='asset-jobs' class='row g-3 mt-3'>
-      <div id='job-buttons' class='col-12'>
-        {% if perms.assets.add_tbljob %}
-
-          <!-- Split dropup button -->
-          <div class="btn-group dropdown">
-            <a type="button" class="btn btn-outline-secondary"
-              href="{% url 'jobs:job_create' %}?assetid={{ asset.assetid }}" >Create Job
-            </a>
-            <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-              <span class="visually-hidden">Toggle Dropdown</span>
-            </button>
-            <ul class="dropdown-menu">
-              <li>
-              <a href="{% url 'jobs:job_create' %}?assetid={{ asset.assetid }}&quickjob='successful_ppm'"
-              class='btn text-secondary'>
-              Quick PPM Job</a>
-              </li>
-            </ul>
-          </div>
-
-
-        {% endif %}
-      </div>    
 
       {% include 'assets/partials/job_summary.html' %}
+    </div>
 
 </div>
 

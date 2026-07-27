@@ -258,6 +258,10 @@ class TestEqListView(
     template_name = 'jobs/partials/available_test_eq.html'
     config = FORMSET_CONFIG
     add_formset_row_view = 'jobs:add_formset_row' 
+    search_fields = [
+        'serialnumber',
+        'modelid__modelname',
+    ]
 
 class SparePartsListView(
     LoginRequiredMixin,

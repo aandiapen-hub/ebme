@@ -42,7 +42,7 @@
             <p>{{ job.jobtypeid}}</p>
             
             <small class="text-muted text-muted ">Job Status:</small>
-            <p class='{% if job.jobstatusid.jobstatusid != 1 %} bg-warning {% else %} text-muted {% endif %}'>{{ job.jobstatusid}}</p>
+            <p class='bg-{{job.jobstatusid.color}}'>{{ job.jobstatusid}}</p>
 
             <small class="text-muted">Technician:</small>
             <p>{{ job.technicianid}}</p>

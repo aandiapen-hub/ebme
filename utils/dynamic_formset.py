@@ -16,6 +16,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from documents.forms import TempFileUploadForm
 from documents.services.documents import save_temp_document
 from functools import cached_property
+from django.db.models import Q
 '''
 
 config_example ={"test_eq":
@@ -87,13 +88,13 @@ class AddFormsetRowView(
         }
         item_exists = str(self.new_item_id) in existing_ids 
         # check if item is available
-        item_available = config[
+        item = config[
                 'model'
-            ].objects.filter(
-                config['lookup_filter']
-            ).filter(pk=self.new_item_id).exists()
-        
-        return not item_exists and item_available
+            ].objects.filter(pk=self.new_item_id)
+        if config.get('lookup_filter', None):
+            item = item.filter(config.get('lookup_filter'))
+
+        return not item_exists and item.exists()
 
     def get(self, request, *args, **kwargs):
         if not self.new_item_valid():
@@ -186,9 +187,38 @@ class AddFormsetRowView(
         return context
 
 
+class SearchableListMixin:
+    search_fields = []
 
+    search_parameter = "q"
+
+    @cached_property
+    def get_search_query(self):
+        return self.request.GET.get(self.search_parameter, "").strip()
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        query = self.get_search_query
+
+        if query and self.search_fields:
+            search_filter = Q()
+
+            for field in self.search_fields:
+                search_filter |= Q(**{f"{field}__icontains": query})
+
+            queryset = queryset.filter(search_filter)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.search_fields:
+            context['filter_form'] = True
+        return context
 
 class FormsetOptionsListView(
+    SearchableListMixin,
     ListView
 ):
     model = None # has to be overriden in child 
@@ -196,6 +226,7 @@ class FormsetOptionsListView(
     template_name = 'formsets/formset_options.html' # can be overriden
     permission_required = None # has to be overriden
     add_formset_row_view = None
+    paginate_by = 5
 
     @cached_property
     def get_formset_type(self):
@@ -209,7 +240,6 @@ class FormsetOptionsListView(
         qs = super().get_queryset()
         config = self.get_config 
         q_filter = config.get('lookup_filter', None)
-        print('q filter', q_filter)
         if q_filter:
             return qs.filter(q_filter)
         return qs

@@ -1,13 +1,14 @@
 {% load static %}
 <div id="file_div_{{file.pk}}"  class="d-inline-block m-2" >
     <div class="position-relative" style="width: 100px" >
+  
+        {% if file.file %}
           <!-- Spinner -->
           <div
               id="spinner-{{ file.pk }}"
               class="position-absolute top-50 start-50 translate-middle" >
               <div class="spinner-border spinner-border-sm" role="status"></div>
           </div>
-
         <img src='{% url "documents:load_image" pk=file.pk %}' 
             class="img-fluid"
             _="on click
@@ -66,7 +67,8 @@
             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
             hx-swap="outerHTML"
             ></i>
-        </small>
+      {% endif %}
+
     </div>
 </div>
 

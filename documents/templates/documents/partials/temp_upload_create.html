@@ -39,16 +39,24 @@
             set my @data-focused to 'false'
             end">
 
+        {% if not quick_scanner %}
+
+          <button id='start_live_scanner_button' type="button" class="btn btn-outline-secondary btn-sm" 
+            _='on click trigger start on #scanner then hide me then remove @hidden from #live_scanner'>
+            Start Live Scan
+          </button>
+       {% endif %}
+
 
         <button
         type='button'
           id='scanner_input_button_{{group_id}}'
-        class='btn btn-outline-primary btn-sm'
+        class='btn btn-outline-secondary btn-sm'
           _='on click 
                 if #scanner_input{{group_id}}@data-focused is not "true"
                 then set value of #scanner_input{{group_id}} to "" 
                       then set my innerHTML to "Scanning..."
-                      then remove .btn-outline-primary from me
+                      then remove .btn-outline-secondary from me
                       then add .btn-warning to me
                       then call #scanner_input{{group_id}}.focus()
                 end
@@ -59,7 +67,7 @@
                   log "removing focus from text input"
                   set button to `<i class="bi bi-upc-scan"></i>`
                   set my innerHTML to button
-                        then add .btn-outline-primary to me
+                        then add .btn-outline-secondary to me
                         then remove .btn-warning from me
                   end
                 end '>
@@ -88,10 +96,11 @@
             ">
           
         <button
-          class='btn btn-outline-primary btn-sm'
+          class='btn btn-outline-secondary btn-sm'
           id='file_input_button{{group_id}}'
           _='on click call #files{{group_id}}.click()'
           type='button'><i class="bi bi-camera"></i></button>
 
     </div>
+
   </form>

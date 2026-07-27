@@ -472,6 +472,7 @@ class Tblcustomer(models.Model):
         return self.customer_name
 
 
+
 class Tbljob(models.Model):
     jobid = models.BigAutoField(
         db_column="JobID", primary_key=True, verbose_name="Job ID"
@@ -534,6 +535,15 @@ class Tbljobstatus(models.Model):
     )
     jobstatusid = models.BigIntegerField(
         db_column="JobStatusID", primary_key=True
+    )
+    color = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="color",
+    )
+    is_closed = models.BooleanField(
+        blank=True, null=True, default=False,
     )
 
     class Meta:
@@ -722,6 +732,12 @@ class Tbltestscarriedout(models.Model):
 class TblAssetStatus(models.Model):
     asset_status_id = models.BigAutoField(primary_key=True, verbose_name="ID")
     status_name = models.CharField(verbose_name="Asset Status")
+    color = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="color",
+    )
 
     class Meta:
         managed = False
