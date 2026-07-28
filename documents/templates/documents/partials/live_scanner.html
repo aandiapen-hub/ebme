@@ -28,7 +28,6 @@
         end
 
         on barcode_found
-            log #scanner_input{{group_id}}
             put event.detail.code into #scanner_input{{group_id}}.value
             call showDetection(event.detail.result)
             call showIndicator('✓ Scanned')
@@ -123,6 +122,7 @@ async function scanFrame(el) {
             formats:["DataMatrix","Code128"]
         });
 
+        console.log(results.length)
         for (const result of results) {
 
             if (scanned.has(result.text)) continue;

@@ -4,7 +4,7 @@
     action="{{scan_url}}?group={{ group_id }}"
     {% if not quick_scanner %}
     hx-post="{{scan_url}}?group={{ group_id }}"
-    hx-swap="beforeend"
+    hx-swap="afterbegin"
     hx-trigger='submit'
     hx-disabled-elt='#inputs_{{group_id}} input, #inputs_{{group_id}} button'
     hx-indicator='#spinner'
@@ -64,7 +64,6 @@
                 if event.target is not me 
                 wait 100ms
                   if #scanner_input{{group_id}}@data-focused is "false"
-                  log "removing focus from text input"
                   set button to `<i class="bi bi-upc-scan"></i>`
                   set my innerHTML to button
                         then add .btn-outline-secondary to me

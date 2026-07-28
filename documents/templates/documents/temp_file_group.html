@@ -133,53 +133,41 @@
 
           </div>
           <div class='d-flex flex-row'>
-                      <div id='images_row_{{group.pk}}' class='col d-inline-flex'>
+                      <div class='col d-inline-flex'>
                         <small>Barcodes:</small>
-                          <ul>
-                        {% for file in group.temp_uploads.all %}
-                          {% if not file.file %}
-                            {% for code in  file.barcode_data %}
-                              <li id='file_div_{{file.pk}}'>
-                                {{code.text}}
-                                <i class="bi bi-trash btn btn-sm btn-warning"
-                                  hx-post="{% url "documents:delete_temp_file" pk=file.pk %}?redirect_after_delete={{redirect_after_delete}}"
-                                hx-target="#file_div_{{file.pk}}"
-                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                hx-swap="outerHTML"
-                                ></i>
-
-                              </li>
+                          <ul id='barcodes_row_{{group.pk}}' class="list-group">
+                            {% for file in group.temp_uploads.all %}
+                              {% include "documents/partials/temp_file_barcode_only.html" %}
                             {% endfor %}
-                          {% endif %}
-                        {% endfor %}
                           </ul>
                       </div>
           </div>
-            <div class='d-flex flex-row'>
 
-              <div id="openseadragon_{{group.pk}}" style="width: 500px; height: 300px;display:none;">
-                  <button class='btn btn-secondary'
-                _='on click hide #openseadragon_{{group.pk}}'>
-                  Close viewer 
-                  </button>
-              </div>
-              <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/openseadragon.min.js"
-                      integrity="sha512-gPZzE+sKmE0kvcjMxW431ef5b5T5QOADV9Gij0isPw2oLATd1IZW7dmDmKh7F2e5BfwjQyAfFp3/OF0fVMOF7Q=="
-                      crossorigin="anonymous"
-                      referrerpolicy="no-referrer">
-              </script>
-              <script>
-                  var viewer = OpenSeadragon({
-                    id: "openseadragon_{{group.pk}}",
-                    prefixUrl:
-                      "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
-                    showRotationControl: true,
-                    gestureSettingsTouch: {
-                      pinchRotate: true
-                    }
-                  });
-              </script>
+          <div class='d-flex flex-row'>
+
+            <div id="openseadragon_{{group.pk}}" style="width: 500px; height: 300px;display:none;">
+                <button class='btn btn-secondary'
+              _='on click hide #openseadragon_{{group.pk}}'>
+                Close viewer 
+                </button>
             </div>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/openseadragon.min.js"
+                    integrity="sha512-gPZzE+sKmE0kvcjMxW431ef5b5T5QOADV9Gij0isPw2oLATd1IZW7dmDmKh7F2e5BfwjQyAfFp3/OF0fVMOF7Q=="
+                    crossorigin="anonymous"
+                    referrerpolicy="no-referrer">
+            </script>
+            <script>
+                var viewer = OpenSeadragon({
+                  id: "openseadragon_{{group.pk}}",
+                  prefixUrl:
+                    "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
+                  showRotationControl: true,
+                  gestureSettingsTouch: {
+                    pinchRotate: true
+                  }
+                });
+            </script>
+          </div>
   </div>
 
 {% endpartialdef temp_group%}

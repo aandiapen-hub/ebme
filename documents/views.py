@@ -381,6 +381,7 @@ class TempFilesDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteVie
         self.object = self.get_object()
         if request.user == self.object.group.user:
             self.object.delete()
+            print('object deleted')
 
         # HTMX request → empty response
         if request.htmx:
@@ -497,10 +498,18 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
                 return response
             else:
                 context = {"file": self.object, "group": self.object.group }
+                
+                if self.object.file:
+                    template = "documents/partials/temp_file.html"
+                    target = f"#images_row_{self.object.group.pk}"
+                else:
+                    template = "documents/partials/temp_file_barcode_only.html"
+                    target = f"#barcodes_row_{self.object.group.pk}"
+
                 response = render(
-                    self.request, "documents/partials/temp_file.html", context
+                    self.request, template , context
                 )
-                response['HX-Retarget'] = f"#images_row_{self.object.group.pk}"
+                response['HX-Retarget'] = target
                 return response
         else:
             return super().form_valid(form)

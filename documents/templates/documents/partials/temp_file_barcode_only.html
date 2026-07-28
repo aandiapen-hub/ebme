@@ -1,0 +1,15 @@
+
+{% if not file.file %}
+  {% for code in file.barcode_data %}
+    <li class="list-group-item">
+      {{code.text}}
+      <i class="bi bi-trash btn btn-sm btn-warning"
+      hx-post="{% url "documents:delete_temp_file" pk=file.pk %}?redirect_after_delete={{redirect_after_delete}}"
+      hx-target="closest li"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+      hx-swap="outerHTML"
+      ></i>
+
+    </li>
+  {% endfor %}
+{% endif %}

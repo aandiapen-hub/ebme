@@ -226,7 +226,7 @@ class FormsetOptionsListView(
     template_name = 'formsets/formset_options.html' # can be overriden
     permission_required = None # has to be overriden
     add_formset_row_view = None
-    paginate_by = 5
+    paginate_by = 10
 
     @cached_property
     def get_formset_type(self):
