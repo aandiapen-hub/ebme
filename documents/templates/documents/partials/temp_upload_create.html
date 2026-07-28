@@ -24,9 +24,16 @@
           {% csrf_token %}
         <div class='d-flex gap-3' id='inputs_{{group_id}}'>
 
-        <input type='text' id='scanner_input{{group_id}}'
-          name='scanned_code' class='form-control {{scanner_input_class}}'
-          placeholder='Quick Search'
+        <input
+            type='text'
+            id='scanner_input{{group_id}}'
+            name='scanned_code'
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            inputmode='none'
+            class='form-control {{scanner_input_class}}'
+            placeholder='Quick Search'
           _="on change debounced at 500ms
 
               set form to #add_image{{ group_id }}

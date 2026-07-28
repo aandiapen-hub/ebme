@@ -471,6 +471,7 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
         scanned_code = self.request.POST.get("scanned_code", None)
         raw_group_id = self.request.GET.get("group", None)
         group_id = raw_group_id if self.is_uuid(raw_group_id) else None
+        print('scanned input', scanned_code)
     
         try:
             self.object = save_temp_document(
