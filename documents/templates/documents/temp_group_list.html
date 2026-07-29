@@ -11,6 +11,7 @@
           {% url 'documents:create_temp_file' as scan_url %}
           {% with scanner_input_class='visually-hidden' group_id='new' %}
             {% include 'documents/partials/temp_upload_create.html' %}
+            {% include 'documents/partials/live_scanner.html' %}
           {% endwith %}
       </div>
   </div>
@@ -36,7 +37,13 @@
   <div id="images_div" class='container'>
         {% for group in temp_groups %}
             <div class='row'>
-          {% include "documents/temp_file_group.html#temp_group" %}
+              <div
+              hx-trigger='load'
+              hx-target='this'
+              hx-swap='outerHTML'
+              hx-get='{% url "documents:temp_group" pk=group.pk %}?mini=true'
+              >
+            </div>
         </div>
         {% endfor %}
   </div>

@@ -2,6 +2,298 @@
 {% load static %}
 {% load django_bootstrap5 %}
 
+{% partialdef mini_temp_group %}
+<div class="card mb-2 shadow-sm">
+
+  <div class="card-body p-2">
+
+    <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 gap-md-3">
+
+
+      <!-- Thumbnails -->
+      <div class="d-flex gap-1 flex-shrink-0">
+
+        {% for file in group.temp_uploads.all|slice:":3" %}
+          {% include "documents/partials/temp_file.html" %}
+        {% empty %}
+          <span class="text-muted small">No images</span>
+        {% endfor %}
+
+        {% if group.temp_uploads.count > 3 %}
+          <div class="rounded border d-flex align-items-center justify-content-center bg-light"
+               style="width:45px;height:55px;">
+             +{{ group.temp_uploads.count|add:"-3" }}
+          </div>
+        {% endif %}
+
+      </div>
+
+
+      <!-- Barcode / OCR info -->
+      <div class="flex-grow-1 overflow-hidden">
+
+        <div class="small text-muted mb-1">
+          Barcodes
+        </div>
+
+        <div class="d-flex gap-1 flex-wrap">
+          {% for barcode in group.extracted_json.barcode %}
+            {% if barcode %}
+              <span class="badge text-bg-light border text-truncate"
+                    style="max-width:180px;">
+                {{ barcode.text }}
+              </span>
+            {% endif %}
+          {% empty %}
+            <span class="text-muted small">None</span>
+          {% endfor %}
+        </div>
+
+        <div class="small mt-1 text-truncate">
+          {{ group.get_document_type_id_display|default:"Unknown type" }}
+        </div>
+
+      </div>
+
+      <!-- context-->
+      <div class="flex-grow-1 overflow-hidden">
+
+        <div class="small text-muted mb-1">
+          Results
+        </div>
+        <div class="d-flex gap-1 flex-wrap">
+        {% for group in groups %}
+          {% if 'Exact Matches' in group.title %} 
+            {% for item in group.items %}
+            <span class="badge rounded-pill bg-{{group.color}} px-3 py-2">
+              {{item.item_type}} 
+            </span>
+            {% endfor %}
+          {% endif %}
+
+        {% endfor %}
+        </div>
+
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex gap-1 flex-shrink-0">
+
+        <a class="btn btn-sm btn-outline-secondary flex-fill flex-md-grow-0"
+           href="{% url 'documents:temp_group' pk=group.pk %}">
+          Open
+        </a>
+
+        <a class="btn btn-outline-secondary btn-sm"
+        href="{% url 'documents:temp_group_delete' pk=group.pk %}?redirect_after_delete='true'">
+          Delete
+        </a>
+
+      </div>
+
+
+    </div>
+
+  </div>
+
+</div>
+{% endpartialdef %}
+
+{% partialdef temp_group %}
+  <div class="container-fluid p-2">
+
+      <div class="card shadow-sm">
+
+          <!-- Header -->
+          <div class="card-header d-flex justify-content-between align-items-center">
+
+              <div>
+                        {% url 'documents:create_temp_file' as scan_url %}
+                        {% with scanner_input_class='visually-hidden' group_id=group.pk %}
+                          {% include 'documents/partials/temp_upload_create.html' %}
+                        {% endwith %}
+              </div>
+
+              <img  id="spinner" class="htmx-indicator" src={% static 'spinners/3-dots-fade.svg' %} alt="Loading..."/>
+              {% if request.resolver_match.url_name == 'user_temp_files' or  request.resolver_match.url_name == 'create_temp_file' %}
+                <a href='{% url "documents:temp_group" pk=group.pk %}'
+                  class='text-decoration-none btn btn-sm btn-outline-secondary'>
+                  Open
+                </a>
+              {% endif %}
+          </div>
+
+          <!-- Camera -->
+          <div class="card-body p-0 position-relative">
+              {% with scanner_input_class='visually-hidden' group_id=group.pk %}
+                {% include 'documents/partials/live_scanner.html' %}
+              {% endwith %}
+          </div>
+
+
+          <!-- Current Scan -->
+          <div class="card-body border-top">
+
+                <small>Document Type:</small>
+                <a href='{% url "documents:temp_group_update" pk=group.pk %}'
+                  class='btn btn-sm btn-outline-secondary text-decoration-none'>
+                  {{ group.get_document_type_id_display }}
+                </a>
+
+          </div>
+
+          <!-- Images -->
+          <div class="card-body border-top">
+
+              <div class="d-flex justify-content-between align-items-center">
+
+                  <strong>Images</strong>
+
+                  <span class="badge text-bg-secondary">
+                      0
+                  </span>
+
+              </div>
+
+              <!-- Thumbnails -->
+              <div id='images_row_{{group.pk}}' >
+                {% for file in group.temp_uploads.all %}
+                  {% include "documents/partials/temp_file.html" %}
+                {% endfor %}
+              </div>
+          </div>
+
+          <!-- Barcodes -->
+          <div class="card-body border-top">
+
+              <div class="d-flex justify-content-between align-items-center">
+
+                  <strong>Barcodes</strong>
+
+                  <span class="badge text-bg-secondary">
+                      0
+                  </span>
+
+              </div>
+
+            <div class='col'>
+                <ul id='barcodes_row_{{group.pk}}' class="list-group list-group-flush">
+                  {% for file in group.temp_uploads.all %}
+                    {% include "documents/partials/temp_file_barcode_only.html" %}
+                  {% endfor %}
+                </ul>
+            </div>
+
+          </div>
+
+          <!-- Footer -->
+          <div class="card-footer">
+
+
+              <div class="d-flex gap-2 mb-2">
+                {% if not group.processable %}
+                <a href='{% url "documents:temp_group_update" pk=group.pk %}'
+                  class='btn btn-sm btn-outline-primary text-decoration-none'>
+                  Set document Type
+                </a>
+                {% endif %}
+
+                <button class="btn btn-sm btn-outline-primary"
+                    {% if not group.processable %}disabled{% endif %}
+                    hx-post="{% url "documents:extract_text" pk=group.pk %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-swap="none">
+                    Process 
+                </button>
+              </div>
+
+              <div class="d-flex gap-2">
+
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_{{group.pk}}" aria-controls="offcanvas_{{group.pk}}">
+                  View Info 
+                </button>
+
+
+                <a class="btn btn-outline-secondary btn-sm"
+                href="{% url 'documents:temp_group_delete' pk=group.pk %}?redirect_after_delete='true'">
+                  Delete
+                </a>
+
+
+
+              </div>
+
+          </div>
+
+      </div>
+
+  </div>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvas_{{group.pk}}" aria-labelledby="offcanvasDataLabel_{{group.pk}}">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="offcanvasDataLabel_{{group.pk}}">Offcanvas right</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+      {% partial extracted_data %}
+  </div>
+</div>       
+
+<div class="modal fade"
+     id="imageViewerModal"
+     tabindex="-1">
+
+    <div class="modal-dialog modal-fullscreen-sm-down modal-xl">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title">
+                    Image Viewer
+                </h5>
+
+                <button class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+
+            </div>
+
+            <div class="modal-body p-0">
+
+                <div id="openseadragon_{{group.pk}}"
+                     style="width:100%;height:80vh;">
+
+                  <button class='btn btn-secondary'
+                    _='on click hide #openseadragon_{{group.pk}}'>
+                      Close viewer 
+                  </button>
+                  </div>
+                  <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/openseadragon.min.js"
+                          integrity="sha512-gPZzE+sKmE0kvcjMxW431ef5b5T5QOADV9Gij0isPw2oLATd1IZW7dmDmKh7F2e5BfwjQyAfFp3/OF0fVMOF7Q=="
+                          crossorigin="anonymous"
+                          referrerpolicy="no-referrer">
+                  </script>
+                  <script>
+                      var viewer = OpenSeadragon({
+                        id: "openseadragon_{{group.pk}}",
+                        prefixUrl:
+                          "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
+                        showRotationControl: true,
+                        gestureSettingsTouch: {
+                          pinchRotate: true
+                        }
+                      });
+                  </script>
+                </div>
+
+            </div>
+
+        </div>
+
+</div>
+
+{% endpartialdef temp_group%}
 {% partialdef extracted_data %}
           <a href='{% url "documents:update_group_data" pk=group.pk %}'
             class='btn btn-outline-secondary text-decoration-none'>
@@ -65,112 +357,9 @@
 
 {% endpartialdef %}
 
-{% partialdef temp_group %}
-  <div class='container border border-2 m-2 p-2'  id="group_{{ group.pk }}">
-          <div class='d-flex flex-row align-items-start gap-2'>
-                      <h5>
-                        <a href='{% url "documents:temp_group_update" pk=group.pk %}'
-                          class='btn btn-sm btn-outline-secondary text-decoration-none'>
-                          <small>Scan:</small> {{ group.get_document_type_id_display }}
-                        </a>
-                        <img  id="spinner" class="htmx-indicator" src={% static 'spinners/3-dots-fade.svg' %} alt="Loading..."/>
-                      </h5>
 
-                      {% url 'documents:create_temp_file' as scan_url %}
-                      {% with scanner_input_class='visually-hidden' group_id=group.pk %}
-                        {% include 'documents/partials/temp_upload_create.html' %}
-                      {% endwith %}
 
-                      {% if request.resolver_match.url_name == 'user_temp_files' or  request.resolver_match.url_name == 'create_temp_file' %}
-                        <a href='{% url "documents:temp_group" pk=group.pk %}'
-                          class='text-decoration-none btn btn-sm btn-outline-secondary'>
-                          Open
-                        </a>
-                      {% endif %}
 
-                      <button class="btn btn-sm {% if group.processable %}btn-outline-secondary{%else%}btn-outline-warning{% endif %}"
-                          {% if not group.processable %}disabled{% endif %}
-                          hx-post="{% url "documents:extract_text" pk=group.pk %}"
-                          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                          hx-swap="none">
-                          Process 
-                        </button>
-
-                        <a class="btn btn-outline-secondary btn-sm"
-                        href="{% url 'documents:temp_group_delete' pk=group.pk %}?redirect_after_delete='true'">
-                          Delete
-                        </a>
-
-                        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_{{group.pk}}" aria-controls="offcanvas_{{group.pk}}">
-                          View Info 
-                        </button>
-
-                        <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvas_{{group.pk}}" aria-labelledby="offcanvasDataLabel_{{group.pk}}">
-                          <div class="offcanvas-header">
-                            <h5 class="offcanvas-title" id="offcanvasDataLabel_{{group.pk}}">Offcanvas right</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-                          </div>
-                          <div class="offcanvas-body">
-                              {% partial extracted_data %}
-                          </div>
-                        </div>       
-
-                    </div>
-
-          <div class='d-flex flex-row align-items-start gap-2'>
-            {% with scanner_input_class='visually-hidden' group_id=group.pk %}
-              {% include 'documents/partials/live_scanner.html' %}
-            {% endwith %}
-          </div>
-
-          <div class='d-flex flex-row'>
-                      <div id='images_row_{{group.pk}}' class='col d-inline-flex'>
-                        <small>Images:</small>
-                        {% for file in group.temp_uploads.all %}
-                          {% include "documents/partials/temp_file.html" %}
-                        {% endfor %}
-                      </div>
-
-          </div>
-          <div class='d-flex flex-row'>
-                      <div class='col d-inline-flex'>
-                        <small>Barcodes:</small>
-                          <ul id='barcodes_row_{{group.pk}}' class="list-group">
-                            {% for file in group.temp_uploads.all %}
-                              {% include "documents/partials/temp_file_barcode_only.html" %}
-                            {% endfor %}
-                          </ul>
-                      </div>
-          </div>
-
-          <div class='d-flex flex-row'>
-
-            <div id="openseadragon_{{group.pk}}" style="width: 500px; height: 300px;display:none;">
-                <button class='btn btn-secondary'
-              _='on click hide #openseadragon_{{group.pk}}'>
-                Close viewer 
-                </button>
-            </div>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/openseadragon.min.js"
-                    integrity="sha512-gPZzE+sKmE0kvcjMxW431ef5b5T5QOADV9Gij0isPw2oLATd1IZW7dmDmKh7F2e5BfwjQyAfFp3/OF0fVMOF7Q=="
-                    crossorigin="anonymous"
-                    referrerpolicy="no-referrer">
-            </script>
-            <script>
-                var viewer = OpenSeadragon({
-                  id: "openseadragon_{{group.pk}}",
-                  prefixUrl:
-                    "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/images/",
-                  showRotationControl: true,
-                  gestureSettingsTouch: {
-                    pinchRotate: true
-                  }
-                });
-            </script>
-          </div>
-  </div>
-
-{% endpartialdef temp_group%}
 
 {% block content %}
 <div class='container'>

@@ -414,9 +414,8 @@ class ExtractTextFromImages(LoginRequiredMixin, PermissionRequiredMixin, FormVie
     def form_valid(self, form):
         task = extract_information_from_temp_group.enqueue(group_id=str(self.kwargs.get('pk')))
 
-        group = TempUploadGroup.objects.get(pk=self.kwargs.get('pk'))
-        group.task_result_id = str(task.id)
-        group.save()
+        self.object.task_result_id = str(task.id)
+        self.object.save()
 
         response = HttpResponse()
         response['HX-Redirect'] = self.get_success_url() 
@@ -492,7 +491,7 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
                 context = {"group": self.object.group, "temp_files": [self.object]}
                 response = render(
                     self.request,
-                    "documents/temp_file_group.html#temp_group",
+                    "documents/temp_file_group.html#mini_temp_group",
                     context=context,
                 )
                 response['HX-Retarget'] = '#images_div'
@@ -535,6 +534,8 @@ class TempUploadGroupView(LoginRequiredMixin, PermissionRequiredMixin, DetailVie
         return super().get_queryset().filter(user=self.request.user)
 
     def get_template_names(self):
+        if self.request.htmx and self.request.GET.get('mini', False):
+            return ["documents/temp_file_group.html#mini_temp_group",]
         return ["documents/temp_file_group.html"]
 
     def get_context_data(self, *args, **kwargs):

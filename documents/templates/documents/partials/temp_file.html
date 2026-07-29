@@ -11,6 +11,8 @@
           </div>
         <img src='{% url "documents:load_image" pk=file.pk %}' 
             class="img-fluid"
+            data-bs-toggle="modal"
+            data-bs-target="#imageViewerModal"
             _="on click
                 if my.src contains '/static/'  then halt
       

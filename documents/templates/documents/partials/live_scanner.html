@@ -8,7 +8,6 @@
     _='on click trigger stop on #scanner then add @hidden to #live_scanner then show #start_live_scanner_button'
     >Close Live Scan </button>
 
-  <p>{{group_id}}</p>
 <div id="scanner"
      _="
 
@@ -29,26 +28,31 @@
 
         on barcode_found
             put event.detail.code into #scanner_input{{group_id}}.value
+            set innerHTML of #latest_code to event.detail.code
+
             call showDetection(event.detail.result)
-            call showIndicator('✓ Scanned')
             set form to #add_image{{ group_id }}
             call form.requestSubmit() 
             then wait 100ms then form.reset()
         end
 ">
 
-    <div style="position:relative;display:inline-block;">
-        <video id="video" autoplay playsinline muted></video>
-
+    <div class='ratio ratio-4x3 position-relative'>
+        <video
+          id="video"
+          autoplay
+          playsinline
+          class="w-100 h-100 object-fit-cover">
+        </video>
         <canvas id="overlay"
-                style="position:absolute;inset:0;pointer-events:none;">
+        class="position-absolute top-0 start-0 w-100 h-100 pe-none">
         </canvas>
     </div>
 
-    <p id="status">Starting...</p>
 
     <div id="scan-indicator" class="scan-indicator">
         ✓ Scanned
+        <p id='latest_code'> </p>
     </div>
 
 </div>
@@ -67,7 +71,6 @@ const overlayCtx = overlay.getContext("2d");
 
 const frame = document.createElement("canvas");
 const frameCtx = frame.getContext("2d");
-const status = document.querySelector('#status')
 
 const scanned = new Set();
 
@@ -75,11 +78,12 @@ let stream;
 
 async function startScanner() {
 
-    status.textContent = "Opening camera...";
 
     stream = await navigator.mediaDevices.getUserMedia({
         video: {
-            facingMode: "environment"
+            facingMode: "environment",
+            width: {ideal:1280},
+            height: {ideal:720}
         }
     });
 
@@ -92,8 +96,6 @@ async function startScanner() {
     frame.width = video.videoWidth;
     frame.height = video.videoHeight;
 
-    status.textContent =
-        `Camera ${video.videoWidth} × ${video.videoHeight}`;
 }
 
 function stopScanner() {
@@ -175,20 +177,6 @@ function showDetection(result){
     );
 }
 
-function showIndicator(text){
-
-    const el = document.querySelector("#scan-indicator");
-
-    el.textContent = text;
-    el.classList.add("show");
-
-    clearTimeout(el.timer);
-
-    el.timer = setTimeout(
-        ()=>el.classList.remove("show"),
-        1000
-    );
-}
 
 window.startScanner = startScanner;
 window.stopScanner = stopScanner;
