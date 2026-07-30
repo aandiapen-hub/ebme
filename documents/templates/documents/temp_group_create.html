@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<h3>Create New Temporary Upload Group</h3>
+  <form
+  method='post'
+  action=''
+  >
+    {% csrf_token %}
+    {{ form.media }}
+    {% bootstrap_form form %}
+    {% bootstrap_button button_type='submit' content='Update' %}
+  </form>
+
+{% endblock content %}

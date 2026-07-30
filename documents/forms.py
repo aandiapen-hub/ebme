@@ -234,3 +234,5 @@ def get_temp_group_data_update_formclass(group_type):
     }
     return GROUP_TYPE_FORM_MAP.get(group_type, AssetDataUpdate)
 
+class TempUploadGroupCreateForm(forms.Form):
+    pass

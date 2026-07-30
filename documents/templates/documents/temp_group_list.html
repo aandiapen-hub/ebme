@@ -5,14 +5,24 @@
 
 <div class="container">
 
-  <div class="row m-3 p-3 border border-2 border-secondary">
-      <div class="col d-inline-flex gap-3">
-          <h3>New Scan:</h3>
+  <div class="row">
+      <div class="col d-inline-flex gap-3 border border-2  border-secondary  m-3 p-3 align-items-end">
+          <h6>Quick Scan:</h6>
           {% url 'documents:create_temp_file' as scan_url %}
           {% with scanner_input_class='visually-hidden' group_id='new' %}
             {% include 'documents/partials/temp_upload_create.html' %}
             {% include 'documents/partials/live_scanner.html' %}
           {% endwith %}
+
+      </div>
+      <div class="col d-inline-flex gap-3 border border-2  border-secondary m-3 p-3  align-items-end">
+      <button
+          class='btn btn-sm btn-outline-primary'
+          hx-post='{% url "documents:temp_group_create" %}'
+          hx-swap='none'
+          hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'
+          hx-target='this'
+        >New Scan</button>
       </div>
   </div>
 

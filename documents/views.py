@@ -9,6 +9,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseRedirect
 from django.contrib import messages
 from django.urls import reverse, reverse_lazy
 from django.core.exceptions import ValidationError
+from urllib.parse import urlparse
 
 from .services.documents import (
     create_document_from_file,
@@ -56,6 +57,7 @@ from .forms import (
     EmptyForm,
     TempUploadGroupUpdateForm,
     get_temp_group_data_update_formclass,
+    TempUploadGroupCreateForm
 )
 
 # import generic filter table view
@@ -449,10 +451,28 @@ class GetTaskResult(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     def get_template_names(self):
         return ['documents/partials/task_progress.html']
 
+class TempUploadGroupCreateView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
+    template_name = "documents/temp_group_create.html"
+    form_class = TempUploadGroupCreateForm
+    permission_required = "documents.add_temporaryupload"
+
+    def get_success_url(self):
+        return reverse("documents:temp_group", kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        self.object = TempUploadGroup.objects.create(
+            user=self.request.user,
+        )
+        if self.request.htmx:
+            response = HttpResponse()
+            response['HX-Redirect'] = self.get_success_url()
+            return response
+
+        return super.form_valid(form)
 
 class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     template_name = "documents/partials/temp_upload_create.html"
-    form_class = TempFileUploadForm
+    form_class = TempFileUploadForm 
     permission_required = "documents.add_temporaryupload"
 
     def get_success_url(self):
@@ -470,7 +490,6 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
         scanned_code = self.request.POST.get("scanned_code", None)
         raw_group_id = self.request.GET.get("group", None)
         group_id = raw_group_id if self.is_uuid(raw_group_id) else None
-        print('scanned input', scanned_code)
     
         try:
             self.object = save_temp_document(
@@ -487,7 +506,8 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
             group_document_count = TemporaryUpload.objects.filter(
                 group=self.object.group
             ).count()
-            if group_document_count == 1:
+            path = urlparse(self.request.headers["HX-Current-URL"]).path
+            if group_document_count == 1 and '/user_temp_files/' in path:
                 context = {"group": self.object.group, "temp_files": [self.object]}
                 response = render(
                     self.request,
