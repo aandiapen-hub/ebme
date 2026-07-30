@@ -86,7 +86,6 @@ def extract_information_from_temp_group(group_id):
 
 
 def quick_group_processor(temporary_upload):
-    print('solving group data quickin group processor')
     group = temporary_upload.group
 
     barcode_data = temporary_upload.barcode_data
@@ -106,8 +105,8 @@ def quick_group_processor(temporary_upload):
     ]
 
     group.extracted_json["barcode"] = barcode_list 
-    merged_barcode_parsed = merge_barcode_parsed(barcode_list)
-    group.extracted_json['merged_parsed_barcode'] = merged_barcode_parsed
+    merged_barcode = merge_barcode_parsed(barcode_list)
+    group.extracted_json['merged_parsed_barcode'] = merged_barcode
     group.save(update_fields=['extracted_json'])
     temp_group_resolver(group.pk)
 

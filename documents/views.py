@@ -509,15 +509,19 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
             path = urlparse(self.request.headers["HX-Current-URL"]).path
             if group_document_count == 1 and '/user_temp_files/' in path:
                 context = {"group": self.object.group, "temp_files": [self.object]}
+                self.object.group.refresh_from_db()
+                context.update(**build_document_context(user=self.request.user, temp_group=self.object.group))
                 response = render(
                     self.request,
                     "documents/temp_file_group.html#mini_temp_group",
                     context=context,
                 )
                 response['HX-Retarget'] = '#images_div'
+                response['HX-Trigger'] = json.dumps({'data_resolved': True})
                 return response
             else:
                 context = {"file": self.object, "group": self.object.group }
+                context.update(**build_document_context(user=self.request.user, temp_group=self.object.group))
                 
                 if self.object.file:
                     template = "documents/partials/temp_file.html"
@@ -530,6 +534,7 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
                     self.request, template , context
                 )
                 response['HX-Retarget'] = target
+                response['HX-Trigger'] = json.dumps({'data_resolved': True})
                 return response
         else:
             return super().form_valid(form)

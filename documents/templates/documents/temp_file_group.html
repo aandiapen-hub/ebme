@@ -58,8 +58,12 @@
       <!-- context-->
       <div class="flex-grow-1 overflow-hidden">
 
+
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex gap-1 flex-shrink-0">
         <div class="small text-muted mb-1">
-          Results
         </div>
         <div class="d-flex gap-1 flex-wrap">
         {% for group in groups %}
@@ -74,12 +78,7 @@
         {% endfor %}
         </div>
 
-      </div>
-
-      <!-- Actions -->
-      <div class="d-flex gap-1 flex-shrink-0">
-
-        <a class="btn btn-sm btn-outline-secondary flex-fill flex-md-grow-0"
+        <a class="btn btn-sm btn-outline-secondary"
            href="{% url 'documents:temp_group' pk=group.pk %}">
           Open
         </a>

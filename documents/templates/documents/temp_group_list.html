@@ -11,18 +11,24 @@
           {% url 'documents:create_temp_file' as scan_url %}
           {% with scanner_input_class='visually-hidden' group_id='new' %}
             {% include 'documents/partials/temp_upload_create.html' %}
-            {% include 'documents/partials/live_scanner.html' %}
           {% endwith %}
 
+          <button
+              class='btn btn-sm btn-outline-primary'
+              hx-post='{% url "documents:temp_group_create" %}'
+              hx-swap='none'
+              hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'
+              hx-target='this'
+            >New Scan</button>
+
       </div>
-      <div class="col d-inline-flex gap-3 border border-2  border-secondary m-3 p-3  align-items-end">
-      <button
-          class='btn btn-sm btn-outline-primary'
-          hx-post='{% url "documents:temp_group_create" %}'
-          hx-swap='none'
-          hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'
-          hx-target='this'
-        >New Scan</button>
+  </div>
+  <div class="row">
+      <div class="col col-lg-4 gap-3">
+          {% with scanner_input_class='visually-hidden' group_id='new' %}
+          {% include 'documents/partials/live_scanner.html' %}
+          {% endwith %}
+
       </div>
   </div>
 
