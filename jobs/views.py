@@ -16,7 +16,6 @@ from django.views.generic import (
     CreateView,
     DeleteView,
     DetailView,
-    UpdateView,
 )
 
 from assets.models import (

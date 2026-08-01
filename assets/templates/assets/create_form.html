@@ -40,11 +40,12 @@
       hx-trigger="submit"
       hx-push-url='true'
       hx-select='#asset_details'>
+      <button class="btn btn-primary" type="submit">Submit</button>
+      <a class='btn btn-secondary' href='{% url "assets:assets_list" %}'>Cancel</a>
           {{ form.media }} 
           {% csrf_token %}
-      {% bootstrap_form form layout='horizontal' %}
-          <button class="btn btn-primary" type="submit">Submit</button>
-      <a class='btn btn-secondary' href='{% url "assets:assets_list" %}'>Cancel</a>
+          {% bootstrap_form form layout='horizontal' %}
+
   </form>   
   </div>
 

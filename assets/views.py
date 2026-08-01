@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import permission_required
+
 from django.db import transaction
 from assets.services.oustanding_tasks import get_equipment_tasks
 from assets.services.sofware_service import apply_software_change
@@ -23,7 +23,13 @@ from model_information.models import EquipmentConfigurationLink, EquipmentSoftwa
 from .models import (
     Tblassets,
     AssetView,
+    Tbljob,
+    Tbljobstatus,
+    Tbljobtypes,
+    Tbltechnicianlist,
 )
+
+from django.forms import BooleanField, ModelChoiceField
 
 from documents.services.process_document import quick_barcode_processor
 from .forms import(
@@ -194,10 +200,45 @@ class AssetCreateView(
         context = self.get_context_data(form=form)
         return self.render_to_response(context)
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+
+        form.fields['create_acceptance_job'] = BooleanField(
+            required=False,
+            initial=False,
+            label='Create Acceptance Job'
+        )
+        form.fields['technicianid'] = ModelChoiceField(
+            queryset=Tbltechnicianlist.objects.all(),
+            label='Technician'
+            )
+        return form
+
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context['com_requests'] = CommissionRequest.objects.all()
         return context
+
+    def form_valid(self, form):
+        create_acceptance = self.request.POST.get('create_acceptance_job', None)
+        technician_id = self.request.POST.get('technicianid', None)
+
+        with transaction.atomic():
+            self.object = form.save()
+            self.after_save(form)
+
+            if create_acceptance:
+                acceptance_job, created = Tbljob.objects.get_or_create(
+                    assetid=self.object,
+                    jobtypeid=Tbljobtypes.objects.filter(jobtypename__icontains='acceptance').first(),
+                    jobstatusid=Tbljobstatus.objects.filter(jobstatusname__icontains='progress').first(),
+                    technicianid=Tbltechnicianlist.objects.get(pk=technician_id)
+                )
+                response = HttpResponse()
+                response['HX-Redirect'] = reverse('jobs:job_update', kwargs={'pk':acceptance_job.pk})
+                return response
+
+            return HttpResponseRedirect(self.get_success_url())
 
 class SetEquipmentSoftware(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     template_name = 'assets/set_equipment_software.html'

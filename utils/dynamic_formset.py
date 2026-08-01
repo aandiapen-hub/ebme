@@ -100,9 +100,8 @@ class AddFormsetRowView(
         if not self.new_item_valid():
             response = HttpResponse(status=200)
             response["HX-Trigger"] = json.dumps({
-                "deliveries_updated": True,
                 "show_message": {
-                    "message": "Already added",
+                    "message": "Item is not Valid",
                     "level": "warning",
                 },
             })
@@ -125,22 +124,38 @@ class AddFormsetRowView(
 
         obj.group.refresh_from_db()
         self.resolved_data = obj.group.extracted_json.get('resolved', None)
+        # if data was not resolved
         if not self.resolved_data:
-            return HttpResponse(status=404)
-        else:
-            response = self.render_to_response(self.get_context_data())
-            if not self.new_item_valid():
-                response = HttpResponse(status=200)
-                response["HX-Trigger"] = json.dumps({
-                    "deliveries_updated": True,
-                    "show_message": {
-                        "message": "Already added",
-                        "level": "warning",
-                    },
-                })
-            else:
-                response['HX-Retarget'] = f'#{ self.get_config['prefix'] }-container'
+            response = HttpResponse(status=404)
+            response["HX-Trigger"] = json.dumps({
+                "show_message": {
+                    "message": f"{self.get_formset_type} added",
+                    "level": "success",
+                },
+            })
             return response
+
+        # if resolved data does not contain valid item 
+        if not self.get_formset_type and not self.new_item_id:
+            response = HttpResponse(status=404)
+            response["HX-Trigger"] = json.dumps({
+                "show_message": {
+                    "message": 'Invalid item',
+                    "level": "warning",
+                },
+            })
+            return response
+            
+        response = self.render_to_response(self.get_context_data())
+        response['HX-Retarget'] = f'#{ self.get_config['prefix'] }-container'
+        response["HX-Trigger"] = json.dumps({
+            "show_message": {
+                "message": f"{self.get_formset_type} added",
+                "level": "success",
+            },
+        })
+
+        return response
 
 
     def map_scanner_output_to_config(self):
@@ -148,7 +163,7 @@ class AddFormsetRowView(
             value = v['value'](self.resolved_data)
             if value:
                 return v['formset_type'], value
-
+        return None, None
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

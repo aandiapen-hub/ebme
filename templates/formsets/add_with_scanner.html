@@ -80,4 +80,11 @@
           type='button'><i class="bi bi-camera"></i></button>
 
     </div>
+          <button id='start_live_scanner_button' type="button" class="btn btn-outline-secondary btn-sm" 
+            _='on click trigger start on #scanner then hide me then remove @hidden from #live_scanner'>
+            Start Live Scan
+          </button>
+              {% with scanner_input_class='visually-hidden' group_id=group.pk %}
+                {% include 'documents/partials/live_scanner.html' %}
+              {% endwith %}
   </form>

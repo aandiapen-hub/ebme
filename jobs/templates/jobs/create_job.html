@@ -11,11 +11,13 @@
         <div class='col'>
 
             <form action="{% url 'jobs:job_create' %}", method="post">
+              {% partialdef form_fields inline %}
                     {% bootstrap_messages %}
                     {{ form.media }}
                     {% csrf_token %} 
                     {% bootstrap_form form layout='horizontal' %}
                     <button type="submit" class="btn btn-primary">Save Job</button>
+              {% endpartialdef %}
             </form>
         </div>
     </div>

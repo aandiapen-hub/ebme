@@ -25,6 +25,7 @@ def asset_data_builder(
     asset_no=None,
     too_many_assets=False,
     create_asset=False,
+    asset_serial_number_mismatch=False,
     jobs=None,
     too_many_jobs=False,
     model_id=None,
@@ -50,7 +51,8 @@ def asset_data_builder(
         "gtin": {
             "value": gtin,
             "add_gtin": add_gtin,
-        }, "asset": {
+        },
+        "asset": {
             "asset_id": asset_id,
             "serialnumber": serial,
             "customerassetnumber": asset_no,
@@ -63,6 +65,7 @@ def asset_data_builder(
             "locationid":locationid,
             "customerid":customerid,
             "unitprice":unitprice,
+            "asset_serial_number_mismatch": asset_serial_number_mismatch
         },
         "job": {
             "jobs": jobs or [],
@@ -348,12 +351,16 @@ def gs1_resolver(parsed_data):
     # 3. Exact asset match
     # -------------------------
 
-    asset = find_asset_by_serial_and_model(serial, known_model)
-    if asset:
-        jobs = list(asset.jobs.values_list("pk", flat=True))
+    asset2 = find_asset_by_serial_and_model(serial, known_model)
+
+    # check if assetid match serial number on database
+    asset_serial_number_mismatch = bool(asset and asset2 and asset2 != asset)
+
+    if asset2:
+        jobs = list(asset2.jobs.values_list("pk", flat=True))
         return asset_data_builder(
             gtin=gtin,
-            asset_id=asset.pk,
+            asset_id=asset2.pk,
             model_id=model_id,
             jobs=jobs,
         )
@@ -444,6 +451,7 @@ def gs1_resolver(parsed_data):
         prod_date=prod_date,
         create_asset=create_asset,
         too_many_assets=too_many_assets,
+        asset_serial_number_mismatch=asset_serial_number_mismatch,
         jobs=jobs,
         model_id=model_id,
         duplicatable_models=models_with_gtin,

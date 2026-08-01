@@ -65,7 +65,7 @@ class PartsTableView(LoginRequiredMixin,PermissionRequiredMixin,
 
 class PartDetailView(LoginRequiredMixin, PermissionRequiredMixin,
                   DetailView):
-    model = SparepartView
+    model = Tblpartslist 
     template_name = "parts/part_view.html"
     fields = '__all__'
     permission_required = 'parts.view_tblpartslist'

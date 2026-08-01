@@ -1,4 +1,5 @@
 from io import BytesIO
+from django.shortcuts import get_object_or_404
 import json
 import uuid
 from django.apps import apps
@@ -414,7 +415,11 @@ class ExtractTextFromImages(LoginRequiredMixin, PermissionRequiredMixin, FormVie
         return reverse('documents:temp_group', kwargs={'pk': self.kwargs.get('pk')})
 
     def form_valid(self, form):
-        task = extract_information_from_temp_group.enqueue(group_id=str(self.kwargs.get('pk')))
+        group_id = str(self.kwargs.get('pk'))
+
+        self.object = get_object_or_404(TempUploadGroup, pk=group_id)
+
+        task = extract_information_from_temp_group.enqueue(group_id=group_id)
 
         self.object.task_result_id = str(task.id)
         self.object.save()
@@ -506,8 +511,15 @@ class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
             group_document_count = TemporaryUpload.objects.filter(
                 group=self.object.group
             ).count()
-            path = urlparse(self.request.headers["HX-Current-URL"]).path
-            if group_document_count == 1 and '/user_temp_files/' in path:
+
+            current_url = self.request.headers.get("HX-Current-URL", None)
+            if current_url:
+                path = urlparse(current_url).path
+                group_list_view = '/user_temp_files/' in path
+            else:
+                group_list_view = False
+
+            if group_document_count == 1 and group_list_view:
                 context = {"group": self.object.group, "temp_files": [self.object]}
                 self.object.group.refresh_from_db()
                 context.update(**build_document_context(user=self.request.user, temp_group=self.object.group))

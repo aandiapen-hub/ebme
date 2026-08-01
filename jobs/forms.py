@@ -118,6 +118,11 @@ class JobCreateForm(forms.ModelForm):
             "jobenddate": DateInput(),
             "jobstartdate": DateInput(),
         }
+    def __init__(self, hidden_fields=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if hidden_fields:
+            for field in hidden_fields:
+                self.fields[field].widget = forms.HiddenInput()
 
 
 class ChecklistForm(CustomFormsetForm):

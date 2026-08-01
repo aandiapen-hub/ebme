@@ -4,9 +4,6 @@
 
 <div id='live_scanner' hidden>
 
-  <button type="button" class="btn btn-outline-secondary btn-sm"
-    _='on click trigger stop on #scanner then add @hidden to #live_scanner then show #start_live_scanner_button'
-    >Close Live Scan </button>
 
 <div id="scanner"
      _="
@@ -47,7 +44,11 @@
         <canvas id="overlay"
         class="position-absolute top-0 start-0 w-100 h-100 pe-none">
         </canvas>
+
     </div>
+    <button type="button" class="position-relative top-0 start-0 btn btn-warning btn-sm"
+      _='on click trigger stop on #scanner then add @hidden to #live_scanner then show #start_live_scanner_button'
+      >Stop </button>
 
 
     <div id="scan-indicator" class="scan-indicator">
