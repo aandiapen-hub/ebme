@@ -1,6 +1,13 @@
 from django import forms
 from django.db.models import CommaSeparatedIntegerField
-from .models import Tblassets, Tblmodel, Tblcustomer, TblAssetStatus, Tblppmschedules
+from .models import(
+    Tblassets,
+    Tblmodel,
+    Tblcustomer,
+    TblAssetStatus,
+    Tblppmschedules,
+    Tbltechnicianlist
+)
 from django_select2.forms import ModelSelect2Widget
 from django.core.exceptions import ValidationError
 from model_information.models import EquipmentConfiguration, Software, SoftwareModel
@@ -71,6 +78,30 @@ class AssetUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
             "is_test_eq": "Test Equipment",
         }
 
+    def __init__(self, acceptance=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if acceptance:
+
+            self.fields['create_acceptance_job'] = forms.BooleanField(
+                required=False,
+                initial=False,
+                label='Create Acceptance Job'
+            )
+            self.fields['technicianid'] = forms.ModelChoiceField(
+                queryset=Tbltechnicianlist.objects.all(),
+                label='Technician',
+                required=False
+                )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if cleaned_data.get('create_acceptance_job', False) and not cleaned_data.get('technicianid', False):
+            raise ValidationError({
+                'technicianid': 'Select a Technician name for acceptance job'
+            })
+            
+        return cleaned_data
 
 
 class AssetBulkUpdateForm(forms.Form):

@@ -200,19 +200,11 @@ class AssetCreateView(
         context = self.get_context_data(form=form)
         return self.render_to_response(context)
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
+    def get_form_kwargs(self, form_class=None):
+        kwargs = super().get_form_kwargs()
+        kwargs['acceptance'] = True
+        return kwargs
 
-        form.fields['create_acceptance_job'] = BooleanField(
-            required=False,
-            initial=False,
-            label='Create Acceptance Job'
-        )
-        form.fields['technicianid'] = ModelChoiceField(
-            queryset=Tbltechnicianlist.objects.all(),
-            label='Technician'
-            )
-        return form
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
