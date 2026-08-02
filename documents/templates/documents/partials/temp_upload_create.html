@@ -31,7 +31,7 @@
             autocomplete="off"
             autocorrect="off"
             spellcheck="false"
-            inputmode='none'
+            {% if not quick_scanner %} inputmode='none' {% endif %}
             class='form-control {{scanner_input_class}}'
             placeholder='Quick Search'
           _="on change debounced at 500ms
