@@ -25,6 +25,7 @@
         </div>
       {% endif %}
 
+
       <div class="row  bg-white p-4 rounded"> 
         <div class="col">
           <p><small class="text-muted">ID: </small>{{asset.assetid}}</p>
@@ -33,6 +34,7 @@
           <p><small class="text-muted">Model Spec: </small>{{asset.modelid}}</p>
           <p><small class="text-muted">Customer: </small>{{asset.customerid}}</p>
           <p><small class="text-muted">Location: </small>{{asset.locationid}}</p>
+
 
         </div>
         <div class="col">
@@ -72,7 +74,7 @@
                     hx-trigger="click",
                     hx-select='#asset_details'
                     hx-push-url='true'>
-                    EDIT
+                    Edit
                   </button>
                 {% endif %}
               </li>
@@ -85,10 +87,18 @@
                   hx-trigger="click"
                   data-bs-toggle="modal"
                   data-bs-target="#modals-here">
-                  DELETE
+                  Delete
                 </button>
                 {% endif %}
               </li>
+
+              {% if perms.assets.add_tblassets %}
+              <li class='dropdown-item'>
+                  <a href='{% url "documents:replicate_from_group" group_id="new" pk=asset.pk %}'
+                  class="btn text-secondary">Replicate</a>
+                  </li>
+              
+              {% endif %}
             </ul>
 
           </div>

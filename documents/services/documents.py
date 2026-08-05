@@ -1,8 +1,13 @@
 import hashlib
 from io import BytesIO
-from os import dup
 from django.db import transaction, IntegrityError
-from documents.models import TblDocuments, TblDocumentLinks, TempUploadGroup, TemporaryUpload
+from documents.models import(
+    TblDocuments,
+    TblDocumentLinks,
+    TempUploadGroup,
+    TemporaryUpload,
+    DocumentTypes,
+)
 from django.core.exceptions import ValidationError
 from documents.services.process_document import quick_group_processor
 from PIL import Image, ImageOps
@@ -245,23 +250,23 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
     if not user.is_staff:
         user.temp_upload_group.all().delete()
 
+    # get temp group
+    if group_id is not None:
+        group = TempUploadGroup.objects.filter(pk=group_id).first()
+        if group:
+            if group.user != user:
+                raise ValidationError("Group belongs to another user")
+    else:
+        group = TempUploadGroup.objects.create(
+            user=user,
+        )
+
+
     if file:
-        group = None
-        if group_id is not None:
-            group = TempUploadGroup.objects.filter(pk=group_id).first()
-            if group:
-                if group.user != user:
-                    raise ValidationError("Group belongs to another user")
-        if group is None:
-            group = TempUploadGroup.objects.create(
-                user=user,
-            )
         scanned = TemporaryUpload.from_uploaded_file(
             file=file,
             group=group,
         )
-        quick_group_processor(scanned)
-        return scanned
 
     elif scanned_code:
         gs1_data = parse_gs1code(
@@ -279,20 +284,23 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
             'text': scanned_code,
             'parsed': gs1_data,
         }]
-        if group_id is not None:
-            group = TempUploadGroup.objects.filter(pk=group_id).first()
-            if group.user != user:
-                raise ValidationError("Group belongs to another user")
-        else:
-            group = TempUploadGroup.objects.create(
-                user=user,
-            )
 
         scanned = TemporaryUpload.objects.create(
             group=group,
             barcode_data=barcode_data,
         )
 
-        quick_group_processor(scanned)
-        return scanned
+
+    quick_group_processor(scanned)
+
+    # update group document type
+    group.refresh_from_db()
+    is_asset_data = group.extracted_json.get(
+        'resolved', {}
+    ).get('gtin', {}).get('value', False)
+    if  is_asset_data and group.document_type_id==DocumentTypes.UNKNOWN:
+        group.document_type_id = DocumentTypes.ASSET_DATA
+        group.save()
+
+    return scanned
 

@@ -27,6 +27,7 @@ from .views import (
     ExtractTextFromImages,
     TempUploadMergedDataUpdate,
     GetTaskResult,
+    ReplicateFromGroup,
 )
 
 from assets.views import UNIVERSAL_SEARCH_FIELDS as ASSET_UNIVERSAL_SEARCH_FIELDS
@@ -148,5 +149,10 @@ urlpatterns = [
         "documents/<uuid:pk>/task_progress",
         GetTaskResult.as_view(),
         name="task_progress",
+    ),
+    path(
+        "documents/<str:group_id>/<str:pk>/replicate/",
+        ReplicateFromGroup.as_view(),
+        name="replicate_from_group",
     ),
 ]

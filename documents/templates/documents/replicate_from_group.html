@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<!--List Asset Details -->
+
+<div id="" class='container'>
+  <h5>Copy Asset {{asset}}</h5>
+      <div class="row  bg-white p-4 rounded"> 
+        <div class="col">
+      <form id='replication_form' method='POST' action='.'>
+        {% csrf_token %}
+        {% bootstrap_form form %}
+        <p class='text text-{{replication_status}}'>Status:{{replication_message}}</p>
+          <input id='group_id' name='group_id' value={{group.pk}}>
+          <input id='template_asset' name='template_asset' value={{asset.pk}}>
+        <button class='btn btn-outline-{{replication_status}}' type="submit">Copy</button>
+      </form>
+        </div>
+      </div>
+      <div class="row  bg-white p-4 rounded"> 
+        <div class="col">
+          <p><small class="text-muted">Customer Asset No: </small>{{asset.customerassetnumber}}</p>
+          <p><small class="text-muted">Serial No: </small>{{asset.serialnumber}}</p>
+          <p><small class="text-muted">Model Spec: </small>{{asset.modelid}}</p>
+          <p><small class="text-muted">Customer: </small>{{asset.customerid}}</p>
+          <p><small class="text-muted">Location: </small>{{asset.locationid}}</p>
+          <p><small class="text-muted">Next PPM Date: </small>{{asset.nextppmdate}}</p>
+          <p><small class="text-muted">Schedule: </small>{{asset.ppmscheduleid}}</p>
+          <p><small class="text-muted">Last PPM Date: </small>{{asset.lastppmdate}}</p>
+          <p><small class="text-muted">Last Repair Date: </small>{{asset.lastrepairdate}}</p>
+        </div>
+        <div class="col">
+          {% include "documents/temp_file_group.html#temp_group" %}
+        </div>
+      </div>
+
+</div>
+
+
+{%endblock content%}
+
