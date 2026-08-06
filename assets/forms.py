@@ -245,3 +245,6 @@ class SetEquipmentConfigurationForm(forms.Form):
 
             if required_config:
                 self.fields['configuration'].initial = required_config
+
+class ReplicateAssetForm(forms.Form):
+    pass

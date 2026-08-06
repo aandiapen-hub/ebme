@@ -1,5 +1,7 @@
 from django.contrib import messages
+from functools import cached_property
 
+from django.shortcuts import redirect
 from django.db import transaction
 from assets.services.oustanding_tasks import get_equipment_tasks
 from assets.services.sofware_service import apply_software_change
@@ -37,6 +39,7 @@ from .forms import(
         AssetBulkUpdateForm,
         SetEquipmentSoftwareForm,
         SetEquipmentConfigurationForm,
+        ReplicateAssetForm,
 )
 
 from utils.generic_views import BulkUpdateView
@@ -44,6 +47,8 @@ from utils.generic_views import BulkUpdateView
 # import permissions
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from .mixins import CustomerAssetPermissionMixin
+
+from documents.models import TempUploadGroup, DocumentTypes
 
 from utils.generic_views import FilteredTableView
 
@@ -324,3 +329,199 @@ class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):
     operation = "update"
     table_to_update = Tblassets
 
+def asset_already_exists(resolved_data, **kwargs):
+    return  bool(resolved_data.get(
+                'resolved', {}
+            ).get('asset',{}).get('asset_id', None))
+    
+def has_serial_number(resolved_data, **kwargs):
+    return bool(
+        resolved_data.get(
+                'resolved', {}
+        ).get(
+            'asset',{}
+        ).get(
+            'serialnumber', None)
+    )
+
+def model_matches(resolved_data, modelid, **kwargs):
+    group_model_id = resolved_data.get('model',{}).get('model_id', None)
+    return group_model_id == modelid.pk
+
+def model_mismatched(resolved_data, modelid, **kwargs):
+    group_model_id = resolved_data.get('model',{}).get('modelid', None)
+
+    asset_model_id = modelid 
+    return group_model_id != asset_model_id.pk
+
+def is_unresolved(resolved_data, **kwargs):
+    return not bool(resolved_data) 
+
+REPLICATION_CONFIG = {
+'unresolved': {
+        'check':is_unresolved,
+        'context': {
+            'valid': False, 
+            'replication_status': 'disabled',
+            'replication_message': 'Not enough data to copy asset.',
+            'replication_color': 'secondary',
+            'error_message': 'Upload or scan new asset information'
+        }
+    },
+'asset_exists': {
+        'check':asset_already_exists,
+        'context': {
+            'valid': False,
+            'replication_status': 'disabled',
+            'replication_message': 'Asset Already Exists',
+            'replication_color': 'secondary',
+            'error_message': 'Uploaded information is for asset that already exists in database'
+        }
+    },
+'model_matched': {
+        'check':model_matches,
+        'context': {
+            'valid': True,
+            'replication_status': 'enabled',
+            'replication_message': 'Serial number recognised and new asset matches model of original asset.',
+            'replication_color': 'success',
+            'error_message': None 
+        }
+    },
+'model_not_matched': {
+        'check':model_mismatched,
+        'context': {
+            'valid': True, 
+            'replication_status': 'enabled',
+            'replication_message': 'Serial number recognised but model of new asset is different from original asset.',
+            'replication_color': 'warning',
+            'error_message': None 
+        }
+    },
+
+}
+
+class ReplicateAsset(LoginRequiredMixin, PermissionRequiredMixin, FormView):
+    permission_required = "documents.view_tempuploadgroup"
+    form_class = ReplicateAssetForm
+    template_name = 'assets/replicate_from_group.html'
+    config = REPLICATION_CONFIG
+
+    def get(self, *args, **kwargs):
+        group_id = self.kwargs['group_id']
+        if group_id == 'new':
+            group = self.get_group
+            return redirect(
+                'assets:replicate_asset',
+                group_id=str(group.pk),
+                pk=self.kwargs['pk'])
+        return super().get(*args, **kwargs)
+
+    @cached_property
+    def get_template_object(self):
+        if self.request.POST:
+            asset_id = self.request.POST.get('template_asset')   
+        else:
+            asset_id = self.kwargs['pk']
+        return Tblassets.objects.get(assetid=asset_id)
+
+    @cached_property
+    def get_group(self):
+        if self.request.POST:
+            group_id = self.request.POST.get('group_id')
+        group_id = self.kwargs['group_id']
+
+        if group_id == 'new':
+            group = (
+                TempUploadGroup.objects.filter(
+                    user=self.request.user,
+                    document_type_id=DocumentTypes.ASSET_DATA,
+                    temp_uploads__isnull=True,
+                )
+                .first()
+            )
+
+            if group is None:
+                group = TempUploadGroup.objects.create(
+                    user=self.request.user,
+                    document_type_id=DocumentTypes.ASSET_DATA,
+                )
+
+        else:
+            group = TempUploadGroup.objects.filter(
+                pk=group_id,
+            ).first()
+
+        return group
+
+    def get_customerassetnumber(self):
+        return self.get_group.extracted_json.get(
+            'parsed', {}
+        ).get('asset',{}).get('customreassetnumber', None)
+
+    def get_serialnumber(self):
+        return self.get_group.extracted_json.get(
+                    'resolved', {}
+                ).get('asset',{}).get('serialnumber', None)
+    
+        
+    def form_valid(self, form):
+
+        resolved_data = self.get_group.extracted_json.get('resolved', None)
+
+        has_error = False
+        for config in self.config.values():
+            if config['check'](
+                resolved_data = resolved_data,
+                modelid = self.get_template_object.modelid
+            ):
+                error = config['context']['error_message']
+                if error:
+                    has_error = True
+                    form.add_error(None, error )
+
+        if has_error:
+            return self.form_invalid(form)
+
+        self.object = self.get_template_object
+        acceptance_job = self.object.jobs.filter(jobtypeid=0).first()
+
+        serial_no = self.get_serialnumber()    
+
+        with transaction.atomic():
+            customerassetnumber = self.get_customerassetnumber()
+            self.object.pk = None
+            self.object.serialnumber = serial_no
+
+            if customerassetnumber:
+                self.object.customerassetnumber = customerassetnumber
+
+            self.object.save()
+            acceptance_job.pk = None 
+            acceptance_job.assetid = self.object
+            acceptance_job.save()
+
+
+            self.get_group.delete()
+        
+        return HttpResponseRedirect(self.get_success_url())
+
+
+    def get_success_url(self):
+        return reverse('assets:view_asset', kwargs={'pk':self.object.pk})
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['asset'] = self.get_template_object
+        context['group'] = self.get_group 
+        resolved_data = self.get_group.extracted_json.get('resolved', None)
+
+        for config in self.config.values():
+            if config['check'](
+                resolved_data = resolved_data,
+                modelid = self.get_template_object.modelid
+            ):
+                context.update(config['context'])
+                return context
+
+        return  context

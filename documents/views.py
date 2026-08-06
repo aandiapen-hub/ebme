@@ -12,7 +12,6 @@ from django.contrib import messages
 from django.urls import reverse, reverse_lazy
 from django.core.exceptions import ValidationError
 from urllib.parse import urlparse
-from functools import cached_property
 
 from .services.documents import (
     create_document_from_file,
@@ -62,7 +61,6 @@ from .forms import (
     TempUploadGroupUpdateForm,
     get_temp_group_data_update_formclass,
     TempUploadGroupCreateForm,
-    ReplicateFromGroupForm,
 )
 
 # import generic filter table view
@@ -781,140 +779,3 @@ class BulkDeleteLink(BulkUpdateView):
 
 
 
-class ReplicateFromGroup(LoginRequiredMixin, PermissionRequiredMixin, FormView):
-    permission_required = "documents.view_tempuploadgroup"
-    form_class = ReplicateFromGroupForm
-    template_name = 'documents/replicate_from_group.html'
-
-    def get(self, *args, **kwargs):
-        group_id = self.kwargs['group_id']
-        if group_id == 'new':
-            print('new group redirecting****')
-            group = self.get_group
-            return redirect(
-                'documents:replicate_from_group',
-                group_id=str(group.pk),
-                pk=self.kwargs['pk'])
-        return super().get(*args, **kwargs)
-
-    @cached_property
-    def get_template_object(self):
-        if self.request.POST:
-            print('get object post',)
-            asset_id = self.request.POST.get('template_asset')   
-        else:
-            print('get object kwargs')
-            asset_id = self.kwargs['pk']
-        print('assetid************8', asset_id)
-        return Tblassets.objects.get(assetid=asset_id)
-
-    @cached_property
-    def get_group(self):
-        if self.request.POST:
-            group_id = self.request.POST.get('group_id')
-        group_id = self.kwargs['group_id']
-
-        if group_id == 'new':
-            group = (
-                TempUploadGroup.objects.filter(
-                    user=self.request.user,
-                    document_type_id=DocumentTypes.ASSET_DATA,
-                    temp_uploads__isnull=True,
-                )
-                .first()
-            )
-
-            if group is None:
-                group = TempUploadGroup.objects.create(
-                    user=self.request.user,
-                    document_type_id=DocumentTypes.ASSET_DATA,
-                )
-
-        else:
-            group = TempUploadGroup.objects.filter(
-                pk=group_id,
-            ).first()
-
-        return group
-
-    def get_customerassetnumber(self):
-        return self.get_group.extracted_json.get(
-            'parsed', {}
-        ).get('asset',{}).get('customreassetnumber', None)
-
-    def get_serialnumber(self):
-        return self.get_group.extracted_json.get(
-                    'parsed', {}
-                ).get('asset',{}).get('serialnumber', None)
-    
-    def asset_already_exists(self):
-        return bool(self.get_group.extracted_json.get(
-                    'parsed', {}
-                ).get('asset',{}).get('asset_id', None))
-        
-    def model_matched(self):
-        group_model_id = self.get_group.extracted_json.get(
-                    'parsed', {}
-                ).get('model',{}).get('modelid', None)
-
-        asset_model_id = self.get_template_object.modelid
-        return group_model_id == asset_model_id.pk
-
-    def form_valid(self, form):
-        group = self.get_group 
-        self.object = self.get_template_object
-        acceptance_job = self.object.jobs.filter(jobtypeid=0).first()
-
-        serial_no = self.get_serialnumber()    
-
-        if serial_no is None:
-            form.add_error(None, 'Serial Number Missing!')
-            return self.form_invalid(form)
-        
-        customerassetnumber = self.get_customerassetnumber()
-        self.object.pk = None
-        self.object.serialnumber = serial_no
-
-        if customerassetnumber:
-            self.object.customerassetnumber = customerassetnumber
-
-        self.object.save()
-        
-        acceptance_job.pk = None 
-        acceptance_job.assetid = self.object.pk
-        acceptance_job.save()
-
-
-    def get_success_url(self):
-        return reverse('assets:view_asset', kwargs={'pk':self.object.pk})
-
-    def get_context_data(self, *args, **kwargs):
-        context = super().get_context_data(*args, **kwargs)
-        context['asset'] = self.get_template_object
-        context['group'] = self.get_group 
-
-        if self.asset_already_exists():
-            print('asset already exists')
-            context['replication_enable'] = 'disabled'
-            context['replication_message'] = 'Asset already exists'
-            context['replication_status'] = 'secondary'
-
-        elif self.get_serialnumber() is None:
-            print('no serial number', self.get_serialnumber())
-            context['replication_enable'] = 'disabled'
-            context['replication_message'] = 'No Serial Number. Replication not possible'
-            context['replication_status'] = 'secondary'
-
-        elif self.model_matched():
-            print('model matched')
-            context['replication_enable'] = 'enabled'
-            context['replication_message'] = 'Model matched'
-            context['replication_status'] = 'success'
-
-        elif self.get_serialnumber():
-            print('serial number only', self.get_serialnumber)
-            context['replication_enable'] = 'enabled'
-            context['replication_message'] = 'Model not matched'
-            context['replication_status'] = 'warning'
-
-        return  context

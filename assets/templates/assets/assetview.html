@@ -94,8 +94,8 @@
 
               {% if perms.assets.add_tblassets %}
               <li class='dropdown-item'>
-                  <a href='{% url "documents:replicate_from_group" group_id="new" pk=asset.pk %}'
-                  class="btn text-secondary">Replicate</a>
+                  <a href='{% url "assets:replicate_asset" group_id="new" pk=asset.pk %}'
+                  class="btn text-secondary">Copy</a>
                   </li>
               
               {% endif %}

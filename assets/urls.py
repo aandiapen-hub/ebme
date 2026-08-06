@@ -10,7 +10,7 @@ from .views import (
     RemoveEquipmentSoftware,
     SetEquipmentConfiguration,
     RemoveEquipmentConfiguration,
-                
+    ReplicateAsset,
 )
 
 
@@ -27,4 +27,9 @@ urlpatterns = [
     path("set_equipment_configuration/",SetEquipmentConfiguration.as_view(),name='set_equipment_configuration'),
     path("remove_equipment_software/<int:pk>/",RemoveEquipmentSoftware.as_view(),name='remove_equipment_software'),
     path("remove_equipment_configuration/<int:pk>/",RemoveEquipmentConfiguration.as_view(),name='remove_equipment_configuration'),
+    path(
+        "documents/<str:group_id>/<str:pk>/replicate/",
+        ReplicateAsset.as_view(),
+        name="replicate_asset",
+    ),
 ]

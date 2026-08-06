@@ -237,5 +237,3 @@ def get_temp_group_data_update_formclass(group_type):
 class TempUploadGroupCreateForm(forms.Form):
     pass
 
-class ReplicateFromGroupForm(forms.Form):
-    pass

@@ -8,18 +8,6 @@
   <h5>Copy Asset {{asset}}</h5>
       <div class="row  bg-white p-4 rounded"> 
         <div class="col">
-      <form id='replication_form' method='POST' action='.'>
-        {% csrf_token %}
-        {% bootstrap_form form %}
-        <p class='text text-{{replication_status}}'>Status:{{replication_message}}</p>
-          <input id='group_id' name='group_id' value={{group.pk}}>
-          <input id='template_asset' name='template_asset' value={{asset.pk}}>
-        <button class='btn btn-outline-{{replication_status}}' type="submit">Copy</button>
-      </form>
-        </div>
-      </div>
-      <div class="row  bg-white p-4 rounded"> 
-        <div class="col">
           <p><small class="text-muted">Customer Asset No: </small>{{asset.customerassetnumber}}</p>
           <p><small class="text-muted">Serial No: </small>{{asset.serialnumber}}</p>
           <p><small class="text-muted">Model Spec: </small>{{asset.modelid}}</p>
@@ -35,6 +23,28 @@
         </div>
       </div>
 
+      <div class="row  bg-white p-4 rounded"> 
+        <div class="col">
+
+        <div id='status'
+        hx-get='.'
+        hx-target='this'
+        hx-swap='outerHTML',
+        hx-select='#status'
+        hx-trigger='data_resolved from:body'>
+
+          <p class='text text-{{replication_status}}'>Status: {{replication_message}}</p>
+
+          <form id='replication_form' method='POST' action='.'>
+            {% csrf_token %}
+              <input hidden id='group_id' name='group_id' value={{group.pk}}>
+              <input hidden id='template_asset' name='template_asset' value={{asset.pk}}>
+              <button {{replication_status}} class='btn btn-{{replication_color}}' type="submit">Copy Asset</button>
+          </form>
+        </div>
+
+        </div>
+      </div>
 </div>
 
 
