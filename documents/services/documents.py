@@ -1,7 +1,7 @@
 import hashlib
 from io import BytesIO
 from django.db import transaction, IntegrityError
-from documents.models import(
+from documents.models import (
     TblDocuments,
     TblDocumentLinks,
     TempUploadGroup,
@@ -15,6 +15,7 @@ import uuid
 import io
 from django.contrib.contenttypes.models import ContentType
 from documents.services.document_parser import parse_gs1code
+
 
 def resolve_customer(content_object):
     if not content_object:
@@ -55,13 +56,18 @@ def create_document_from_file(
     file_hash = None
 
     # check if no document or content has been passed for create or update
-    if document is None and uploaded_file is None and temp_file is None and content is None:
+    if (
+        document is None
+        and uploaded_file is None
+        and temp_file is None
+        and content is None
+    ):
         raise ValidationError("No file found!")
 
     # if content is an uploaded_file
     if uploaded_file:
         mime_type = uploaded_file.content_type
-        if 'image/' in mime_type:
+        if "image/" in mime_type:
             content = Image.open(uploaded_file)
         else:
             content = uploaded_file.read()
@@ -80,11 +86,10 @@ def create_document_from_file(
         mime_type = temp_file.mime_type
         file_hash = hashlib.sha256(content).hexdigest()
 
-
-    # resize if content is an image 
+    # resize if content is an image
     if "image/" in mime_type:
         img = resizeimg(content)
-        
+
         img = ImageOps.exif_transpose(img)
         buffer = BytesIO()
         content.save(buffer, format="JPEG", quality=85, optimize=True)
@@ -107,21 +112,21 @@ def create_document_from_file(
 
     # process document save
     with transaction.atomic():
-
         # ------------------------------------------------
         # Updating an existing document
         # ------------------------------------------------
-        if document: 
+        if document:
             if content:
                 if duplicate_exists:
-                    raise ValidationError(f'Document already exists in database, duplicate:{duplicates.first()}') 
+                    raise ValidationError(
+                        f"Document already exists in database, duplicate:{duplicates.first()}"
+                    )
                 else:
                     document.document_name = document_name
                     document.mime_type = mime_type
                     document.description = document_description
                     document.document_type_id = document_type_id
                     document.set_content(content, file_hash=file_hash)
-
 
             else:
                 # update without new content
@@ -160,6 +165,7 @@ def create_document_from_file(
 
     return document
 
+
 def resizeimg(img, max_size=(2000, 2000)):
     img.thumbnail(max_size, Image.Resampling.LANCZOS)
     return img
@@ -194,9 +200,7 @@ def save_temp_files(group, content_object, file_name=None):
 
     image_files = [file for file in temp_files if "image/" in file.mime_type]
 
-    non_image_files = [
-        file for file in temp_files if "image/" not in file.mime_type
-    ]
+    non_image_files = [file for file in temp_files if "image/" not in file.mime_type]
 
     with transaction.atomic():
         if image_files:
@@ -204,7 +208,7 @@ def save_temp_files(group, content_object, file_name=None):
             # Open all images
             create_document_from_file(
                 document_name=f"{uuid.uuid4()}" + ".pdf",
-                mime_type='application/pdf',
+                mime_type="application/pdf",
                 content=images_pdf,
                 document_type_id=temp_group.document_type_id,
                 content_object=content_object,
@@ -230,12 +234,10 @@ def delete_document_link(link):
 
 
 def delete_object_document_links(obj):
-    if not hasattr(obj, 'document_links'):
+    if not hasattr(obj, "document_links"):
         return
     linked_documents = obj.document_links.all()
-    document_ids = list(
-        linked_documents.values_list('pk', flat=True)
-    )
+    document_ids = list(linked_documents.values_list("pk", flat=True))
     linked_documents.delete()
 
     orphaned_documents = TblDocuments.objects.filter(
@@ -249,18 +251,17 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
     # non staff users can only have 1 scan group
     if not user.is_staff:
         user.temp_upload_group.all().delete()
+        group_id = None
 
     # get temp group
-    if group_id is not None:
+    if group_id:
         group = TempUploadGroup.objects.filter(pk=group_id).first()
-        if group:
-            if group.user != user:
-                raise ValidationError("Group belongs to another user")
+        if group.user != user:
+            raise ValidationError("Group belongs to another user")
     else:
         group = TempUploadGroup.objects.create(
             user=user,
         )
-
 
     if file:
         scanned = TemporaryUpload.from_uploaded_file(
@@ -270,37 +271,41 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
 
     elif scanned_code:
         gs1_data = parse_gs1code(
-            scanned_code=scanned_code.replace('(', '').replace(')', '')
+            scanned_code=scanned_code.replace("(", "").replace(")", "")
         )
-        if set(gs1_data.keys()) == {'non_gs1_codes'}:
+        if set(gs1_data.keys()) == {"non_gs1_codes"}:
             # return list of non gs1 codes if no gs1 data found
-            search = ' '.join(gs1_data['non_gs1_codes'])
-            raise ValidationError({
-                '__all__': 'Cannot add non GS1 barcode information to group',
-                'search': search
-            })
-        
-        barcode_data = [{
-            'text': scanned_code,
-            'parsed': gs1_data,
-        }]
+            search = " ".join(gs1_data["non_gs1_codes"])
+            raise ValidationError(
+                {
+                    "__all__": "Cannot add non GS1 barcode information to group",
+                    "search": search,
+                }
+            )
+
+        barcode_data = [
+            {
+                "text": scanned_code,
+                "parsed": gs1_data,
+            }
+        ]
 
         scanned = TemporaryUpload.objects.create(
             group=group,
             barcode_data=barcode_data,
         )
 
+    if scanned:
+        quick_group_processor(scanned)
 
-    quick_group_processor(scanned)
+        print(group.extracted_json.get("resolved", {}))
+        # update group document type
+        group.refresh_from_db()
+        is_asset_data = (
+            group.extracted_json.get("resolved", {}).get("gtin", {}).get("value", False)
+        )
+        if is_asset_data and group.document_type_id == DocumentTypes.UNKNOWN:
+            group.document_type_id = DocumentTypes.ASSET_DATA
+            group.save()
 
-    # update group document type
-    group.refresh_from_db()
-    is_asset_data = group.extracted_json.get(
-        'resolved', {}
-    ).get('gtin', {}).get('value', False)
-    if  is_asset_data and group.document_type_id==DocumentTypes.UNKNOWN:
-        group.document_type_id = DocumentTypes.ASSET_DATA
-        group.save()
-
-    return scanned
-
+        return scanned

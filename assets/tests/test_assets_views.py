@@ -5,7 +5,7 @@ from django.urls import reverse
 from assets.models import (
     Tblassets,
 )
-from model_information.models import(
+from model_information.models import (
     EquipmentConfigurationLink,
     EquipmentSoftware,
 )
@@ -16,7 +16,9 @@ from unittest.mock import patch
 @pytest.mark.django_db
 def test_asset_detail_view_requires_login(client, asset):
     asset = asset()
-    url = reverse("assets:view_asset", kwargs={'pk':asset.pk} )  # Update to your actual URL name
+    url = reverse(
+        "assets:view_asset", kwargs={"pk": asset.pk}
+    )  # Update to your actual URL name
     response = client.get(url)
     assert response.status_code == 302  # Redirect to login
     assert "/login" in response.url.lower()  # Ensure it's going to the login page
@@ -25,7 +27,9 @@ def test_asset_detail_view_requires_login(client, asset):
 @pytest.mark.django_db
 def test_asset_detail_view_permission_denied(client, user, asset):
     asset = asset()
-    url = reverse("assets:view_asset", kwargs={'pk':asset.pk} )  # Update to your actual URL name
+    url = reverse(
+        "assets:view_asset", kwargs={"pk": asset.pk}
+    )  # Update to your actual URL name
     user = user()
     client.force_login(user)
 
@@ -35,11 +39,14 @@ def test_asset_detail_view_permission_denied(client, user, asset):
         response.status_code == 403
     )  # Depends on how CustomerAssetPermissionMixin handles it
 
+
 @pytest.mark.django_db
 def test_asset_detail_view_renders(client, user, asset, jobs):
     asset = asset()
     jobs = jobs(count=10, assetid=asset)
-    url = reverse("assets:view_asset", kwargs={'pk':asset.pk} )  # Update to your actual URL name
+    url = reverse(
+        "assets:view_asset", kwargs={"pk": asset.pk}
+    )  # Update to your actual URL name
     user = user()
     user.is_staff = True
     permission = Permission.objects.get(codename="view_assetview")
@@ -50,7 +57,8 @@ def test_asset_detail_view_renders(client, user, asset, jobs):
     response = client.get(url)
 
     assert response.status_code == 200
-    assert response.context['open_jobs'].count() > 0
+    assert response.context["open_jobs"].count() > 0
+
 
 # test AssetCreateView
 @pytest.mark.django_db
@@ -72,6 +80,7 @@ def test_asset_create_view_permission_denied(client, user_setup):
     assert (
         response.status_code == 403
     )  # Depends on how CustomerAssetPermissionMixin handles it
+
 
 @pytest.mark.django_db
 def test_asset_create_view_renders(
@@ -128,7 +137,8 @@ def test_asset_create_view_success_post(
     created_asset = Tblassets.objects.last()
     assert created_asset.serialnumber == "12332"
 
-# test set equipment software view 
+
+# test set equipment software view
 @pytest.mark.django_db
 def test_equipment_software_view_requires_login(client):
     url = reverse("assets:set_equipment_software")
@@ -165,11 +175,7 @@ def test_set_equipment_sofware_view_renders(client, user):
 
 
 @pytest.mark.django_db
-def test_set_equipment_sofware_view_posts(
-    client,
-    user,
-    asset,
-    software_model_factory):
+def test_set_equipment_sofware_view_posts(client, user, asset, software_model_factory):
 
     user = user()
     user.customerid = None
@@ -182,37 +188,41 @@ def test_set_equipment_sofware_view_posts(
     url = reverse("assets:set_equipment_software")
     software_model = software_model_factory()
     assetx = asset()
-    data = {
-        'equipment': assetx.pk,
-        'software': software_model.software.pk
-    }
+    data = {"equipment": assetx.pk, "software": software_model.software.pk}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert EquipmentSoftware.objects.last().software == software_model.software
     assert EquipmentSoftware.objects.last().equipment == assetx
 
-# test delete equipment software view 
+
+# test delete equipment software view
 @pytest.mark.django_db
-def test_remove_equipment_software_view_requires_login(client, equipment_software_factory):
+def test_remove_equipment_software_view_requires_login(
+    client, equipment_software_factory
+):
     es = equipment_software_factory()
-    url = reverse("assets:remove_equipment_software", kwargs={'pk':es.pk})
+    url = reverse("assets:remove_equipment_software", kwargs={"pk": es.pk})
     response = client.get(url)
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_remove_equipment_sofware_view_permission_denied(client, user, equipment_software_factory):
+def test_remove_equipment_sofware_view_permission_denied(
+    client, user, equipment_software_factory
+):
     user = user()
     client.force_login(user)
     es = equipment_software_factory()
-    url = reverse("assets:remove_equipment_software", kwargs={'pk':es.pk})
+    url = reverse("assets:remove_equipment_software", kwargs={"pk": es.pk})
     response = client.get(url)
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_remove_equipment_sofware_view_renders(client, user, equipment_software_factory):
+def test_remove_equipment_sofware_view_renders(
+    client, user, equipment_software_factory
+):
 
     user = user()
     user.customerid = None
@@ -223,7 +233,7 @@ def test_remove_equipment_sofware_view_renders(client, user, equipment_software_
     client.force_login(user)
 
     es = equipment_software_factory()
-    url = reverse("assets:remove_equipment_software", kwargs={'pk':es.pk})
+    url = reverse("assets:remove_equipment_software", kwargs={"pk": es.pk})
 
     response = client.get(url)
 
@@ -236,7 +246,7 @@ def test_remove_equipment_sofware_view_posts(
     client,
     user,
     equipment_software_factory,
-    ):
+):
 
     user = user()
     user.customerid = None
@@ -247,14 +257,15 @@ def test_remove_equipment_sofware_view_posts(
     client.force_login(user)
 
     es = equipment_software_factory()
-    url = reverse("assets:remove_equipment_software", kwargs={'pk':es.pk})
+    url = reverse("assets:remove_equipment_software", kwargs={"pk": es.pk})
     data = {}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert not EquipmentSoftware.objects.filter(pk=es.pk).exists()
 
-# test set equipment config view 
+
+# test set equipment config view
 @pytest.mark.django_db
 def test_set_equipment_configuration_view_requires_login(client):
     url = reverse("assets:set_equipment_configuration")
@@ -310,36 +321,46 @@ def test_set_equipment_configuration_view_posts(
     configuration_model = equipment_configuration_model_factory()
     assetx = asset()
     data = {
-        'equipment': assetx.pk,
-        'configuration': configuration_model.configuration.pk
+        "equipment": assetx.pk,
+        "configuration": configuration_model.configuration.pk,
     }
     response = client.post(url, data)
 
-    assert response.status_code == 302 
-    assert EquipmentConfigurationLink.objects.last().configuration == configuration_model.configuration
+    assert response.status_code == 302
+    assert (
+        EquipmentConfigurationLink.objects.last().configuration
+        == configuration_model.configuration
+    )
     assert EquipmentConfigurationLink.objects.last().equipment == assetx
 
-# test delete equipment configuration view 
+
+# test delete equipment configuration view
 @pytest.mark.django_db
-def test_remove_equipment_configuration_link_view_requires_login(client, equipment_configuration_link):
+def test_remove_equipment_configuration_link_view_requires_login(
+    client, equipment_configuration_link
+):
     es = equipment_configuration_link()
-    url = reverse("assets:remove_equipment_configuration", kwargs={'pk':es.pk})
+    url = reverse("assets:remove_equipment_configuration", kwargs={"pk": es.pk})
     response = client.get(url)
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_remove_equipment_configuration_link_view_permission_denied(client, user, equipment_configuration_link):
+def test_remove_equipment_configuration_link_view_permission_denied(
+    client, user, equipment_configuration_link
+):
     user = user()
     client.force_login(user)
     es = equipment_configuration_link()
-    url = reverse("assets:remove_equipment_configuration", kwargs={'pk':es.pk})
+    url = reverse("assets:remove_equipment_configuration", kwargs={"pk": es.pk})
     response = client.get(url)
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_remove_equipment_configuration_link_view_renders(client, user, equipment_configuration_link):
+def test_remove_equipment_configuration_link_view_renders(
+    client, user, equipment_configuration_link
+):
 
     user = user()
     user.customerid = None
@@ -350,7 +371,7 @@ def test_remove_equipment_configuration_link_view_renders(client, user, equipmen
     client.force_login(user)
 
     es = equipment_configuration_link()
-    url = reverse("assets:remove_equipment_configuration", kwargs={'pk':es.pk})
+    url = reverse("assets:remove_equipment_configuration", kwargs={"pk": es.pk})
 
     response = client.get(url)
 
@@ -363,7 +384,7 @@ def test_remove_equipment_configuration_link_view_posts(
     client,
     user,
     equipment_configuration_link,
-    ):
+):
 
     user = user()
     user.customerid = None
@@ -374,12 +395,13 @@ def test_remove_equipment_configuration_link_view_posts(
     client.force_login(user)
 
     es = equipment_configuration_link()
-    url = reverse("assets:remove_equipment_configuration", kwargs={'pk':es.pk})
+    url = reverse("assets:remove_equipment_configuration", kwargs={"pk": es.pk})
     data = {}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert not EquipmentConfigurationLink.objects.filter(pk=es.pk).exists()
+
 
 # test AssetUpdateView
 @pytest.mark.django_db
@@ -556,9 +578,7 @@ def test_filtered_asset_table_view_permission_denied(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_filtered_asset_table_view_renders(
-    client, user_setup, asset
-):
+def test_filtered_asset_table_view_renders(client, user_setup, asset):
     user = user_setup
 
     permission = Permission.objects.get(codename="view_assetview")
@@ -581,3 +601,59 @@ def test_filtered_asset_table_view_renders(
     response = client.get(url, HTTP_HX_REQUEST="true")
     assert response.status_code == 200
 
+
+# test replicate asset
+
+
+@pytest.mark.django_db
+def test_replicate_asset_view_login(
+    client,
+    asset,
+):
+    asset = asset()
+    url = reverse("assets:replicate_asset", kwargs={"group_id": "new", "pk": asset.pk})
+    response = client.get(url)
+    assert response.status_code == 302  # Redirect to login
+    assert "/login" in response.url.lower()  # Ensure it's going to the login page
+
+
+@pytest.mark.django_db
+def test_replicate_asset_view_permission_denied(client, user_setup, asset):
+    user = user_setup
+    client.force_login(user)
+    asset = asset()
+    url = reverse("assets:replicate_asset", kwargs={"group_id": "new", "pk": asset.pk})
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_replicate_asset_view_renders(client, user_setup, asset):
+    user = user_setup
+    permission = Permission.objects.get(codename="add_tblassets")
+    user.user_permissions.add(permission)
+
+    client.force_login(user)
+    asset = asset()
+    url = reverse("assets:replicate_asset", kwargs={"group_id": "new", "pk": asset.pk})
+    response = client.get(url)
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_replicate_asset_view_renders_with_group(
+    client, user_setup, asset, temp_document
+):
+    user = user_setup
+    permission = Permission.objects.get(codename="add_tblassets")
+    user.user_permissions.add(permission)
+
+    test_doc = temp_document("equipment_gs1.jpg")
+
+    client.force_login(user)
+    asset = asset()
+    url = reverse(
+        "assets:replicate_asset", kwargs={"group_id": test_doc.group.pk, "pk": asset.pk}
+    )
+    response = client.get(url)
+    assert response.status_code == 200

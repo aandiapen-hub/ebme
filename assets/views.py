@@ -34,12 +34,12 @@ from .models import (
 from django.forms import BooleanField, ModelChoiceField
 
 from documents.services.process_document import quick_barcode_processor
-from .forms import(
-        AssetUpdateForm,
-        AssetBulkUpdateForm,
-        SetEquipmentSoftwareForm,
-        SetEquipmentConfigurationForm,
-        ReplicateAssetForm,
+from .forms import (
+    AssetUpdateForm,
+    AssetBulkUpdateForm,
+    SetEquipmentSoftwareForm,
+    SetEquipmentConfigurationForm,
+    ReplicateAssetForm,
 )
 
 from utils.generic_views import BulkUpdateView
@@ -106,9 +106,11 @@ class AssetDetailView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["open_jobs"] = self.object.asset.jobs.filter(jobstatusid__in=[0, 2, 3, 5])
-        context['tasks'] = get_equipment_tasks(self.object)
-        
+        context["open_jobs"] = self.object.asset.jobs.filter(
+            jobstatusid__in=[0, 2, 3, 5]
+        )
+        context["tasks"] = get_equipment_tasks(self.object)
+
         return context
 
 
@@ -190,7 +192,7 @@ class AssetCreateView(
 
     def update_form(self, resolved_data):
         form_data = self.request.GET.dict()
-        asset_data = resolved_data.get('asset', None)
+        asset_data = resolved_data.get("asset", None)
         if asset_data is not None:
             for field, value in asset_data.items():
                 if field == "prod_date" and value is not None:
@@ -207,18 +209,17 @@ class AssetCreateView(
 
     def get_form_kwargs(self, form_class=None):
         kwargs = super().get_form_kwargs()
-        kwargs['acceptance'] = True
+        kwargs["acceptance"] = True
         return kwargs
-
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context['com_requests'] = CommissionRequest.objects.all()
+        context["com_requests"] = CommissionRequest.objects.all()
         return context
 
     def form_valid(self, form):
-        create_acceptance = self.request.POST.get('create_acceptance_job', None)
-        technician_id = self.request.POST.get('technicianid', None)
+        create_acceptance = self.request.POST.get("create_acceptance_job", None)
+        technician_id = self.request.POST.get("technicianid", None)
 
         with transaction.atomic():
             self.object = form.save()
@@ -227,96 +228,104 @@ class AssetCreateView(
             if create_acceptance:
                 acceptance_job, created = Tbljob.objects.get_or_create(
                     assetid=self.object,
-                    jobtypeid=Tbljobtypes.objects.filter(jobtypename__icontains='acceptance').first(),
-                    jobstatusid=Tbljobstatus.objects.filter(jobstatusname__icontains='progress').first(),
-                    technicianid=Tbltechnicianlist.objects.get(pk=technician_id)
+                    jobtypeid=Tbljobtypes.objects.filter(
+                        jobtypename__icontains="acceptance"
+                    ).first(),
+                    jobstatusid=Tbljobstatus.objects.filter(
+                        jobstatusname__icontains="progress"
+                    ).first(),
+                    technicianid=Tbltechnicianlist.objects.get(pk=technician_id),
                 )
                 response = HttpResponse()
-                response['HX-Redirect'] = reverse('jobs:job_update', kwargs={'pk':acceptance_job.pk})
+                response["HX-Redirect"] = reverse(
+                    "jobs:job_update", kwargs={"pk": acceptance_job.pk}
+                )
                 return response
 
             return HttpResponseRedirect(self.get_success_url())
 
+
 class SetEquipmentSoftware(LoginRequiredMixin, PermissionRequiredMixin, FormView):
-    template_name = 'assets/set_equipment_software.html'
+    template_name = "assets/set_equipment_software.html"
     form_class = SetEquipmentSoftwareForm
-    permission_required = 'model_information.add_equipmentsoftware'
-    
+    permission_required = "model_information.add_equipmentsoftware"
+
     def get_success_url(self):
         equipment = self.object.equipment.pk
-        return reverse('assets:view_asset', kwargs={'pk':equipment})
+        return reverse("assets:view_asset", kwargs={"pk": equipment})
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        equipmentid = self.request.GET.get('equipmentid', None)
+        equipmentid = self.request.GET.get("equipmentid", None)
         if equipmentid:
-            kwargs['equipment_id'] = equipmentid 
+            kwargs["equipment_id"] = equipmentid
 
         return kwargs
-        
 
     def form_valid(self, form):
-        software_id = form.cleaned_data['software']
-        equipment_id = form.cleaned_data['equipment']
+        software_id = form.cleaned_data["software"]
+        equipment_id = form.cleaned_data["equipment"]
         self.object = apply_software_change(
-            equipment=equipment_id,
-            software=software_id,
-            user=self.request.user 
+            equipment=equipment_id, software=software_id, user=self.request.user
         )
-        
+
         response = HttpResponseRedirect(self.get_success_url())
         return response
 
+
 class RemoveEquipmentSoftware(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = EquipmentSoftware
-    template_name = 'assets/remove_equipment_software.html'
-    permission_required = 'model_information.delete_equipmentsoftware'
-    fields = '__all__'
-    context_object_name = 'software_equipment'
+    template_name = "assets/remove_equipment_software.html"
+    permission_required = "model_information.delete_equipmentsoftware"
+    fields = "__all__"
+    context_object_name = "software_equipment"
 
     def get_success_url(self):
         equipment_id = self.object.equipment.pk
-        return reverse('assets:view_asset', kwargs={'pk':equipment_id})
+        return reverse("assets:view_asset", kwargs={"pk": equipment_id})
+
 
 class SetEquipmentConfiguration(LoginRequiredMixin, PermissionRequiredMixin, FormView):
-    template_name = 'assets/set_equipment_configuration.html'
+    template_name = "assets/set_equipment_configuration.html"
     form_class = SetEquipmentConfigurationForm
-    permission_required = 'model_information.add_equipmentconfigurationlink'
-    
+    permission_required = "model_information.add_equipmentconfigurationlink"
+
     def get_success_url(self):
         equipment = self.object.equipment.pk
-        return reverse('assets:view_asset', kwargs={'pk':equipment})
+        return reverse("assets:view_asset", kwargs={"pk": equipment})
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        equipmentid = self.request.GET.get('equipmentid', None)
+        equipmentid = self.request.GET.get("equipmentid", None)
         if equipmentid:
-            kwargs['equipment_id'] = equipmentid 
+            kwargs["equipment_id"] = equipmentid
 
         return kwargs
-        
 
     def form_valid(self, form):
-        configuration_id = form.cleaned_data['configuration']
-        equipment_id = form.cleaned_data['equipment']
+        configuration_id = form.cleaned_data["configuration"]
+        equipment_id = form.cleaned_data["equipment"]
         self.object = apply_configuration_change(
             equipment=equipment_id,
             configuration=configuration_id,
         )
-        
+
         response = HttpResponseRedirect(self.get_success_url())
         return response
 
-class RemoveEquipmentConfiguration(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+
+class RemoveEquipmentConfiguration(
+    LoginRequiredMixin, PermissionRequiredMixin, DeleteView
+):
     model = EquipmentConfigurationLink
-    template_name = 'assets/remove_equipment_configuration.html'
-    permission_required = 'model_information.delete_equipmentconfigurationlink'
-    fields = '__all__'
-    context_object_name = 'config'
+    template_name = "assets/remove_equipment_configuration.html"
+    permission_required = "model_information.delete_equipmentconfigurationlink"
+    fields = "__all__"
+    context_object_name = "config"
 
     def get_success_url(self):
         equipment_id = self.object.equipment.pk
-        return reverse('assets:view_asset', kwargs={'pk':equipment_id})
+        return reverse("assets:view_asset", kwargs={"pk": equipment_id})
 
 
 class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):
@@ -329,117 +338,122 @@ class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):
     operation = "update"
     table_to_update = Tblassets
 
+
 def asset_already_exists(resolved_data, **kwargs):
-    return  bool(resolved_data.get(
-                'resolved', {}
-            ).get('asset',{}).get('asset_id', None))
-    
-def has_serial_number(resolved_data, **kwargs):
     return bool(
-        resolved_data.get(
-                'resolved', {}
-        ).get(
-            'asset',{}
-        ).get(
-            'serialnumber', None)
+        resolved_data.get("resolved", {}).get("asset", {}).get("asset_id", None)
     )
 
+
+def has_serial_number(resolved_data, **kwargs):
+    return bool(
+        resolved_data.get("resolved", {}).get("asset", {}).get("serialnumber", None)
+    )
+
+
 def model_matches(resolved_data, modelid, **kwargs):
-    group_model_id = resolved_data.get('model',{}).get('model_id', None)
+    group_model_id = resolved_data.get("model", {}).get("model_id", None)
     return group_model_id == modelid.pk
 
-def model_mismatched(resolved_data, modelid, **kwargs):
-    group_model_id = resolved_data.get('model',{}).get('modelid', None)
 
-    asset_model_id = modelid 
+def model_mismatched(resolved_data, modelid, **kwargs):
+    group_model_id = resolved_data.get("model", {}).get("modelid", None)
+
+    asset_model_id = modelid
     return group_model_id != asset_model_id.pk
 
+
 def is_unresolved(resolved_data, **kwargs):
-    return not bool(resolved_data) 
+    return not bool(resolved_data)
+
 
 REPLICATION_CONFIG = {
-'unresolved': {
-        'check':is_unresolved,
-        'context': {
-            'valid': False, 
-            'replication_status': 'disabled',
-            'replication_message': 'Not enough data to copy asset.',
-            'replication_color': 'secondary',
-            'error_message': 'Upload or scan new asset information'
-        }
+    "unresolved": {
+        "check": is_unresolved,
+        "context": {
+            "valid": False,
+            "replication_status": "disabled",
+            "replication_message": "Not enough data to copy asset.",
+            "replication_color": "secondary",
+            "error_message": "Upload or scan new asset information",
+        },
     },
-'asset_exists': {
-        'check':asset_already_exists,
-        'context': {
-            'valid': False,
-            'replication_status': 'disabled',
-            'replication_message': 'Asset Already Exists',
-            'replication_color': 'secondary',
-            'error_message': 'Uploaded information is for asset that already exists in database'
-        }
+    "asset_exists": {
+        "check": asset_already_exists,
+        "context": {
+            "valid": False,
+            "replication_status": "disabled",
+            "replication_message": "Asset Already Exists",
+            "replication_color": "secondary",
+            "error_message": "Uploaded information is for asset that already exists in database",
+        },
     },
-'model_matched': {
-        'check':model_matches,
-        'context': {
-            'valid': True,
-            'replication_status': 'enabled',
-            'replication_message': 'Serial number recognised and new asset matches model of original asset.',
-            'replication_color': 'success',
-            'error_message': None 
-        }
+    "model_matched": {
+        "check": model_matches,
+        "context": {
+            "valid": True,
+            "replication_status": "enabled",
+            "replication_message": "Serial number recognised and new asset matches model of original asset.",
+            "replication_color": "success",
+            "error_message": None,
+        },
     },
-'model_not_matched': {
-        'check':model_mismatched,
-        'context': {
-            'valid': True, 
-            'replication_status': 'enabled',
-            'replication_message': 'Serial number recognised but model of new asset is different from original asset.',
-            'replication_color': 'warning',
-            'error_message': None 
-        }
+    "model_not_matched": {
+        "check": model_mismatched,
+        "context": {
+            "valid": True,
+            "replication_status": "enabled",
+            "replication_message": "Serial number recognised but model of new asset is different from original asset.",
+            "replication_color": "warning",
+            "error_message": None,
+        },
     },
-
 }
 
+
 class ReplicateAsset(LoginRequiredMixin, PermissionRequiredMixin, FormView):
-    permission_required = "documents.view_tempuploadgroup"
+    permission_required = "assets.add_tblassets"
     form_class = ReplicateAssetForm
-    template_name = 'assets/replicate_from_group.html'
+    template_name = "assets/replicate_from_group.html"
     config = REPLICATION_CONFIG
 
     def get(self, *args, **kwargs):
-        group_id = self.kwargs['group_id']
-        if group_id == 'new':
+        group_id = self.kwargs["group_id"]
+        if group_id == "new":
             group = self.get_group
             return redirect(
-                'assets:replicate_asset',
-                group_id=str(group.pk),
-                pk=self.kwargs['pk'])
+                "assets:replicate_asset", group_id=str(group.pk), pk=self.kwargs["pk"]
+            )
         return super().get(*args, **kwargs)
 
     @cached_property
     def get_template_object(self):
         if self.request.POST:
-            asset_id = self.request.POST.get('template_asset')   
+            asset_id = self.request.POST.get("template_asset")
         else:
-            asset_id = self.kwargs['pk']
+            asset_id = self.kwargs["pk"]
         return Tblassets.objects.get(assetid=asset_id)
+
+    def get_form_kwargs(self, form_class=None):
+        kwargs = super().get_form_kwargs()
+        asset = self.get_template_object
+        acceptance_job = asset.jobs.filter(jobtypeid=0).first()
+        if acceptance_job:
+            kwargs["acceptance_job"] = True
+        return kwargs
 
     @cached_property
     def get_group(self):
         if self.request.POST:
-            group_id = self.request.POST.get('group_id')
-        group_id = self.kwargs['group_id']
+            group_id = self.request.POST.get("group_id")
+        group_id = self.kwargs["group_id"]
 
-        if group_id == 'new':
-            group = (
-                TempUploadGroup.objects.filter(
-                    user=self.request.user,
-                    document_type_id=DocumentTypes.ASSET_DATA,
-                    temp_uploads__isnull=True,
-                )
-                .first()
-            )
+        if group_id == "new":
+            group = TempUploadGroup.objects.filter(
+                user=self.request.user,
+                document_type_id=DocumentTypes.ASSET_DATA,
+                temp_uploads__isnull=True,
+            ).first()
 
             if group is None:
                 group = TempUploadGroup.objects.create(
@@ -455,73 +469,74 @@ class ReplicateAsset(LoginRequiredMixin, PermissionRequiredMixin, FormView):
         return group
 
     def get_customerassetnumber(self):
-        return self.get_group.extracted_json.get(
-            'parsed', {}
-        ).get('asset',{}).get('customreassetnumber', None)
+        return (
+            self.get_group.extracted_json.get("parsed", {})
+            .get("asset", {})
+            .get("customreassetnumber", None)
+        )
 
     def get_serialnumber(self):
-        return self.get_group.extracted_json.get(
-                    'resolved', {}
-                ).get('asset',{}).get('serialnumber', None)
-    
-        
+        return (
+            self.get_group.extracted_json.get("resolved", {})
+            .get("asset", {})
+            .get("serialnumber", None)
+        )
+
     def form_valid(self, form):
 
-        resolved_data = self.get_group.extracted_json.get('resolved', None)
+        resolved_data = self.get_group.extracted_json.get("resolved", None)
 
         has_error = False
         for config in self.config.values():
-            if config['check'](
-                resolved_data = resolved_data,
-                modelid = self.get_template_object.modelid
+            if config["check"](
+                resolved_data=resolved_data, modelid=self.get_template_object.modelid
             ):
-                error = config['context']['error_message']
+                error = config["context"]["error_message"]
                 if error:
                     has_error = True
-                    form.add_error(None, error )
+                    form.add_error(None, error)
 
         if has_error:
             return self.form_invalid(form)
 
         self.object = self.get_template_object
         acceptance_job = self.object.jobs.filter(jobtypeid=0).first()
+        copy_acceptance = self.request.POST.get("create_acceptance_job", None)
 
-        serial_no = self.get_serialnumber()    
+        serial_no = self.get_serialnumber()
+
+        customerassetnumber = self.get_customerassetnumber()
+        self.object.pk = None
+        self.object.serialnumber = serial_no
+
+        if customerassetnumber:
+            self.object.customerassetnumber = customerassetnumber
 
         with transaction.atomic():
-            customerassetnumber = self.get_customerassetnumber()
-            self.object.pk = None
-            self.object.serialnumber = serial_no
-
-            if customerassetnumber:
-                self.object.customerassetnumber = customerassetnumber
-
             self.object.save()
-            acceptance_job.pk = None 
-            acceptance_job.assetid = self.object
-            acceptance_job.save()
-
+            if acceptance_job and copy_acceptance:
+                acceptance_job.pk = None
+                acceptance_job.assetid = self.object
+                acceptance_job.save()
 
             self.get_group.delete()
-        
+
         return HttpResponseRedirect(self.get_success_url())
 
-
     def get_success_url(self):
-        return reverse('assets:view_asset', kwargs={'pk':self.object.pk})
+        return reverse("assets:view_asset", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context['asset'] = self.get_template_object
-        context['group'] = self.get_group 
-        resolved_data = self.get_group.extracted_json.get('resolved', None)
+        context["asset"] = self.get_template_object
+        context["group"] = self.get_group
+        resolved_data = self.get_group.extracted_json.get("resolved", None)
 
         for config in self.config.values():
-            if config['check'](
-                resolved_data = resolved_data,
-                modelid = self.get_template_object.modelid
+            if config["check"](
+                resolved_data=resolved_data, modelid=self.get_template_object.modelid
             ):
-                context.update(config['context'])
+                context.update(config["context"])
                 return context
 
-        return  context
+        return context

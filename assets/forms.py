@@ -1,18 +1,19 @@
 from django import forms
 from django.db.models import CommaSeparatedIntegerField
-from .models import(
+from .models import (
     Tblassets,
     Tblmodel,
     Tblcustomer,
     TblAssetStatus,
     Tblppmschedules,
-    Tbltechnicianlist
+    Tbltechnicianlist,
 )
 from django_select2.forms import ModelSelect2Widget
 from django.core.exceptions import ValidationError
 from model_information.models import EquipmentConfiguration, Software, SoftwareModel
 
 from documents.mixins import TempUploadUpdateFormMixin
+
 
 class DateInput(forms.DateInput):
     input_type = "date"
@@ -81,26 +82,25 @@ class AssetUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
     def __init__(self, acceptance=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if acceptance:
-
-            self.fields['create_acceptance_job'] = forms.BooleanField(
-                required=False,
-                initial=False,
-                label='Create Acceptance Job'
+            self.fields["create_acceptance_job"] = forms.BooleanField(
+                required=False, initial=False, label="Create Acceptance Job"
             )
-            self.fields['technicianid'] = forms.ModelChoiceField(
+            self.fields["technicianid"] = forms.ModelChoiceField(
                 queryset=Tbltechnicianlist.objects.all(),
-                label='Technician',
-                required=False
-                )
+                label="Technician",
+                required=False,
+            )
 
     def clean(self):
         cleaned_data = super().clean()
 
-        if cleaned_data.get('create_acceptance_job', False) and not cleaned_data.get('technicianid', False):
-            raise ValidationError({
-                'technicianid': 'Select a Technician name for acceptance job'
-            })
-            
+        if cleaned_data.get("create_acceptance_job", False) and not cleaned_data.get(
+            "technicianid", False
+        ):
+            raise ValidationError(
+                {"technicianid": "Select a Technician name for acceptance job"}
+            )
+
         return cleaned_data
 
 
@@ -168,13 +168,13 @@ class SetEquipmentSoftwareForm(forms.Form):
         required=True,
         widget=ModelSelect2Widget(
             model=Software,
-            search_fields=['brand__icontains','name__icontains'],
+            search_fields=["brand__icontains", "name__icontains"],
             attrs={
                 "data-minimum-input-length": 0,
                 "data-placeholder": "Select an option",
                 "data-close-on-select": "false",
-            }
-        )
+            },
+        ),
     )
 
     equipment = forms.ModelChoiceField(
@@ -182,27 +182,33 @@ class SetEquipmentSoftwareForm(forms.Form):
         required=True,
         widget=ModelSelect2Widget(
             model=Tblassets,
-            search_fields=['serialnumber__icontains'],
+            search_fields=["serialnumber__icontains"],
             attrs={
                 "data-minimum-input-length": 0,
                 "data-placeholder": "Select an option",
                 "data-close-on-select": "false",
-            }
-        )
+            },
+        ),
     )
-    
+
     def __init__(self, *args, **kwargs):
-        equipment_id = kwargs.pop('equipment_id', None)
+        equipment_id = kwargs.pop("equipment_id", None)
         super().__init__(*args, **kwargs)
         if equipment_id:
             equipment = Tblassets.objects.get(pk=equipment_id)
-            compatible_software_ids = equipment.modelid.supported_software.all().values_list('software',flat=True)
-            compatible_software = Software.objects.filter(pk__in=compatible_software_ids)
+            compatible_software_ids = (
+                equipment.modelid.supported_software.all().values_list(
+                    "software", flat=True
+                )
+            )
+            compatible_software = Software.objects.filter(
+                pk__in=compatible_software_ids
+            )
 
-            self.fields['equipment'].initial = equipment_id
+            self.fields["equipment"].initial = equipment_id
 
-            self.fields['software'].queryset = compatible_software
-            self.fields['software'].initial = compatible_software.last()
+            self.fields["software"].queryset = compatible_software
+            self.fields["software"].initial = compatible_software.last()
 
 
 class SetEquipmentConfigurationForm(forms.Form):
@@ -211,13 +217,13 @@ class SetEquipmentConfigurationForm(forms.Form):
         required=True,
         widget=ModelSelect2Widget(
             model=EquipmentConfiguration,
-            search_fields=['brand__icontains','name__icontains'],
+            search_fields=["brand__icontains", "name__icontains"],
             attrs={
                 "data-minimum-input-length": 0,
                 "data-placeholder": "Select an option",
                 "data-close-on-select": "false",
-            }
-        )
+            },
+        ),
     )
 
     equipment = forms.ModelChoiceField(
@@ -225,26 +231,32 @@ class SetEquipmentConfigurationForm(forms.Form):
         required=True,
         widget=ModelSelect2Widget(
             model=Tblassets,
-            search_fields=['serialnumber__icontains'],
+            search_fields=["serialnumber__icontains"],
             attrs={
                 "data-minimum-input-length": 0,
                 "data-placeholder": "Select an option",
                 "data-close-on-select": "false",
-            }
-        )
+            },
+        ),
     )
-    
+
     def __init__(self, *args, **kwargs):
-        equipment_id = kwargs.pop('equipment_id', None)
+        equipment_id = kwargs.pop("equipment_id", None)
         super().__init__(*args, **kwargs)
         if equipment_id:
             equipment = Tblassets.objects.get(pk=equipment_id)
             required_config = EquipmentConfiguration.objects.resolve(equipment)
 
-            self.fields['equipment'].initial = equipment_id
+            self.fields["equipment"].initial = equipment_id
 
             if required_config:
-                self.fields['configuration'].initial = required_config
+                self.fields["configuration"].initial = required_config
+
 
 class ReplicateAssetForm(forms.Form):
-    pass
+    def __init__(self, acceptance_job=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if acceptance_job:
+            self.fields["create_acceptance_job"] = forms.BooleanField(
+                required=False, initial=True, label="Copy Acceptance Job"
+            )

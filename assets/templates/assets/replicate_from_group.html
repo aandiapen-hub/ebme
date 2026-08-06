@@ -37,6 +37,7 @@
 
           <form id='replication_form' method='POST' action='.'>
             {% csrf_token %}
+            {% bootstrap_form form %}
               <input hidden id='group_id' name='group_id' value={{group.pk}}>
               <input hidden id='template_asset' name='template_asset' value={{asset.pk}}>
               <button {{replication_status}} class='btn btn-{{replication_color}}' type="submit">Copy Asset</button>
