@@ -1,9 +1,10 @@
-{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+{% load django_bootstrap5 %}
 
 
 <form method="post" action="{% url 'parts:linked_models_create' %}">
  {% csrf_token %}
  {{form.media}}
-    {{form|crispy}}
+        {% bootstrap_form form %}
+
     <button id='submit_button' class='btn btn-outline-primary' type="submit">Save</button>
 </form>

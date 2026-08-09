@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+{% load django_bootstrap5 %}
 
 
 {% block content %}    
@@ -7,7 +7,8 @@
     <form action="{% url 'procurement:invoices_delete' pk=invoice.pk %}", method="post">
             {% csrf_token %} 
 
-                {{form|crispy}}
+                    {% bootstrap_form form %}
+
                 <p>Are you sure you would like to delete invoice {{invoice}}?</p>
 
             <button type="submit" class="btn btn-danger">Delete Invoice</button>

@@ -1,4 +1,4 @@
-{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+{% load django_bootstrap5 %}
 
 <div id='job_details' class='container mb-3'>
             
@@ -7,7 +7,8 @@
             hx-post="{% url 'jobs:create_job_from_report' temp_file_group=temp_document_group %}">  
                     {% csrf_token %} 
 
-                        {{form|crispy}}
+                            {% bootstrap_form form %}
+
                     <button type="submit" class="btn btn-primary">Save Job</button>
             </form>
         </div>

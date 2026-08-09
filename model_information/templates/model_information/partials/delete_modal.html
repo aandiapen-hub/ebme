@@ -1,4 +1,4 @@
-{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+{% load django_bootstrap5 %}
 
 
 <div id="modal_dialog" class="modal-dialog modal-dialog-centered">
@@ -14,7 +14,8 @@
         hx-target="#modal_dialog"
         hx-swap="outerHTML">
         {% csrf_token %}
-        {{ form|crispy }}
+        {% bootstrap_form form %}
+
         <h3>Are you sure you want to delete {{object}}</h3>
         <button class="btn btn-danger" type="submit">Confirm Delete</button>
         </form>

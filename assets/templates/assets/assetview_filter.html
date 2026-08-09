@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% load django_tables2 %}
 {% load i18n %}
-{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
 
 
 {% block content %}
@@ -9,9 +8,7 @@
 
 <div id='asset_filter_table' class="container-flex p-3 row-gap-3">
       <div class='d-flex flex-row  gap-2 align-items-center'>
-          <div id='title_name'>
-            <h1>Assets</h1>
-          </div>
+          <h1>Assets</h1>
           <div id='action_create' class='ms-auto'>
                 <!--create asset button-->
                 {% if perms.assets.add_tblassets %}
@@ -22,6 +19,7 @@
           </div>  
       </div>
 </div>
+
 {% include "filter_table.html" with app_link='assets:assets_list' %}
 
 

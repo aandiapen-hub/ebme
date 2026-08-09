@@ -1,4 +1,4 @@
-{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+{% load django_bootstrap5 %}
 
 
 <div  class="modal-dialog modal-dialog-centered">
@@ -18,7 +18,7 @@
         window.location.reload();
         ">
         {% csrf_token %}
-        {{ form|crispy }}
+        {% bootstrap_form form %}
 
         {% if view_type == "delete" %}
         <h3>Are you sure you want to delete {{object}}</h3>

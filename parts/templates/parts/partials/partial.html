@@ -1,4 +1,5 @@
-{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+{% load django_bootstrap5 %}
+
 <div id="model-detail" class='container bg-white p-2'>
 
         <h1>{{object}}</h1>
@@ -9,7 +10,8 @@
         hx-select="#model-detail"
         hx-swap='outerHTML'>
         {% csrf_token %}
-        {{ form|crispy }}
+        {% bootstrap_form form %}
+
 
         {% if view_type == "delete" %}
         <h3>Are you sure you want to delete the part {{object}}</h3>

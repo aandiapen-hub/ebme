@@ -1,4 +1,4 @@
-{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
+{% load django_bootstrap5 %}
 
 
 <div  class="modal-dialog modal-dialog-centered">
@@ -15,7 +15,7 @@
         hx-on::after-Request= "bootstrap.Modal.getInstance(document.getElementById('modals-here')).hide();
         window.location.href = '{% url 'jobs:jobs_list' %}'">
         {% csrf_token %}
-        {{ form|crispy }}
+        {% bootstrap_form form %}
 
         <button class="btn btn-danger" type="submit">Confirm Delete</button>
  

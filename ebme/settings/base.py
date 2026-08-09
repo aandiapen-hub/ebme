@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Load a default .env file (overridden in dev/prod files)
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -34,8 +34,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "crispy_forms",
-    "crispy_bootstrap5",
     "django_tables2",
     "django_select2",
     "django_filters",
@@ -49,16 +47,13 @@ INSTALLED_APPS = [
     "model_information",
     "parts",
     "procurement",
-    "cap_project"
+    "cap_project",
 ]
-
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
-CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -73,7 +68,9 @@ ROOT_URLCONF = "ebme.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, 'templates'),],
+        "DIRS": [
+            os.path.join(BASE_DIR, "templates"),
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -130,18 +127,18 @@ STATICFILES_DIRS = [
 ]
 
 # or os.path.join(BASE_DIR, 'staticfiles')
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
 # Media files (user generated files)
-MEDIA_ROOT = BASE_DIR / 'media'
-MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
 
 
-TEMP_UPLOAD_DIR = MEDIA_ROOT / 'temp_uploads'
-TEMP_UPLOAD_URL = MEDIA_URL + 'temp_uploads/'  # <- use this in templates
+TEMP_UPLOAD_DIR = MEDIA_ROOT / "temp_uploads"
+TEMP_UPLOAD_URL = MEDIA_URL + "temp_uploads/"  # <- use this in templates
 
-PERMANENT_UPLOAD_DIR = MEDIA_ROOT / 'uploads'
+PERMANENT_UPLOAD_DIR = MEDIA_ROOT / "uploads"
 
 
 # Default primary key field type
@@ -160,20 +157,16 @@ CACHES = {
         "LOCATION": "redis://redis:6379/2",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
-    }
+        },
+    },
 }
 SELECT2_CACHE_BACKEND = "select2"
 
-AUTH_USER_MODEL = 'users.CustomUser'
+AUTH_USER_MODEL = "users.CustomUser"
 
-LOGIN_URL = '/users/login/'  # Or just 'login' if using reverse()
-LOGIN_REDIRECT_URL = 'users:landing'  # Or another view name
+LOGIN_URL = "/users/login/"  # Or just 'login' if using reverse()
+LOGIN_REDIRECT_URL = "users:landing"  # Or another view name
 
 TASKS = {
-    "default": {
-        "BACKEND": "django_tasks_db.DatabaseBackend",
-        "QUEUES": ["default"]
-    }
+    "default": {"BACKEND": "django_tasks_db.DatabaseBackend", "QUEUES": ["default"]}
 }
-

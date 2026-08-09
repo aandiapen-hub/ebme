@@ -1,18 +1,14 @@
 {% extends "base.html" %}
-
-
+{% load django_bootstrap5 %}
 
 {% block content %}
-
-
-{% load crispy_forms_tags %} <!-- Load Crispy Forms -->
 <h3>Please Enter Login details</h3>
 
 <div class="container">
 
     <form action="" method="post">
         {% csrf_token %}
-        {{ form|crispy }}
+        {% bootstrap_form form %}
         <button class="btn btn-primary" type="submit">Submit</button>
     </form>
 </div>

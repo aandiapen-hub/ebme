@@ -1,6 +1,7 @@
  {% extends "base.html" %}
- {% load crispy_forms_tags %} <!-- Load Crispy Forms -->
 {% load static %}
+{% load django_bootstrap5 %}
+
 
 
  {% block content %}
@@ -15,7 +16,8 @@
     hx-trigger='click from:#save_button'
     enctype="multipart/form-data">
         {% csrf_token %}
-        {{ form|crispy }}
+        {% bootstrap_form form %}
+
         <button id="save_button" class="btn btn-primary" type="button">Read Document</button>
     </form>
     <img  id="spinner" class="htmx-indicator" src="{% static "spinners/3-dots-fade.svg" %}">
