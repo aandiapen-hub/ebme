@@ -6,25 +6,22 @@
 {% block content %}
 <div class="container-flex p-3 row-gap-3">
     <section id="title" class="row">
-        <article class="col-12">
+        <article class="d-flex align-items-center justify-content-between gap-2 col-12">
             <h1>Brands</h1>
+
+            {% if perms.assets.add_tblbrands %}
+                <a
+                class='btn btn-sm btn-outline-secondary'
+                href="{% url 'model_information:create_brand' %}">
+                New <i class="bi bi-plus-lg"></i>
+                </a>
+            {% endif %}
         </article>
     </section>
 
 
 <!-- Button to create a new brand -->
  
-    {% if perms.assets.add_tblbrands %}
-        <button
-        hx-get="{% url 'model_information:create_brand'%}"
-        hx-target="#modals-here"
-        hx-trigger="click"
-        data-bs-toggle="modal"
-        data-bs-target="#modals-here"
-        class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-plus-lg"></i>
-        </button>
-    {% endif %}
 
 
 </div>

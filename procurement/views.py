@@ -1,7 +1,9 @@
 from django.db import transaction
+
+from django.db.models.deletion import ProtectedError
 import json
 from django.contrib import messages
-from utils.dynamic_formset import(
+from utils.dynamic_formset import (
     AddFormsetRowView,
     FormsetOptionsListView,
     FormsetMixin,
@@ -84,6 +86,12 @@ class PoCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         initial["date_raised"] = now().date().isoformat()
         return initial
 
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context["cancel_url"] = reverse("procurement:po")
+
+        return context
+
 
 PO_FORMSET_CONFIG = {
     "po_line": {
@@ -92,12 +100,10 @@ PO_FORMSET_CONFIG = {
         "formset": PoLineFormset,
         "model": Tblpartslist,
         "pk_field": "partid",
-        "lookup_field": 'item',
-        'lookup_view': "procurement:po_item_option_list",
-        'lookup_query_params': {
-            'supplier_id': lambda view:view.object.supplier.pk
-        },
-        'title':'Items',
+        "lookup_field": "item",
+        "lookup_view": "procurement:po_item_option_list",
+        "lookup_query_params": {"supplier_id": lambda view: view.object.supplier.pk},
+        "title": "Items",
         "initial": lambda obj: {
             "item": obj.pk,
             "quantity": 1,
@@ -105,22 +111,25 @@ PO_FORMSET_CONFIG = {
     },
 }
 
+
 class PoItemOptionListView(FormsetOptionsListView):
     model = Tblpartslist
     permission_required = "procurement.change_tblpurchaseorder"
     config = PO_FORMSET_CONFIG
-    add_formset_row_view = 'procurement:add_formset_row' 
+    add_formset_row_view = "procurement:add_formset_row"
 
     def get_queryset(self):
         qs = super().get_queryset()
-        supplier_id = self.request.GET.get('supplier_id', None)
+        supplier_id = self.request.GET.get("supplier_id", None)
         if supplier_id:
             qs = qs.filter(supplier_id=supplier_id)
         return qs
 
+
 class PoAddFormsetRowView(AddFormsetRowView):
     permission_required = "procurement.change_tblpurchaseorder"
     formset_config = PO_FORMSET_CONFIG
+
 
 class PoUpdateView(
     LoginRequiredMixin,
@@ -140,8 +149,11 @@ class PoUpdateView(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(super().get_formsets())
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse(
+                "procurement:po_detail", kwargs={"pk": self.object.po_id}
+            )
         return context
-
 
     def form_valid(self, form):
         super().form_valid(form)
@@ -162,22 +174,28 @@ class PoDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     context_object_name = "po"
     permission_required = "procurement.delete_tblpurchaseorder"
 
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
+    def form_valid(self, form):
         try:
             with transaction.atomic():
                 delete_object_document_links(self.object)
                 self.object.delete()
-            response = HttpResponse()
-            messages.warning(request, "PO deleted")
+            response = HttpResponseRedirect(self.success_url)
 
-            response["HX-Redirect"] = self.success_url
             return response
-        except Exception as e:
-            context = self.get_context_data(object=self.object)
-            messages.warning(request, f"Error Details: {str(e)}")
-            return self.render_to_response(context)
+        except ProtectedError:
+            form.add_error(
+                None,
+                "This part cannot be deleted because it is still being used elsewhere.",
+            )
+            return self.form_invalid(form)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse(
+                "procurement:po_detail", kwargs={"pk": self.object.po_id}
+            )
+        return context
 
 
 class GeneratePurchaseOrder(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
@@ -190,19 +208,20 @@ class GeneratePurchaseOrder(LoginRequiredMixin, PermissionRequiredMixin, DetailV
         return print_po(po_lines)
 
 
-
-class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, TempUploadMixin, CreateView):
+class DeliveryCreateView(
+    LoginRequiredMixin, PermissionRequiredMixin, TempUploadMixin, CreateView
+):
     model = TblDeliveries
     template_name = "procurement/delivery_create.html"
     form_class = DeliveryCreateForm
     permission_required = "procurement.add_tbldeliveries"
 
     def get_success_url(self):
-        return reverse("procurement:po_detail", kwargs={'pk':self.object.po_id})
+        return reverse("procurement:po_detail", kwargs={"pk": self.object.po_id})
 
     def get_initial(self):
         initial = super().get_initial()
-        initial['po'] = self.kwargs.get("po_id")
+        initial["po"] = self.kwargs.get("po_id")
         return initial
 
     def get_context_data(self, **kwargs):
@@ -213,15 +232,18 @@ class DeliveryCreateView(LoginRequiredMixin, PermissionRequiredMixin, TempUpload
                 self.request.POST, instance=self.object
             )
         else:
-
             formset_data = delivery_items_formset_get_context(
-                    po_id=self.kwargs.get("po_id", None),
-                    instance=self.object,
-                    formset_class=DeliveryLineFormset,
-                    delivered_items=get_formset_initial(self.get_temp_group_id())
+                po_id=self.kwargs.get("po_id", None),
+                instance=self.object,
+                formset_class=DeliveryLineFormset,
+                delivered_items=get_formset_initial(self.get_temp_group_id()),
             )
             context.update(**formset_data)
 
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse(
+                "procurement:po_detail", kwargs={"pk": self.kwargs.get("po_id")}
+            )
         return context
 
     def post(self, request, *args, **kwargs):
@@ -267,6 +289,11 @@ class DeliveryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         else:
             po = self.object.po.po_id
             context["formset"] = DeliveryLineFormset(instance=self.object, po=po)
+
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse(
+                "procurement:po_detail", kwargs={"pk": self.object.po_id}
+            )
         return context
 
     def post(self, request, *args, **kwargs):
@@ -309,17 +336,20 @@ class DeliveryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
         messages.success(self.request, "Delivery deleted successfully")
         if self.request.htmx:
             response = HttpResponse(status=200)
-            response['HX-Trigger'] = json.dumps({
-                    'deliveries_updated': True,
-                    'show_message': {
-                        'message': 'Delivery deleted',
-                        'level': 'warning',
+            response["HX-Trigger"] = json.dumps(
+                {
+                    "deliveries_updated": True,
+                    "show_message": {
+                        "message": "Delivery deleted",
+                        "level": "warning",
                     },
-            })
+                }
+            )
             return response
 
         # Fallback redirect if not HTMX
         return HttpResponseRedirect(self.get_success_url())
+
 
 # invoices
 class FilteredInvoiceTableView(
@@ -395,4 +425,3 @@ class InvoicesDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
             self.object.delete()
         response = HttpResponseRedirect(self.get_success_url())
         return response
-

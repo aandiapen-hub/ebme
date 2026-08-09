@@ -130,6 +130,15 @@ class AssetUpdateView(
         # Use self.object to access the updated object
         return reverse("assets:view_asset", kwargs={"pk": self.object.assetid})
 
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse(
+                "assets:view_asset", kwargs={"pk": self.object.pk}
+            )
+
+        return context
+
 
 class AssetDeleteView(
     LoginRequiredMixin,
@@ -215,6 +224,8 @@ class AssetCreateView(
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
         context["com_requests"] = CommissionRequest.objects.all()
+        if not context.get("cancel_url", None):
+            context["cancel_url"] = reverse("assets:assets_list")
         return context
 
     def form_valid(self, form):

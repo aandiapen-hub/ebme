@@ -4,6 +4,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
 from documents.mixins import TempUploadMixin
 
+from django.db.models.deletion import ProtectedError
 
 # import models
 from assets.models import Tblbrands, Tblmodel, Tblcategories, Tblcheckslists
@@ -71,24 +72,19 @@ class FilteredBrandTableView(
 class BrandUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Tblbrands
     fields = "__all__"
-    template_name = "model_information/partials/modal.html"
-    success_url = reverse_lazy("model_information:brandlist")
+    template_name = "model_information/brand_update.html"
     permission_required = "assets.change_tblbrands"
-
-    def form_valid(self, form):
-        self.object = form.save()
-        if self.request.htmx:
-            # Return empty 204 response so HTMX knows it's successful
-            response = HttpResponse("", status=204)
-            response["HX-Trigger"] = "closeModal"
-            return response
-        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = "Update Brand"
-        context["view_type"] = "update"
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse(
+                "model_information:brand_detail", kwargs={"pk": self.object.pk}
+            )
         return context
+
+    def get_success_url(self):
+        return reverse("model_information:brand_detail", kwargs={"pk": self.object.pk})
 
 
 class BrandBulkUpdateView(BulkUpdateView):
@@ -116,46 +112,45 @@ class BrandCreateView(
 
         return HttpResponseRedirect(self.get_success_url())
 
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse("model_information:brandlist")
+        return context
+
 
 class BrandDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = Tblbrands
     context_object_name = "brand"
-    template_name = "model_information/partials/brand_detail.html"
+    template_name = "model_information/brand_detail.html"
     permission_required = "assets.view_tblbrands"
 
 
 class BrandDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = Tblbrands
-    template_name = "model_information/partials/delete_modal.html"
+    template_name = "model_information/brand_delete.html"
     permission_required = "assets.delete_tblbrands"
     success_url = reverse_lazy("model_information:brandlist")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = "Delete Brand"
-        context["brand"] = Tblbrands.objects.get(pk=self.kwargs.get("pk"))
-
-        context["view_type"] = "delete"
+        context["cancel_url"] = reverse_lazy("model_information:brandlist")
         return context
 
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
+    def form_valid(self, form):
         try:
             with transaction.atomic():
                 delete_object_document_links(self.object)
                 self.object.delete()
-            response = HttpResponse("", status=204)
-            # Optional: prevent swapping any content
-            response["HX-Trigger"] = "closeModal"
-            return response
+            return HttpResponseRedirect(self.success_url)
 
         except Exception as e:
             # Return an error message as plain text (not JSON)
-            context = self.get_context_data()
-            context["error_message"] = (
-                f"An error occurred while deleting the brand. Error Details: {str(e)}"
+            form.add_error(
+                None,
+                f"An error occurred while deleting the brand. Error Details: {str(e)}",
             )
-            return self.render_to_response(context)
+            return self.form_invalid(form)
 
 
 # model views
@@ -178,10 +173,18 @@ class ModelUpdateView(
 ):
     model = Tblmodel
     form_class = ModelUpdateForm
-    template_name = "model_information/partials/model_update.html"
+    template_name = "model_information/model_update.html"
     permission_required = "assets.change_tblmodel"
     success_url_app_view = "model_information:model_view"
     initial_mapper = "update_model"
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse(
+                "model_information:model_view", kwargs={"pk": self.object.pk}
+            )
+        return context
 
 
 class ModelBulkUpdateView(BulkUpdateView):
@@ -213,6 +216,13 @@ class ModelCreateView(
 
         return HttpResponseRedirect(self.get_success_url())
 
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse("model_information:modellist")
+
+        return context
+
 
 class ExistingModelListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     model = Tblmodel
@@ -238,37 +248,34 @@ class ExistingModelListView(LoginRequiredMixin, PermissionRequiredMixin, ListVie
 
 class ModelDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = Tblmodel
-    template_name = "model_information/partials/modal.html"
+    template_name = "model_information/model_delete.html"
     permission_required = "assets.delete_tblmodel"
     success_url = reverse_lazy("model_information:modellist")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = "Delete Model"
-        context["model"] = Tblmodel.objects.get(pk=self.kwargs.get("pk"))
-        context["view_type"] = "delete"
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse(
+                "model_information:model_view", kwargs={"pk": self.object.pk}
+            )
         return context
 
-    def post(self, request, *args, **kwargs):
+    def form_valid(self, form):
         self.object = self.get_object()
-        success_url = self.get_success_url()
+
         try:
             with transaction.atomic():
                 delete_object_document_links(self.object)
                 self.object.delete()
-            if self.request.htmx:
-                response = HttpResponse()
-                response["HX-Redirect"] = success_url
-                return response
-            return HttpResponseRedirect(success_url)
+            return HttpResponseRedirect(self.success_url)
 
-        except Exception as e:
+        except ProtectedError:
             # Return an error message as plain text (not JSON)
-            context = self.get_context_data()
-            context["error_message"] = (
-                f"An error occurred while deleting the model. Error Details: {str(e)}"
+            form.add_error(
+                None,
+                "Cannot delete model as it is still being used.",
             )
-            return self.render_to_response(context)
+            return self.form_invalid(form)
 
 
 class ModelDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
@@ -305,10 +312,15 @@ class CategoryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse('model_information:category_detail', kwargs={'pk':self.object.pk})
+        return reverse(
+            "model_information:category_detail", kwargs={"pk": self.object.pk}
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["cancel_url"] = reverse(
+            "model_information:category_detail", kwargs={"pk": self.object.pk}
+        )
         return context
 
 
@@ -328,13 +340,19 @@ class CategoryCreateView(
 
         return HttpResponseRedirect(self.get_success_url())
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse("model_information:categorylist")
+        return context
+
 
 class CategoryDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = Tblcategories
     template_name = "model_information/category_detail.html"
     context_object_name = "category"
     permission_required = "assets.view_tblcategories"
-    context_object_name = 'category'
+    context_object_name = "category"
 
 
 class CategoryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
@@ -342,10 +360,12 @@ class CategoryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
     template_name = "model_information/category_delete.html"
     permission_required = "assets.delete_tblcategories"
     success_url = reverse_lazy("model_information:categorylist")
-    context_object_name = 'category'
+    context_object_name = "category"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse("model_information:categorylist")
         return context
 
     def form_valid(self, form):
@@ -359,7 +379,7 @@ class CategoryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
 
         except Exception as e:
             # Return an error message as plain text (not JSON)
-            form.add_error(None, str('Category could not be deleted.'))
+            form.add_error(None, str("Category could not be deleted."))
             return self.form_invalid(form)
 
 
@@ -543,6 +563,11 @@ class SoftwareCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
             "model_information:software_detail", kwargs={"pk": self.object.pk}
         )
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["cancel_url"] = reverse("model_information:softwares")
+        return context
+
 
 class AddNewSoftwareVersion(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     permission_required = "model_information.add_software"
@@ -584,15 +609,27 @@ class SoftwareUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
             "model_information:software_detail", kwargs={"pk": self.object.pk}
         )
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["cancel_url"] = reverse(
+            "model_information:software_detail", kwargs={"pk": self.object.pk}
+        )
+        return context
+
 
 class SoftwareDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     permission_required = "model_information.delete_software"
     model = Software
     template_name = "model_information/software_delete.html"
     context_object_name = "software"
+    success_url = reverse_lazy("model_information:softwares")
 
-    def get_success_url(self):
-        return reverse("model_information:softwares")
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["cancel_url"] = reverse(
+            "model_information:software_detail", kwargs={"pk": self.object.pk}
+        )
+        return context
 
 
 class SoftwareModelCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
@@ -668,6 +705,11 @@ class ConfigurationCreateView(LoginRequiredMixin, PermissionRequiredMixin, Creat
             "model_information:configuration_detail", kwargs={"pk": self.object.pk}
         )
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["cancel_url"] = reverse("model_information:configuration_create")
+        return context
+
 
 class AddNewConfigVersion(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     permission_required = "model_information.add_equipmentconfiguration"
@@ -708,6 +750,13 @@ class ConfigurationUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Updat
             "model_information:configuration_detail", kwargs={"pk": self.object.pk}
         )
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["cancel_url"] = reverse(
+            "model_information:configuration_detail", kwargs={"pk": self.object.pk}
+        )
+        return context
+
 
 class ConfigurationDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     permission_required = "model_information.delete_equipmentconfiguration"
@@ -715,9 +764,14 @@ class ConfigurationDeleteView(LoginRequiredMixin, PermissionRequiredMixin, Delet
     fields = "__all__"
     template_name = "model_information/configuration_delete.html"
     context_object_name = "config"
+    success_url = reverse_lazy("model_information:configurations")
 
-    def get_success_url(self):
-        return reverse("model_information:configurations")
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["cancel_url"] = reverse(
+            "model_information:configuration_detail", kwargs={"pk": self.object.pk}
+        )
+        return context
 
 
 class ConfigurationModelCreateView(

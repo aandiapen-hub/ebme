@@ -212,12 +212,26 @@ class DocumentUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         else:
             return HttpResponseRedirect(self.get_success_url())
 
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context["cancel_url"] = reverse(
+            "documents:view_document", kwargs={"pk": self.object.pk}
+        )
+
+        return context
+
 
 class DocumentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = TblDocuments
     template_name = "documents/document_update.html"
     permission_required = "documents.delete_tbldocuments"
     success_url = reverse_lazy("documents:table_documents")
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context["cancel_url"] = reverse("documents:table_documents")
+
+        return context
 
 
 class DocumentLinksTableView(
@@ -647,6 +661,14 @@ class TempUploadGroupDeleteView(
     permission_required = "documents.add_tbl_temporaryupload"
     template_name = "documents/temp_group_delete.html"
     success_url = reverse_lazy("documents:user_temp_files")
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context["cancel_url"] = reverse(
+            "documents:temp_group", kwargs={"pk": self.object.pk}
+        )
+
+        return context
 
 
 class TempUploadListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):

@@ -36,14 +36,10 @@
               </li>
               <li class='dropdown-item'>
                 {% if perms.assets.delete_tblmodel %}
-                  <button
-                  hx-get="{% url 'model_information:delete_model' pk=object.modelid %}"
-                  hx-target="#modals-here"
-                  hx-trigger="click"
-                  data-bs-toggle="modal"
-                  data-bs-target="#modals-here"
+                  <a
+                  href="{% url 'model_information:delete_model' pk=object.modelid %}"
                   class="btn text-danger">Delete
-                </button>
+                </a>
                 {% endif %}
               </li>
             </ul>

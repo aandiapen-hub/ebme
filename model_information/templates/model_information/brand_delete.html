@@ -1,10 +1,10 @@
+
 {% extends 'base.html' %}
 {% load django_bootstrap5 %}
 
 {% block content %}
 <div class='container'>
-        {% include 'documents/partials/temp_file_group_mini.html' %}
-        <h3>Create New Brand</h3>
+        <h3>Delete Brand: {{object}}</h3>
         {% bootstrap_messages %}
         <form class="form"
         method='POST'
@@ -12,9 +12,8 @@
         
         {% csrf_token %}
         {{form.media}}
-        <input type='hidden' name='temp_group_pk'brand value="{{ temp_group.pk }}">
         {% bootstrap_form form %}
-        {% include 'partials/form_buttons.html' %}
+        {% include 'partials/form_buttons.html' with color='danger' text='Delete' %}
         </form>
 </div>
 {% endblock content %}

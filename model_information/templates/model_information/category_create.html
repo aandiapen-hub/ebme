@@ -7,9 +7,7 @@
   <form method='POST' action='{% url "model_information:create_category" %}'> 
     {% csrf_token %}
     {% bootstrap_form form %}
-      {% bootstrap_button button_type="submit" content="Save" %}
-    <a href="{% url 'model_information:categorylist' %}"
-      class='btn btn-secondary'>Cancel</a>
+    {% include 'partials/form_buttons.html' %}
   </form>
 </div>
 {% endblock content %}

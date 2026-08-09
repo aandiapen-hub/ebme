@@ -1,33 +1,21 @@
-
-
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
 
 {% block content %}
 
 <div class="container">
-{{po.pk}}
     <form
-    hx-post="{% url 'procurement:po_delete' pk=po.pk %}"
-    hx-trigger='submit'
-    hx-target='#actions'
-    hx-swap='innerHTML'>
+      method='POST'
+      action="{% url 'procurement:po_delete' pk=po.pk %}" >
 
+      <h4> Deleting PO: {{po}}</h4>
         {% csrf_token %}
  
+        {% bootstrap_form form %}
         Are you sure you would like to delete {{po}}
-        <button class="btn btn-primary" type="submit">Confirm Delete</button>
+
+        {% include 'partials/form_buttons.html' with color='danger' text='Delete' %}
     </form>
-
-
-{% if messages %}
-  <div class="container mt-3">
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    {% endfor %}
-  </div>
-{% endif %}
 
 </div>
 

@@ -17,7 +17,7 @@ from django.forms import inlineformset_factory
 
 class PoLineForm(CustomFormsetForm):
     lookup_model = Tblpartslist
-    lookup_field = 'item'
+    lookup_field = "item"
 
     class Meta:
         model = TblPoLines
@@ -25,6 +25,12 @@ class PoLineForm(CustomFormsetForm):
         widgets = {
             "item": forms.HiddenInput,
             "vat": forms.HiddenInput,
+            "qty_ordered": forms.NumberInput(),
+            "line_description": forms.Textarea(
+                attrs={
+                    "rows": 2,
+                }
+            ),
         }
 
 
@@ -146,4 +152,3 @@ class InvoiceCreateForm(forms.ModelForm):
             "fully_paid_date": DateInput(),
         }
         labels = {}
-

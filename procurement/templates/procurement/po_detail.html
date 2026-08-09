@@ -23,28 +23,18 @@
           <div class="col text-end">
 
 
-            <button
-              hx-get="{% url 'procurement:po_update' pk=po.po_id %}"
-              hx-target="#order_details"
-              hx-trigger="click"
-              hx-select='#order_details'
-              hx-push-url='true'
-              hx-swap='outerHTML'
+            <a
+              href="{% url 'procurement:po_update' pk=po.po_id %}"
               class="btn text-primary">EDIT
-            </button>
+            </a>
 
             <a href="{% url 'procurement:deliveries_create' po_id=object.pk %}"
             class='btn text-primary text-end'>CREATE DELIVERY</a>
 
-            <button
-              hx-get="{% url 'procurement:po_delete' pk=po.po_id %}"
-              hx-target="#actions"
-              hx-trigger="click"
-              hx-swap='innerHTML'
-              data-bs-toggle="collapse"
-              data-bs-target="#actions"
+            <a
+              href="{% url 'procurement:po_delete' pk=po.po_id %}"
               class="btn text-danger">DELETE
-            </button>
+            </a>
 
 
             <a

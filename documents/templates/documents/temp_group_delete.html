@@ -11,7 +11,8 @@
     <p>Delete group?</p>
     {% csrf_token %}
     {% bootstrap_form form %}
-    {% bootstrap_button button_type='submit' content='Delete' %}
+
+    {% include 'partials/form_buttons.html' with color='danger' text='Delete' %}
   </form>
 </div>
 

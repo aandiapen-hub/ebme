@@ -7,9 +7,8 @@
   <form method='POST' action=''> 
     {% csrf_token %}
     {% bootstrap_form form %}
-      {% bootstrap_button button_type="submit" content="Delete" %}
-    <a href="{% url 'model_information:category_detail' pk=category.pk %}"
-      class='btn btn-secondary'>Cancel</a>
+
+    {% include 'partials/form_buttons.html' with color='danger' text='Delete' %}
   </form>
 </div>
 {% endblock content %}

@@ -35,18 +35,18 @@
 
 
       <form id='asset_form' hx-post="{{request.path}}"
-      hx-target="#asset_details"
-      hx-swap="innerHTML"
-      hx-trigger="submit"
-      hx-push-url='true'
-      hx-select='#asset_details'>
-      <button class="btn btn-primary" type="submit">Submit</button>
-      <a class='btn btn-secondary' href='{% url "assets:assets_list" %}'>Cancel</a>
-          {{ form.media }} 
-          {% csrf_token %}
-          {% bootstrap_form form layout='horizontal' %}
+        hx-target="#asset_details"
+        hx-swap="innerHTML"
+        hx-trigger="submit"
+        hx-push-url='true'
+        hx-select='#asset_details'>
+            {{ form.media }} 
+            {% csrf_token %}
+            {% bootstrap_form form layout='horizontal' %}
 
-  </form>   
+            {% include 'partials/form_buttons.html' %}
+
+      </form>   
   </div>
 
 <div class="offcanvas offcanvas-end" tabindex="-1" id="project_canvas" aria-labelledby="project_canvas_label">

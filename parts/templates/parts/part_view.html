@@ -20,24 +20,18 @@
             </div>
             <div class='col text-end'>
               {% if perms.parts.change_tblpartslist %}
-                <button
-                hx-get="{% url 'parts:update_part' pk=object.partid %}"
-                hx-target="#model-detail"
-                hx-swap="outerHTML"
-                hx-trigger="click"
+                <a
+                href="{% url 'parts:update_part' pk=object.partid %}"
                 class="btn text-primary">
                 Edit
-                </button>
+                </a>
               {% endif %}
               {% if perms.parts.delete_tblpartslist %}
-              <button
-              hx-get="{% url 'parts:delete_part' pk=object.partid %}"
-              hx-trigger="click"
-              hx-target="#model-detail"
-              hx-swap="outerHTML"
+              <a
+              href="{% url 'parts:delete_part' pk=object.partid %}"
               class="btn text-danger">
               Delete
-              </button>
+              </a>
               {% endif %}
             </div>
           </div>

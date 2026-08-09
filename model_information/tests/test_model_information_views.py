@@ -10,16 +10,16 @@ from assets.models import (
     Tblcheckslists,
 )
 from urllib.parse import urlencode
-from model_information.models import(
+from model_information.models import (
     EquipmentConfiguration,
     EquipmentConfigurationModel,
     EquipmentConfigurationScope,
     Software,
-    SoftwareModel
+    SoftwareModel,
 )
 
 from assets.tests.factories import ModelFactory, CategoryFactory
-from jobs.tests.factories import  TestsCarriedOutFactory
+from jobs.tests.factories import TestsCarriedOutFactory
 # test brand views
 
 
@@ -114,8 +114,7 @@ def test_brand_update_view_renders(client, user, brand):
     client.force_login(user)
     response = client.get(url)
     assert response.status_code == 200  # Redirect to login
-    assertTemplateUsed(response, "model_information/partials/modal.html")
-    assert response.context["title"] == "Update Brand"
+    assertTemplateUsed(response, "model_information/brand_update.html")
 
 
 @pytest.mark.django_db
@@ -137,15 +136,9 @@ def test_brand_update_view_posts_successfully(client, user, brand):
     assert response.status_code == 302
     brand.refresh_from_db()
     assert brand.brandname == "brandtest"
-    assert response.url == reverse("model_information:brandlist")
-
-    # test htmx post
-    form = {"brandname": "brandtest2"}
-    response = client.post(url, data=form, HTTP_HX_REQUEST="true")
-
-    assert response.status_code == 204
-    brand.refresh_from_db()
-    assert brand.brandname == "brandtest2"
+    assert response.url == reverse(
+        "model_information:brand_detail", kwargs={"pk": brand.pk}
+    )
 
 
 # test BrandCreateView
@@ -191,7 +184,6 @@ def test_brand_create_view_posts_successfully(client, user):
     permission = Permission.objects.get(codename="add_tblbrands")
     user.user_permissions.add(permission)
 
-
     url = reverse("model_information:create_brand")
     client.force_login(user)
 
@@ -210,7 +202,6 @@ def test_brand_create_view_requires_posts_unsuccessful(client, user):
 
     permission = Permission.objects.get(codename="add_tblbrands")
     user.user_permissions.add(permission)
-
 
     url = reverse("model_information:create_brand")
     client.force_login(user)
@@ -262,9 +253,7 @@ def test_brand_delete_view_renders(client, user, brand):
     client.force_login(user)
     response = client.get(url)
     assert response.status_code == 200  # Redirect to login
-    assertTemplateUsed(response, "model_information/partials/delete_modal.html")
-    assert response.context["title"] == "Delete Brand"
-    assert response.context["view_type"] == "delete"
+    assertTemplateUsed(response, "model_information/brand_delete.html")
 
 
 @pytest.mark.django_db
@@ -281,10 +270,8 @@ def test_brand_delete_view_posts_unsuccessfully(client, user, brand, model):
 
     response = client.post(url)
 
-    assert (
-        "An error occurred while deleting the brand"
-        in response.context["error_message"]
-    )
+    assert response.context["form"].errors
+
 
 @pytest.mark.django_db
 def test_brand_delete_view_requires_posts_successfully(client, user, brand):
@@ -298,7 +285,7 @@ def test_brand_delete_view_requires_posts_successfully(client, user, brand):
     client.force_login(user)
 
     response = client.post(url)
-    assert response.status_code == 204
+    assert response.status_code == 302
     assert not Tblbrands.objects.filter(brandid=brand.pk).exists()
 
 
@@ -346,7 +333,7 @@ def test_model_table_view_renders(client, user):
     assert response.status_code == 200
 
     # test filter
-    query_string = urlencode({"universal_search": ''})
+    query_string = urlencode({"universal_search": ""})
     url = f"{url}?{query_string}"
     response = client.get(url, HTTP_HX_REQUEST="true")
     assert response.status_code == 200
@@ -386,7 +373,7 @@ def test_model_update_view_renders(client, user, model):
     client.force_login(user)
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "model_information/partials/model_update.html")
+    assertTemplateUsed(response, "model_information/model_update.html")
 
 
 @pytest.mark.django_db
@@ -441,7 +428,6 @@ def test_model_create_view_renders(client, user):
     permission = Permission.objects.get(codename="add_tblmodel")
     user.user_permissions.add(permission)
 
-
     url = reverse("model_information:create_model")
     query_params = urlencode({"gtin": 123554})
 
@@ -458,7 +444,6 @@ def test_model_create_view_requires_posts_successfully(client, user, brand, cate
 
     permission = Permission.objects.get(codename="add_tblmodel")
     user.user_permissions.add(permission)
-
 
     url = reverse("model_information:create_model")
     client.force_login(user)
@@ -493,10 +478,9 @@ def test_model_delete_view_requires_login(client, model):
 
 @pytest.mark.django_db
 def test_model_delete_view_requires_permission(client, user, model):
-    model = model() 
+    model = model()
     url = reverse("model_information:delete_model", kwargs={"pk": model.modelid})
     user = user()
-
 
     client.force_login(user)
     response = client.get(url)
@@ -505,7 +489,7 @@ def test_model_delete_view_requires_permission(client, user, model):
 
 @pytest.mark.django_db
 def test_model_delete_view_renders(client, user, model):
-    model = model() 
+    model = model()
     url = reverse("model_information:delete_model", kwargs={"pk": model.modelid})
     user = user()
 
@@ -515,15 +499,13 @@ def test_model_delete_view_renders(client, user, model):
     client.force_login(user)
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "model_information/partials/modal.html")
-    assert response.context["title"] == "Delete Model"
-    assert response.context["view_type"] == "delete"
+    assertTemplateUsed(response, "model_information/model_delete.html")
 
 
 @pytest.mark.django_db
 def test_model_delete_view_posts_unsuccessfully(client, user, model, asset):
     asset = asset()
-    model = asset.modelid 
+    model = asset.modelid
     url = reverse("model_information:delete_model", kwargs={"pk": model.modelid})
     user = user()
     permission = Permission.objects.get(codename="delete_tblmodel")
@@ -532,43 +514,23 @@ def test_model_delete_view_posts_unsuccessfully(client, user, model, asset):
     client.force_login(user)
 
     response = client.post(url)
-    assert (
-        "An error occurred while deleting the model"
-        in response.context["error_message"]
-    )
+    assert response.context["form"].errors
 
 
 @pytest.mark.django_db
 def test_model_delete_view_posts_successfully(client, user, model):
-    model = model() 
+    model = model()
     user = user()
     url = reverse("model_information:delete_model", kwargs={"pk": model.modelid})
     permission = Permission.objects.get(codename="delete_tblmodel")
     user.user_permissions.add(permission)
 
     client.force_login(user)
-
 
     response = client.post(url)
     assert response.status_code == 302
     assert response.url == reverse("model_information:modellist")
     assert not Tblmodel.objects.filter(modelid=model.pk).exists()
-
-
-@pytest.mark.django_db
-def test_model_delete_view_posts_successfully_htmx(client, user, model):
-    model = ModelFactory(modelname="testmodel")
-    modelid = model.modelid
-    url = reverse("model_information:delete_model", kwargs={"pk": modelid})
-    user = user()
-
-    permission = Permission.objects.get(codename="delete_tblmodel")
-    user.user_permissions.add(permission)
-
-    client.force_login(user)
-    response = client.post(url, HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
-    assert not Tblmodel.objects.filter(modelid=modelid).exists()
 
 
 # test ModelDetailView
@@ -605,6 +567,7 @@ def test_model_detail_view_renders(client, user, model):
     response = client.get(url)
     assert response.status_code == 200
     assertTemplateUsed(response, "model_information/model_view.html")
+
 
 # ----------------
 # test Categories
@@ -685,7 +648,6 @@ def test_category_update_view_renders(client, user, category):
     user = user()
     permission = Permission.objects.get(codename="change_tblcategories")
     user.user_permissions.add(permission)
-    
 
     url = reverse(
         "model_information:update_category", kwargs={"pk": category.categoryid}
@@ -716,6 +678,7 @@ def test_category_update_view_posts_successfully(client, user, category):
     category.refresh_from_db()
     assert category.categoryname == "testcategory"
 
+
 # test CategoryCreateView
 
 
@@ -744,12 +707,12 @@ def test_category_create_view_renders(client, user):
     permission = Permission.objects.get(codename="add_tblcategories")
     user.user_permissions.add(permission)
 
-
     url = reverse("model_information:create_category")
     client.force_login(user)
     response = client.get(url)
     assert response.status_code == 200
     assertTemplateUsed(response, "model_information/category_create.html")
+
 
 @pytest.mark.django_db
 def test_category_create_view_posts_successfully(client, user, category):
@@ -764,7 +727,7 @@ def test_category_create_view_posts_successfully(client, user, category):
     form = {"categoryname": "testcategory"}
     response = client.post(url, data=form)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     category = Tblcategories.objects.last()
     assert category.categoryname == "testcategory"
 
@@ -844,7 +807,7 @@ def test_category_delete_view_posts_unsuccessfully(client, user, model):
     user.user_permissions.add(permission)
     client.force_login(user)
     response = client.post(url)
-    assert response.context['form'].errors
+    assert response.context["form"].errors
 
 
 @pytest.mark.django_db
@@ -864,9 +827,10 @@ def test_category_delete_view_posts_successfully(client, user, category):
     assert response.url == reverse("model_information:categorylist")
     assert not Tblcategories.objects.filter(categoryid=categoryid).exists()
 
-#-----------------------
+
+# -----------------------
 # test Checklists views
-#-----------------------
+# -----------------------
 
 # test CheckslistTableView
 
@@ -896,10 +860,9 @@ def test_checklist_table_view_permission_denied(client, user):
 def test_checklist_table_view_renders(client, user):
     user = user()
     client.force_login(user)
-    
+
     permission = Permission.objects.get(codename="view_tblcheckslists")
     user.user_permissions.add(permission)
-
 
     url = reverse("model_information:checklist")  # Update to your actual URL name
 
@@ -964,7 +927,7 @@ def test_check_update_view_renders(client, user, check):
     url = reverse("model_information:update_check", kwargs={"pk": testid})
 
     user = user()
-    
+
     permission = Permission.objects.get(codename="change_tblcheckslists")
     user.user_permissions.add(permission)
 
@@ -1252,7 +1215,7 @@ def test_filtered_job_list_view_non_staff_with_no_customer(client, user_setup, j
 
     # test htmx request
     response = client.get(url, HTTP_HX_REQUEST="true")
-    table = response.context['table']
+    table = response.context["table"]
     assert table.data.data.count() == 0
 
 
@@ -1293,14 +1256,15 @@ def test_software_filter_view_renders(client, user_setup, jobs):
 
     # test htmx request
     response = client.get(url, HTTP_HX_REQUEST="true")
-    table = response.context['table']
+    table = response.context["table"]
     assert table.data.data.count() == 0
 
-# test Software detail view 
+
+# test Software detail view
 @pytest.mark.django_db
 def test_software_detail_view_requires_login(client, software_factory):
     software = software_factory()
-    url = reverse("model_information:software_detail", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_detail", kwargs={"pk": software.pk})
     response = client.get(url)
     assert response.status_code == 302
 
@@ -1310,7 +1274,7 @@ def test_software_detail_view_permission_denied(client, user, software_factory):
     user = user()
     client.force_login(user)
     software = software_factory()
-    url = reverse("model_information:software_detail", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_detail", kwargs={"pk": software.pk})
     response = client.get(url)
     assert response.status_code == 403
 
@@ -1327,14 +1291,15 @@ def test_software_detail_view_renders(client, user, software_factory):
     client.force_login(user)
 
     software = software_factory()
-    url = reverse("model_information:software_detail", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_detail", kwargs={"pk": software.pk})
 
     response = client.get(url)
 
     assert response.status_code == 200
     assertTemplateUsed(response, "model_information/software_detail.html")
 
-# test Software detail view 
+
+# test Software detail view
 @pytest.mark.django_db
 def test_software_create_view_requires_login(client):
     url = reverse("model_information:software_create")
@@ -1385,23 +1350,22 @@ def test_software_create_view_posts(client, user, brand, software_type_factory):
 
     software_type = software_type_factory()
     data = {
-    "brand": brand().pk,
-    "name": "Test Software",
-    "version": "1.0.0",
-    "version_number": 1,
-    "software_type": software_type.pk,
-} 
+        "brand": brand().pk,
+        "name": "Test Software",
+        "version": "1.0.0",
+        "version_number": 1,
+        "software_type": software_type.pk,
+    }
     response = client.post(url, data)
     assert response.status_code == 302
-    assert Software.objects.last().name == 'Test Software'
+    assert Software.objects.last().name == "Test Software"
 
 
-
-# test Software update view 
+# test Software update view
 @pytest.mark.django_db
 def test_software_update_view_requires_login(client, software_factory):
     software = software_factory()
-    url = reverse("model_information:software_update", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_update", kwargs={"pk": software.pk})
     response = client.get(url)
     assert response.status_code == 302
 
@@ -1411,7 +1375,7 @@ def test_software_update_view_permission_denied(client, user, software_factory):
     user = user()
     client.force_login(user)
     software = software_factory()
-    url = reverse("model_information:software_update", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_update", kwargs={"pk": software.pk})
     response = client.get(url)
     assert response.status_code == 403
 
@@ -1428,7 +1392,7 @@ def test_software_update_view_renders(client, user, software_factory):
     client.force_login(user)
 
     software = software_factory()
-    url = reverse("model_information:software_update", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_update", kwargs={"pk": software.pk})
 
     response = client.get(url)
 
@@ -1448,26 +1412,26 @@ def test_software_update_view_posts(client, user, software_factory):
     client.force_login(user)
 
     software = software_factory()
-    url = reverse("model_information:software_update", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_update", kwargs={"pk": software.pk})
 
     data = {
-    "brand": software.brand.pk,
-    "name": "Test Software",
-    "version": "1.0.0",
-    "version_number": 3,
-    "software_type": software.software_type.pk,
-} 
+        "brand": software.brand.pk,
+        "name": "Test Software",
+        "version": "1.0.0",
+        "version_number": 3,
+        "software_type": software.software_type.pk,
+    }
     response = client.post(url, data)
 
-    assert response.status_code == 302 
-    assert Software.objects.get(pk=software.pk).name == 'Test Software'
+    assert response.status_code == 302
+    assert Software.objects.get(pk=software.pk).name == "Test Software"
 
 
-# test Software create new version view 
+# test Software create new version view
 @pytest.mark.django_db
 def test_add_software_version_view_requires_login(client, software_factory):
     software = software_factory()
-    url = reverse("model_information:software_add_version", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_add_version", kwargs={"pk": software.pk})
     response = client.get(url)
     assert response.status_code == 302
 
@@ -1477,7 +1441,7 @@ def test_add_software_version_view_permission_denied(client, user, software_fact
     user = user()
     client.force_login(user)
     software = software_factory()
-    url = reverse("model_information:software_add_version", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_add_version", kwargs={"pk": software.pk})
     response = client.get(url)
     assert response.status_code == 403
 
@@ -1494,7 +1458,7 @@ def test_add_software_version_view_renders(client, user, software_factory):
     client.force_login(user)
 
     software = software_factory()
-    url = reverse("model_information:software_add_version", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_add_version", kwargs={"pk": software.pk})
 
     response = client.get(url)
 
@@ -1514,26 +1478,27 @@ def test_add_software_version_view_posts(client, user, software_factory):
     client.force_login(user)
 
     software = software_factory()
-    
-    url = reverse("model_information:software_add_version", kwargs={'pk':software.pk})
 
-    data = {
-            'new_version': 'new_test_version'
-    } 
+    url = reverse("model_information:software_add_version", kwargs={"pk": software.pk})
+
+    data = {"new_version": "new_test_version"}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
-    latest = Software.objects.filter(name=software.name, brand=software.brand).exclude(pk=software.pk).first()
+    assert response.status_code == 302
+    latest = (
+        Software.objects.filter(name=software.name, brand=software.brand)
+        .exclude(pk=software.pk)
+        .first()
+    )
     assert latest.version_number == int(software.version_number) + 1
-    assert latest.version == 'new_test_version'
+    assert latest.version == "new_test_version"
 
 
-
-# test Software delete view 
+# test Software delete view
 @pytest.mark.django_db
 def test_software_delete_view_requires_login(client, software_factory):
     software = software_factory()
-    url = reverse("model_information:software_delete", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_delete", kwargs={"pk": software.pk})
     response = client.get(url)
     assert response.status_code == 302
 
@@ -1543,7 +1508,7 @@ def test_software_delete_view_permission_denied(client, user, software_factory):
     user = user()
     client.force_login(user)
     software = software_factory()
-    url = reverse("model_information:software_delete", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_delete", kwargs={"pk": software.pk})
     response = client.get(url)
     assert response.status_code == 403
 
@@ -1560,7 +1525,7 @@ def test_software_delete_view_renders(client, user, software_factory):
     client.force_login(user)
 
     software = software_factory()
-    url = reverse("model_information:software_delete", kwargs={'pk':software.pk})
+    url = reverse("model_information:software_delete", kwargs={"pk": software.pk})
 
     response = client.get(url)
 
@@ -1580,18 +1545,17 @@ def test_add_software_delete_view_posts(client, user, software_factory):
     client.force_login(user)
 
     software = software_factory()
-    
-    url = reverse("model_information:software_delete", kwargs={'pk':software.pk})
 
-    data = {} 
+    url = reverse("model_information:software_delete", kwargs={"pk": software.pk})
+
+    data = {}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert not Software.objects.filter(pk=software.pk).exists()
 
 
-
-# test Software model create view 
+# test Software model create view
 @pytest.mark.django_db
 def test_software_model_create_view_requires_login(client):
     url = reverse("model_information:software_model_create")
@@ -1640,34 +1604,34 @@ def test_add_software_model_create_view_posts(client, user, software_factory, mo
 
     software = software_factory()
     model = model()
-    
+
     url = reverse("model_information:software_model_create")
 
-    data = {
-        'software': software.pk,
-        'model': model.pk
-    } 
+    data = {"software": software.pk, "model": model.pk}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert SoftwareModel.objects.last().software == software
     assert SoftwareModel.objects.last().model == model
 
-# test Software model delete view 
+
+# test Software model delete view
 @pytest.mark.django_db
 def test_software_model_delete_view_requires_login(client, software_model_factory):
     sm = software_model_factory()
-    url = reverse("model_information:software_model_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:software_model_delete", kwargs={"pk": sm.pk})
     response = client.get(url)
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_software_model_delete_view_permission_denied(client, user, software_model_factory):
+def test_software_model_delete_view_permission_denied(
+    client, user, software_model_factory
+):
     user = user()
     client.force_login(user)
     sm = software_model_factory()
-    url = reverse("model_information:software_model_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:software_model_delete", kwargs={"pk": sm.pk})
     response = client.get(url)
     assert response.status_code == 403
 
@@ -1684,7 +1648,7 @@ def test_software_model_delete_view_renders(client, user, software_model_factory
     client.force_login(user)
 
     sm = software_model_factory()
-    url = reverse("model_information:software_model_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:software_model_delete", kwargs={"pk": sm.pk})
 
     response = client.get(url)
 
@@ -1704,16 +1668,16 @@ def test_add_software_model_delete_view_posts(client, user, software_model_facto
     client.force_login(user)
 
     sm = software_model_factory()
-    url = reverse("model_information:software_model_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:software_model_delete", kwargs={"pk": sm.pk})
 
-    data = {} 
+    data = {}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert not SoftwareModel.objects.filter(pk=sm.pk).exists()
 
 
-# test equipment configuration filter view 
+# test equipment configuration filter view
 @pytest.mark.django_db
 def test_equipment_configuration_filter_view_requires_login(client):
     url = reverse("model_information:configurations")
@@ -1749,27 +1713,33 @@ def test_equipment_configuration_filter_view_renders(client, user):
     assertTemplateUsed(response, "model_information/configurations.html")
 
 
-# test equipment configuration filter view 
+# test equipment configuration filter view
 @pytest.mark.django_db
-def test_equipment_configuration_detail_view_requires_login(client, equipment_configuration_factory):
+def test_equipment_configuration_detail_view_requires_login(
+    client, equipment_configuration_factory
+):
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_detail", kwargs={'pk':config.pk})
+    url = reverse("model_information:configuration_detail", kwargs={"pk": config.pk})
     response = client.get(url)
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_equipment_configuration_detail_view_permission_denied(client, user, equipment_configuration_factory):
+def test_equipment_configuration_detail_view_permission_denied(
+    client, user, equipment_configuration_factory
+):
     user = user()
     client.force_login(user)
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_detail", kwargs={'pk':config.pk})
+    url = reverse("model_information:configuration_detail", kwargs={"pk": config.pk})
     response = client.get(url)
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_equipment_configuration_detail_view_renders(client, user, equipment_configuration_factory):
+def test_equipment_configuration_detail_view_renders(
+    client, user, equipment_configuration_factory
+):
 
     user = user()
     user.customerid = None
@@ -1780,7 +1750,7 @@ def test_equipment_configuration_detail_view_renders(client, user, equipment_con
     client.force_login(user)
 
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_detail", kwargs={'pk':config.pk})
+    url = reverse("model_information:configuration_detail", kwargs={"pk": config.pk})
 
     response = client.get(url)
 
@@ -1788,7 +1758,7 @@ def test_equipment_configuration_detail_view_renders(client, user, equipment_con
     assertTemplateUsed(response, "model_information/configuration_detail.html")
 
 
-# test equipment configuration create view 
+# test equipment configuration create view
 @pytest.mark.django_db
 def test_equipment_configuration_create_view_requires_login(client):
     url = reverse("model_information:configuration_create")
@@ -1826,10 +1796,8 @@ def test_equipment_configuration_create_view_renders(client, user):
 
 @pytest.mark.django_db
 def test_equipment_configuration_create_view_posts(
-        client,
-        user,
-        brand,
-        equipment_configuration_status_factory):
+    client, user, brand, equipment_configuration_status_factory
+):
 
     user = user()
     user.customerid = None
@@ -1841,41 +1809,51 @@ def test_equipment_configuration_create_view_posts(
 
     url = reverse("model_information:configuration_create")
 
-    config_name = 'test_config'
+    config_name = "test_config"
     data = {
-        'name': config_name,
-        'configuration_status': equipment_configuration_status_factory().pk,
-        'brand': brand().pk,
-        'version': 1
+        "name": config_name,
+        "configuration_status": equipment_configuration_status_factory().pk,
+        "brand": brand().pk,
+        "version": 1,
     }
 
     response = client.post(url, data)
-    assert response.status_code == 302 
-    
+    assert response.status_code == 302
+
     assert EquipmentConfiguration.objects.last().name == config_name
 
 
-# test add new config version view 
+# test add new config version view
 @pytest.mark.django_db
-def test_add_new_config_version_view_requires_login(client, equipment_configuration_factory):
+def test_add_new_config_version_view_requires_login(
+    client, equipment_configuration_factory
+):
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_add_version", kwargs={'pk':config.pk})
+    url = reverse(
+        "model_information:configuration_add_version", kwargs={"pk": config.pk}
+    )
     response = client.get(url)
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_add_new_config_version_view_permission_denied(client, user, equipment_configuration_factory):
+def test_add_new_config_version_view_permission_denied(
+    client, user, equipment_configuration_factory
+):
     user = user()
     client.force_login(user)
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_add_version", kwargs={'pk':config.pk})
+    url = reverse(
+        "model_information:configuration_add_version", kwargs={"pk": config.pk}
+    )
     response = client.get(url)
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_add_new_config_version_view_renders(client, user, equipment_configuration_factory):
+def test_add_new_config_version_view_renders(
+    client, user, equipment_configuration_factory
+):
 
     user = user()
     user.customerid = None
@@ -1886,7 +1864,9 @@ def test_add_new_config_version_view_renders(client, user, equipment_configurati
     client.force_login(user)
 
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_add_version", kwargs={'pk':config.pk})
+    url = reverse(
+        "model_information:configuration_add_version", kwargs={"pk": config.pk}
+    )
 
     response = client.get(url)
 
@@ -1896,9 +1876,8 @@ def test_add_new_config_version_view_renders(client, user, equipment_configurati
 
 @pytest.mark.django_db
 def test_add_new_config_version_view_posts(
-        client,
-        user,
-        equipment_configuration_factory):
+    client, user, equipment_configuration_factory
+):
 
     user = user()
     user.customerid = None
@@ -1909,39 +1888,46 @@ def test_add_new_config_version_view_posts(
     client.force_login(user)
 
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_add_version", kwargs={'pk':config.pk})
+    url = reverse(
+        "model_information:configuration_add_version", kwargs={"pk": config.pk}
+    )
 
     data = {}
 
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert EquipmentConfiguration.objects.last().name == config.name
-    assert EquipmentConfiguration.objects.last().version == config.version+1
+    assert EquipmentConfiguration.objects.last().version == config.version + 1
 
 
-
-# test configuration_update view 
+# test configuration_update view
 @pytest.mark.django_db
-def test_configuration_update_view_requires_login(client, equipment_configuration_factory):
+def test_configuration_update_view_requires_login(
+    client, equipment_configuration_factory
+):
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_update", kwargs={'pk':config.pk})
+    url = reverse("model_information:configuration_update", kwargs={"pk": config.pk})
     response = client.get(url)
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_configuration_update_view_permission_denied(client, user, equipment_configuration_factory):
+def test_configuration_update_view_permission_denied(
+    client, user, equipment_configuration_factory
+):
     user = user()
     client.force_login(user)
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_update", kwargs={'pk':config.pk})
+    url = reverse("model_information:configuration_update", kwargs={"pk": config.pk})
     response = client.get(url)
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_configuration_update_view_renders(client, user, equipment_configuration_factory):
+def test_configuration_update_view_renders(
+    client, user, equipment_configuration_factory
+):
 
     user = user()
     user.customerid = None
@@ -1952,7 +1938,7 @@ def test_configuration_update_view_renders(client, user, equipment_configuration
     client.force_login(user)
 
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_update", kwargs={'pk':config.pk})
+    url = reverse("model_information:configuration_update", kwargs={"pk": config.pk})
 
     response = client.get(url)
 
@@ -1961,10 +1947,7 @@ def test_configuration_update_view_renders(client, user, equipment_configuration
 
 
 @pytest.mark.django_db
-def test_configuration_update_view_posts(
-        client,
-        user,
-        equipment_configuration_factory):
+def test_configuration_update_view_posts(client, user, equipment_configuration_factory):
 
     user = user()
     user.customerid = None
@@ -1975,41 +1958,47 @@ def test_configuration_update_view_posts(
     client.force_login(user)
 
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_update", kwargs={'pk':config.pk})
-    new_config_name = 'new_config_testx'
+    url = reverse("model_information:configuration_update", kwargs={"pk": config.pk})
+    new_config_name = "new_config_testx"
     data = {
-        'name': new_config_name,
-        'configuration_status': config.configuration_status.pk,
-        'brand': config.brand.pk,
-        'version': 1
+        "name": new_config_name,
+        "configuration_status": config.configuration_status.pk,
+        "brand": config.brand.pk,
+        "version": 1,
     }
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert EquipmentConfiguration.objects.get(pk=config.pk).name == new_config_name
 
 
-# test configuration_delete view 
+# test configuration_delete view
 @pytest.mark.django_db
-def test_configuration_delete_view_requires_login(client, equipment_configuration_factory):
+def test_configuration_delete_view_requires_login(
+    client, equipment_configuration_factory
+):
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_delete", kwargs={'pk':config.pk})
+    url = reverse("model_information:configuration_delete", kwargs={"pk": config.pk})
     response = client.get(url)
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_configuration_delete_view_permission_denied(client, user, equipment_configuration_factory):
+def test_configuration_delete_view_permission_denied(
+    client, user, equipment_configuration_factory
+):
     user = user()
     client.force_login(user)
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_delete", kwargs={'pk':config.pk})
+    url = reverse("model_information:configuration_delete", kwargs={"pk": config.pk})
     response = client.get(url)
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_configuration_delete_view_renders(client, user, equipment_configuration_factory):
+def test_configuration_delete_view_renders(
+    client, user, equipment_configuration_factory
+):
 
     user = user()
     user.customerid = None
@@ -2020,7 +2009,7 @@ def test_configuration_delete_view_renders(client, user, equipment_configuration
     client.force_login(user)
 
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_delete", kwargs={'pk':config.pk})
+    url = reverse("model_information:configuration_delete", kwargs={"pk": config.pk})
 
     response = client.get(url)
 
@@ -2029,10 +2018,7 @@ def test_configuration_delete_view_renders(client, user, equipment_configuration
 
 
 @pytest.mark.django_db
-def test_configuration_delete_view_posts(
-        client,
-        user,
-        equipment_configuration_factory):
+def test_configuration_delete_view_posts(client, user, equipment_configuration_factory):
 
     user = user()
     user.customerid = None
@@ -2043,15 +2029,15 @@ def test_configuration_delete_view_posts(
     client.force_login(user)
 
     config = equipment_configuration_factory()
-    url = reverse("model_information:configuration_delete", kwargs={'pk':config.pk})
+    url = reverse("model_information:configuration_delete", kwargs={"pk": config.pk})
     data = {}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert not EquipmentConfiguration.objects.filter(pk=config.pk).exists()
 
 
-# test configuration model create view 
+# test configuration model create view
 @pytest.mark.django_db
 def test_configuration_model_create_view_requires_login(client):
     url = reverse("model_information:configuration_model_create")
@@ -2089,10 +2075,8 @@ def test_configuration_model_create_view_renders(client, user):
 
 @pytest.mark.django_db
 def test_configuration_model_create_view_posts(
-    client,
-    user,
-    model,
-    equipment_configuration_factory):
+    client, user, model, equipment_configuration_factory
+):
 
     user = user()
     user.customerid = None
@@ -2105,38 +2089,41 @@ def test_configuration_model_create_view_posts(
     config = equipment_configuration_factory()
     modelx = model()
     url = reverse("model_information:configuration_model_create")
-    data = {
-        'configuration': config.pk,
-        'model': modelx.pk
-    }
+    data = {"configuration": config.pk, "model": modelx.pk}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert not EquipmentConfigurationModel.objects.last().configuration == configuration
     assert not EquipmentConfigurationModel.objects.last().model == model
 
 
-# test configuration model delete view 
+# test configuration model delete view
 @pytest.mark.django_db
-def test_configuration_model_delete_view_requires_login(client, equipment_configuration_model_factory):
+def test_configuration_model_delete_view_requires_login(
+    client, equipment_configuration_model_factory
+):
     sm = equipment_configuration_model_factory()
-    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:configuration_model_delete", kwargs={"pk": sm.pk})
     response = client.get(url)
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_configuration_model_delete_view_permission_denied(client, user, equipment_configuration_model_factory):
+def test_configuration_model_delete_view_permission_denied(
+    client, user, equipment_configuration_model_factory
+):
     user = user()
     client.force_login(user)
     sm = equipment_configuration_model_factory()
-    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:configuration_model_delete", kwargs={"pk": sm.pk})
     response = client.get(url)
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_configuration_model_delete_view_renders(client, user, equipment_configuration_model_factory):
+def test_configuration_model_delete_view_renders(
+    client, user, equipment_configuration_model_factory
+):
 
     user = user()
     user.customerid = None
@@ -2147,7 +2134,7 @@ def test_configuration_model_delete_view_renders(client, user, equipment_configu
     client.force_login(user)
 
     sm = equipment_configuration_model_factory()
-    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:configuration_model_delete", kwargs={"pk": sm.pk})
 
     response = client.get(url)
 
@@ -2156,7 +2143,9 @@ def test_configuration_model_delete_view_renders(client, user, equipment_configu
 
 
 @pytest.mark.django_db
-def test_configuration_software_model_delete_view_posts(client, user, equipment_configuration_model_factory):
+def test_configuration_software_model_delete_view_posts(
+    client, user, equipment_configuration_model_factory
+):
 
     user = user()
     user.customerid = None
@@ -2167,15 +2156,16 @@ def test_configuration_software_model_delete_view_posts(client, user, equipment_
     client.force_login(user)
 
     sm = equipment_configuration_model_factory()
-    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:configuration_model_delete", kwargs={"pk": sm.pk})
 
-    data = {} 
+    data = {}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert not EquipmentConfigurationModel.objects.filter(pk=sm.pk).exists()
 
-# test configuration scope create view 
+
+# test configuration scope create view
 @pytest.mark.django_db
 def test_configuration_scope_create_view_requires_login(client):
     url = reverse("model_information:configuration_scope_create")
@@ -2213,10 +2203,8 @@ def test_configuration_scope_create_view_renders(client, user):
 
 @pytest.mark.django_db
 def test_configuration_scope_create_view_posts(
-    client,
-    user,
-    site,
-    equipment_configuration_factory):
+    client, user, site, equipment_configuration_factory
+):
 
     user = user()
     user.customerid = None
@@ -2229,36 +2217,40 @@ def test_configuration_scope_create_view_posts(
     config = equipment_configuration_factory()
     site = site()
     url = reverse("model_information:configuration_scope_create")
-    data = {
-        'configuration': config.pk,
-        'site': site.pk
-    }
+    data = {"configuration": config.pk, "site": site.pk}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert EquipmentConfigurationScope.objects.last().site == site
 
-# test configuration model delete view 
+
+# test configuration model delete view
 @pytest.mark.django_db
-def test_configuration_scope_delete_view_requires_login(client, equipment_configuration_scope_factory):
+def test_configuration_scope_delete_view_requires_login(
+    client, equipment_configuration_scope_factory
+):
     sm = equipment_configuration_scope_factory()
-    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:configuration_model_delete", kwargs={"pk": sm.pk})
     response = client.get(url)
     assert response.status_code == 302
 
 
 @pytest.mark.django_db
-def test_configuration_scope_delete_view_permission_denied(client, user, equipment_configuration_scope_factory):
+def test_configuration_scope_delete_view_permission_denied(
+    client, user, equipment_configuration_scope_factory
+):
     user = user()
     client.force_login(user)
     sm = equipment_configuration_scope_factory()
-    url = reverse("model_information:configuration_model_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:configuration_model_delete", kwargs={"pk": sm.pk})
     response = client.get(url)
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_configuration_scope_delete_view_renders(client, user, equipment_configuration_scope_factory):
+def test_configuration_scope_delete_view_renders(
+    client, user, equipment_configuration_scope_factory
+):
 
     user = user()
     user.customerid = None
@@ -2269,7 +2261,7 @@ def test_configuration_scope_delete_view_renders(client, user, equipment_configu
     client.force_login(user)
 
     sm = equipment_configuration_scope_factory()
-    url = reverse("model_information:configuration_scope_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:configuration_scope_delete", kwargs={"pk": sm.pk})
 
     response = client.get(url)
 
@@ -2278,7 +2270,9 @@ def test_configuration_scope_delete_view_renders(client, user, equipment_configu
 
 
 @pytest.mark.django_db
-def test_configuration_scope_delete_view_posts(client, user, equipment_configuration_scope_factory):
+def test_configuration_scope_delete_view_posts(
+    client, user, equipment_configuration_scope_factory
+):
 
     user = user()
     user.customerid = None
@@ -2289,10 +2283,10 @@ def test_configuration_scope_delete_view_posts(client, user, equipment_configura
     client.force_login(user)
 
     sm = equipment_configuration_scope_factory()
-    url = reverse("model_information:configuration_scope_delete", kwargs={'pk': sm.pk})
+    url = reverse("model_information:configuration_scope_delete", kwargs={"pk": sm.pk})
 
-    data = {} 
+    data = {}
     response = client.post(url, data)
 
-    assert response.status_code == 302 
+    assert response.status_code == 302
     assert not EquipmentConfigurationScope.objects.filter(pk=sm.pk).exists()

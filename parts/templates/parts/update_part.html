@@ -4,14 +4,14 @@
 {% block content %}
 
 <div id="update_part" class="container">
+    <h4>Update part: {{object}}</h4>
     {% include "partials/messages.html" %}
 
     <form action="" method="post">
         {{ form.media }} 
         {% csrf_token %}
         {% bootstrap_form form %}
-
-        <button class="btn btn-primary" type="submit">Submit</button>
+        {% include 'partials/form_buttons.html' %}
     </form>
 
 </div>

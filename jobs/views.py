@@ -2,16 +2,16 @@ import datetime
 from django.urls import reverse
 from django.db.models import Q
 from django.db import transaction, IntegrityError, DatabaseError
-from utils.dynamic_formset import(
+from utils.dynamic_formset import (
     AddFormsetRowView,
     FormsetOptionsListView,
-    FormsetMixin
+    FormsetMixin,
 )
 
 # import permissions
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.http import HttpResponse, HttpResponseRedirect
-from django.urls import  reverse_lazy
+from django.urls import reverse_lazy
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -94,6 +94,7 @@ class GenerateReportView(
             status=400,  # or 403 if it's a permissions issue
         )
 
+
 FORMSET_CONFIG = {
     "parts_used": {
         "prefix": "parts_used",
@@ -101,13 +102,13 @@ FORMSET_CONFIG = {
         "formset": PartsUsedFormset,
         "model": Tblpartslist,
         "pk_field": "partid",
-        "lookup_field": 'partid',
-        "lookup_filter": Q(inactive=False)|Q(inactive__isnull=True),
-        'lookup_view': "jobs:parts_list",
-        'lookup_query_params': {
-                    'modelid': lambda view: view.object.assetid.modelid.pk,
+        "lookup_field": "partid",
+        "lookup_filter": Q(inactive=False) | Q(inactive__isnull=True),
+        "lookup_view": "jobs:parts_list",
+        "lookup_query_params": {
+            "modelid": lambda view: view.object.assetid.modelid.pk,
         },
-        'title':'Spare Parts',
+        "title": "Spare Parts",
         "initial": lambda obj: {
             "partid": obj.pk,
             "unitprice": None,
@@ -120,10 +121,10 @@ FORMSET_CONFIG = {
         "formset": TestEqFormset,
         "model": Tblassets,
         "pk_field": "assetid",
-        "lookup_field": 'test_eq',
-        "lookup_filter": Q(is_test_eq=True)&Q(asset_status_id=1),
-        'lookup_view': 'jobs:test_eq_list',
-        'title':'Test Equipment',
+        "lookup_field": "test_eq",
+        "lookup_filter": Q(is_test_eq=True) & Q(asset_status_id=1),
+        "lookup_view": "jobs:test_eq_list",
+        "title": "Test Equipment",
         "initial": lambda obj: {
             "test_eq": obj.pk,
         },
@@ -134,18 +135,19 @@ FORMSET_CONFIG = {
         "formset": ChecklistFormset,
         "model": Tblcheckslists,
         "pk_field": "testid",
-        "lookup_field": 'checkid',
-        "lookup_filter": None ,
-        'lookup_view':"jobs:check_list",
-        'lookup_query_params': {
-                    'modelid': lambda view: view.object.assetid.modelid.pk,
+        "lookup_field": "checkid",
+        "lookup_filter": None,
+        "lookup_view": "jobs:check_list",
+        "lookup_query_params": {
+            "modelid": lambda view: view.object.assetid.modelid.pk,
         },
-        'title': 'Checklist',
+        "title": "Checklist",
         "initial": lambda obj: {
             "checkid": obj.pk,
         },
     },
 }
+
 
 class JobUpdateView(
     LoginRequiredMixin,
@@ -157,7 +159,7 @@ class JobUpdateView(
     form_class = JobUpdateForm
     template_name = "jobs/update_job.html"
     permission_required = "assets.change_tbljob"
-    config = FORMSET_CONFIG 
+    config = FORMSET_CONFIG
 
     def get_success_url(self):
         return reverse_lazy("jobs:job_summary", kwargs={"pk": self.object.jobid})
@@ -175,6 +177,14 @@ class JobUpdateView(
             form.add_error(None, f"Error while saving: {e}")
             return super().form_invalid(form)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse(
+                "jobs:job_summary", kwargs={"pk": self.object.pk}
+            )
+
+        return context
 
 
 class JobBulkUpdateView(BulkUpdateView, CustomerJobPermissionMixin):
@@ -193,7 +203,7 @@ class JobDetailView(
     CustomerJobPermissionMixin,
     DetailView,
 ):
-    model = JobView 
+    model = JobView
     template_name = "jobs/job_summary.html"
     context_object_name = "job"
     permission_required = "assets.view_jobview"
@@ -228,10 +238,18 @@ class JobCreateView(
 
         return initial
 
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["assetid"] = self.request.GET.get("assetid", None)
+        asset_id = self.request.GET.get("assetid", None)
+        context["assetid"] = asset_id
+
+        if asset_id:
+            cancel_url = reverse("assets:view_asset", kwargs={"pk": asset_id})
+        else:
+            cancel_url = reverse("jobs:jobs_list")
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = cancel_url
+
         return context
 
     def form_valid(self, form):
@@ -246,38 +264,34 @@ class JobCreateView(
         return self.render_to_response(context)
 
 
-
-
 class TestEqListView(
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
-    FormsetOptionsListView):
+    LoginRequiredMixin, PermissionRequiredMixin, FormsetOptionsListView
+):
     model = Tblassets
     permission_required = "assets.change_tbljob"
-    template_name = 'jobs/partials/available_test_eq.html'
+    template_name = "jobs/partials/available_test_eq.html"
     config = FORMSET_CONFIG
-    add_formset_row_view = 'jobs:add_formset_row' 
+    add_formset_row_view = "jobs:add_formset_row"
     search_fields = [
-        'serialnumber',
-        'modelid__modelname',
+        "serialnumber",
+        "modelid__modelname",
     ]
 
-class SparePartsListView(
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
-    FormsetOptionsListView):
 
-    model = Tblpartslist 
+class SparePartsListView(
+    LoginRequiredMixin, PermissionRequiredMixin, FormsetOptionsListView
+):
+    model = Tblpartslist
     permission_required = "assets.change_tbljob"
     config = FORMSET_CONFIG
-    add_formset_row_view = 'jobs:add_formset_row' 
+    add_formset_row_view = "jobs:add_formset_row"
 
     def get_queryset(self):
         qs = super().get_queryset()
 
         qs = qs.filter()
 
-        modelid = self.request.GET.get('modelid')
+        modelid = self.request.GET.get("modelid")
         if modelid:
             qs = qs.filter(part_model__model=modelid)
 
@@ -285,18 +299,16 @@ class SparePartsListView(
 
 
 class ChecklistListView(
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
-    FormsetOptionsListView):
-
-    model = Tblcheckslists 
+    LoginRequiredMixin, PermissionRequiredMixin, FormsetOptionsListView
+):
+    model = Tblcheckslists
     permission_required = "assets.change_tbljob"
     config = FORMSET_CONFIG
-    add_formset_row_view = 'jobs:add_formset_row' 
+    add_formset_row_view = "jobs:add_formset_row"
 
     def get_queryset(self):
         qs = super().get_queryset()
-        modelid = self.request.GET.get('modelid', None)
+        modelid = self.request.GET.get("modelid", None)
         if modelid:
             qs = qs.filter(modelid=modelid)
 
@@ -304,15 +316,16 @@ class ChecklistListView(
 
 
 SCANNER_CONFIG_MAP = {
-    'assetid': {
-        'value': lambda data: data.get('asset', {}).get('asset_id', None),
-        'formset_type': 'test_eq'
+    "assetid": {
+        "value": lambda data: data.get("asset", {}).get("asset_id", None),
+        "formset_type": "test_eq",
     },
-    'partid': {
-        'value': lambda data: data.get('part', {}).get('part_id', None),
-        'formset_type': 'parts_used'
-    }
+    "partid": {
+        "value": lambda data: data.get("part", {}).get("part_id", None),
+        "formset_type": "parts_used",
+    },
 }
+
 
 class JobAddFormsetRowView(AddFormsetRowView):
     permission_required = "assets.change_tbljob"

@@ -15,7 +15,8 @@
                     {{ form.media }}
                     {% csrf_token %} 
                     {% bootstrap_form form layout='horizontal' %}
-                    <button type="submit" class="btn btn-primary">Save</button>
+
+                    {% include 'partials/form_buttons.html' %}
             </form>
         </div>
     </div>

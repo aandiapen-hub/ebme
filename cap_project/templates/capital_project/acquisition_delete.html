@@ -14,8 +14,7 @@
                     {{ form.media }}
                     {% csrf_token %} 
                     {% bootstrap_form form layout='horizontal' %}
-                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-          <a class='btn btn-sm btn-outline-secondary' href='{% url "capital_projects:acquisition_detail" pk=acquisition.id %}'>Delete</a>
+                    {% include 'partials/form_buttons.html' with color='danger' text='Delete'  %}
             </form>
         </div>
     </div>

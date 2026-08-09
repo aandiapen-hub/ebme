@@ -15,8 +15,7 @@
                     {{ form.media }}
                     {% csrf_token %} 
                     {% bootstrap_form form layout='horizontal' %}
-                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
-          <a class='btn btn-sm btn-outline-secondary' href='{% url "capital_projects:acquisition_detail" pk=acquisition.id %}'>Cancel</a>
+                    {% include 'partials/form_buttons.html' %}
             </form>
         </div>
     </div>
