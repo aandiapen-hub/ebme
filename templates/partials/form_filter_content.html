@@ -9,7 +9,6 @@
     {% for field in filter.form %}
       {% if 'search' in field.name %}
     <div id="div_id_{{ field.name }}" class='col'  >
-      <p class="text text-secondary">{{ field.label_tag }}</p>
           <div class="d-flex align-items-center gap-2">
             {{ field }}
           </div>

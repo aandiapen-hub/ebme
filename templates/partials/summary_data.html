@@ -11,9 +11,5 @@
           hx-swap='none' >
              Export(csv)
           </button>
-          <!--Bulk update button-->
-          {% for action in bulk_actions %}
-          {% include "buttons/bulk_update_button.html" with button_content=action.name url=action.url %}        
-          {% endfor %}
 
 </div> 

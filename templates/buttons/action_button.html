@@ -1,0 +1,24 @@
+
+{% if action.type == 'bulk_htmx' %}
+<a
+      hx-get="{{action.url}}?{{ request.GET.urlencode }}"
+      hx-include='#row_select_form'
+      hx-target='#bulk_update_content'
+      hx-indicator='#bulk_update_spinner'
+      hx-swap='innerHTML'
+      class="btn btn-sm btn-{{action.color}}"
+      type="button"
+      data-bs-toggle="offcanvas"
+      data-bs-target="#bulk_update_offcanvas"
+      aria-controls="bulk_update_offcanvas">
+      {{ action.name }} <i class="bi {{action.icon}}"></i>
+  </a>
+
+{% elif action.type == 'link' %}
+<a 
+  class="btn btn-sm btn-{{action.color}}"
+  href="{{action.url}}"
+  >
+  {{action.name}} <i class="bi {{action.icon}}"></i>
+</a>
+{% endif %}

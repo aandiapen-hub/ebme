@@ -103,16 +103,16 @@ def get_dynamic_table_class(table_model, visible_columns=None, template_columns=
 
 
 class TableViewActionsContentMixins:
-    bulk_actions = {}
+    actions = {}
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        bulk_actions = []
-        for action in self.bulk_actions.values():
+        actions = []
+        for action in self.actions.values():
             if self.request.user.has_perm(action["permission"]):
-                bulk_actions.append({"url": action["url"], "name": action["name"]})
-            context["bulk_actions"] = bulk_actions
+                actions.append(action)
+        context["actions"] = actions
         return context
 
 
@@ -133,7 +133,7 @@ class FilteredTableView(
     template_name = "filter_table.html"  # override in subclass - Mandatory
     universal_search_fields = None  # override in subclass - Mandatory
     default_columns = []
-    bulk_actions = {}  # overridein subclass if bulk actions are available
+    actions = {}  # overridein subclass if bulk actions are available
 
     def dispatch(self, request, *args, **kwargs):
         self.visible_columns = (

@@ -235,7 +235,7 @@ def get_universal_search_fields(filter_model, field_list):
     fields = [
         filter_model._meta.get_field(field_name).verbose_name for field_name in fields
     ]
-    return ",".join(fields)
+    return 'Search' + ' ' + ", ".join(fields)
 
 
 def dynamic_filterset_generator(

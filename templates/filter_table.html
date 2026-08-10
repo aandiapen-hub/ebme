@@ -20,37 +20,17 @@
 {% block content %}
 
 <div class="container-flex px-3">
-  <div class='d-flex flex-row  gap-2 align-items-center'>
+  <div class='d-flex flex-row  gap-2 align-items-bottom'>
     <h4>{{title}}</h6>
-        <div id="action_reports" class="dropdown">
-            <button
-                class="btn btn-outline-secondary btn-sm dropdown-toggle"
-                type="button"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-            >
-                <i class="bi bi-download"></i>
-            </button>
-
-            <ul class="dropdown-menu">
-                {% for report in report_types %}
-                <li>
-                  {% for action in bulk_actions %}
-                  {% include "buttons/bulk_update_button.html" with button_content=action.name url=action.url %}        
-                  {% endfor %}
-                </li>
+        <div id="action_reports">
+                {% for action in actions %}
+                  {% include "buttons/action_button.html" with button_content=action.name url=action.url %}        
                 {% endfor %}
-            </ul>
         </div>
   </div>
 </div>
 
 <div id='filter-table-container' class="container-flex px-3">
-
-          <!--Bulk update button-->
-          {% for action in bulk_actions %}
-          {% include "buttons/bulk_update_button.html" with button_content=action.name url=action.url %}        
-          {% endfor %}
   <div class="row border p-2">
     <div class="col" >
       

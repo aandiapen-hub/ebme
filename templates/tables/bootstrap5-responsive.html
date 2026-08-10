@@ -1,11 +1,10 @@
 {% extends 'django_tables2/bootstrap5.html' %}
 
 {% block table-wrapper %}
-<div class="table-container table-responsive-sm">
+<div class="table-container">
     {% block table %}
         {{ block.super }}
     {% endblock table %}
-
     {% block pagination %}
         {{ block.super }}
     {% endblock pagination %}

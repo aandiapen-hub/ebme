@@ -385,15 +385,29 @@ class FilteredJobTableView(
         "startdate",
         "enddate",
     ]
-    bulk_actions = {
+    actions = {
+        "add_new": {
+            "type": 'link',
+            "url": reverse_lazy("jobs:job_create"),
+            "permission": "assets.bulk_update_tbljob",
+            "name": "New",
+            "icon":"bi-plus",
+            "color":'outline-secondary'
+        },
         "bulk_update": {
+            "type": 'bulk_htmx',
             "url": reverse_lazy("jobs:bulk_update_jobs"),
             "permission": "assets.bulk_update_tbljob",
             "name": "Update",
+            "color":'outline-secondary',
+            "icon":"bi-pencil",
         },
         "bulk_link_document": {
+            "type": 'bulk_htmx',
             "url": reverse_lazy("documents:bulk_link_to_jobs"),
             "permission": "documents.bulk_create_links",
             "name": "Link Document",
+            "color":'outline-secondary',
+            "icon":"bi-file-earmark-plus",
         },
     }
