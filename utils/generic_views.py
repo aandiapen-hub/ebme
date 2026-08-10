@@ -1,5 +1,5 @@
 from django.urls import reverse
-from django_htmx.http import  HttpResponseClientRedirect
+from django_htmx.http import HttpResponseClientRedirect
 from django.db import IntegrityError
 from django.contrib import messages
 from django.shortcuts import render
@@ -21,6 +21,7 @@ from django.core.exceptions import ValidationError
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 from django.http.response import HttpResponse, HttpResponseRedirect
+from django import forms
 
 
 EXPORT_LIMIT = 3000
@@ -85,8 +86,9 @@ def get_dynamic_table_class(table_model, visible_columns=None, template_columns=
         }
         template_name = "tables/tables2_with_filter.html"
         if template_columns:
-            fields = (['selected']
-                +(["open"] if template_columns.get("open", []) else [])
+            fields = (
+                ["selected"]
+                + (["open"] if template_columns.get("open", []) else [])
                 + visible_columns
                 + (["actions"] if template_columns.get("actions", []) else [])
             )
@@ -107,7 +109,7 @@ class TableViewActionsContentMixins:
         context = super().get_context_data(**kwargs)
 
         bulk_actions = []
-        for key, action in self.bulk_actions.items():
+        for action in self.bulk_actions.values():
             if self.request.user.has_perm(action["permission"]):
                 bulk_actions.append({"url": action["url"], "name": action["name"]})
             context["bulk_actions"] = bulk_actions
@@ -123,10 +125,12 @@ class FilteredTableView(
     FilterView,
 ):
     paginate_by = 20
+    title = None  # Override in subclass - Mandatory
+
     permission_required = None  # Override in subclass - Mandatory
     model = None  # override in subclass - Mandatory
     template_columns = None  # override in subclass - optional
-    template_name = None  # override in subclass - Mandatory
+    template_name = "filter_table.html"  # override in subclass - Mandatory
     universal_search_fields = None  # override in subclass - Mandatory
     default_columns = []
     bulk_actions = {}  # overridein subclass if bulk actions are available
@@ -135,7 +139,6 @@ class FilteredTableView(
         self.visible_columns = (
             get_visible_columns(self.request, self.model) or self.default_columns
         )
-
 
         # --- check what type of request---#
         # request options are  summary data, new filter or  actual filter result data
@@ -157,14 +160,11 @@ class FilteredTableView(
         queryset = self.get_table_data()
         total = queryset.count()
         if total > EXPORT_LIMIT:
-            messages.error(
-                self.request,
-                f'Export limited to {EXPORT_LIMIT} rows.'
-            )
+            messages.error(self.request, f"Export limited to {EXPORT_LIMIT} rows.")
             return HttpResponseRedirect(self.request.path)
         if self.request.htmx:
             response = HttpResponse(status=200)
-            response['HX-Redirect'] = self.request.get_full_path()
+            response["HX-Redirect"] = self.request.get_full_path()
             return response
         return super().create_export(export_format)
 
@@ -264,7 +264,7 @@ class FilteredTableView(
         # sort results aphabetically if they exist
         summary_field_data = {
             "status": "list",
-            "data": sorted(items, key=lambda x: (x["name"] or "")),
+            "data": sorted(items, key=lambda x: x["name"] or ""),
         }
         return self._render_field_summary(summary_field_data)
 
@@ -331,7 +331,6 @@ class FilteredTableView(
 
             filter_obj = get_filter_from_field_lookup(self.model, new_filter)
             # Build a temporary Form class with that field
-            from django import forms
 
             class DynamicForm(forms.Form):
                 pass
@@ -361,18 +360,9 @@ class FilteredTableView(
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # column chooser to get column list
         context["model_name"] = self.model._meta.label
         context["filter_fields"] = get_filter_fields(self.model, self.visible_columns)
-
-        filter_form = context.get("filter", None)
-        if filter_form:
-            cleaned_data = getattr(filter_form.form, "cleaned_data", {})
-            context["has_active_filters"] = any(
-                v not in ("", [], {}, None)
-                and not (isinstance(v, QuerySet) and not v.exists())
-                for v in cleaned_data.values()
-            )
+        context["title"] = self.title
 
         return context
 

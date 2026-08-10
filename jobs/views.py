@@ -369,11 +369,11 @@ class FilteredJobTableView(
     LoginRequiredMixin, CustomerJobListPermissionMixin, FilteredTableView
 ):
     paginate_by = 25
+    title = "Jobs"
     permission_required = "assets.view_jobview"
     table_class = None
     model = JobView
     template_columns = {"open": "jobs/tables/open.html"}
-    template_name = "jobs/jobs_list.html"
     universal_search_fields = SEARCHFILEDS
     default_columns = [
         "jobid",

@@ -22,7 +22,7 @@
       <button id='open_canvas' type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
   </div>
   <div class="offcanvas-body">
-{% include 'partials/messages.html' %}
+    {% bootstrap_messages %}
         <div
         hx-get="{% url 'documents:list_documents' %}?object_id={{object_id}}&content_type={{content_type}}"
         hx-trigger="intersect, documentUpdated from:body"

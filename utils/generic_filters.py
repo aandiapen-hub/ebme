@@ -152,7 +152,9 @@ def generate_filter_for_field(model, field_name, lookup):
             )
 
     elif "exact" in lookup and not isinstance(field, models.DateField):
-        unique_values = model.objects.order_by().values_list(field.name, flat=True).distinct()
+        unique_values = (
+            model.objects.order_by().values_list(field.name, flat=True).distinct()
+        )
         return MultipleChoiceFilter(
             label=f"{field.verbose_name} Lookup",
             field_name=field_name,
@@ -279,11 +281,10 @@ def get_filter_fields(model, visible_columns):
                 lookups = choice_lookups
             elif isinstance(field, (models.CharField, models.TimeField)):
                 lookups = text_lookups
-            elif isinstance(field, models.DecimalField):
-                lookups = numeric_lookups
             elif isinstance(
                 field,
                 (
+                    models.DecimalField,
                     models.IntegerField,
                     models.FloatField,
                 ),
@@ -297,9 +298,14 @@ def get_filter_fields(model, visible_columns):
                 lookups = text_lookups
 
             fields[field.name] = {
-                "lookups": lookups,
+                "lookups": [
+                    {
+                        "lookup_expr": f"{field.name}__{lk}",
+                        "label": LOOKUP_SYMBOL.get(lk, lk),
+                    }
+                    for lk in lookups
+                ],
                 "verbose_name": getattr(field, "verbose_name", field.name),
-                "lookup_labels": {lk: LOOKUP_SYMBOL.get(lk, lk) for lk in lookups},
             }
 
     return fields

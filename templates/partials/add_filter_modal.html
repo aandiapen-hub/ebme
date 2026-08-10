@@ -45,10 +45,11 @@ _="on click set value of #filter_list_search_box to '' then trigger input on #fi
                           <div id="flush-collapse_{{field}}" class="accordion-collapse collapse" data-bs-parent="#accordionFlush_{{field}}">
                             <div class="accordion-body">
                                           
-                                            {% for lookup,label in params.lookup_labels.items  %}
-                    <button id='button_{{field}}__{{lookup}}' class="btn btn-outline-primary" 
+                                            {% for lookup in params.lookups  %}
+                                            
+                                              <button id='button_{{lookup.lookup_expr}}' class="btn btn-outline-primary" 
                                                 
-                                                  hx-get="{% url app_link %}?{{ request.GET.urlencode }}&new_active_filter={{field}}__{{lookup}}"
+                                                  hx-get="{% querystring new_active_filter=lookup.lookup_expr %}"
                                                   hx-target="#div_filter_fields"
                                                   hx-swap="beforeend"
                                                   hx-trigger='click'
@@ -56,17 +57,17 @@ _="on click set value of #filter_list_search_box to '' then trigger input on #fi
                                                   hx-include="#filter-form input, #filter-form select"
                                                   _="
                                                    on htmx:beforeRequest
-                                                    set divid to 'div_id_{{field}}__{{lookup}}'
+                                                    set divid to 'div_id_{{lookup_expr}}'
                                                     set divs to id of <div/> in #div_filter_fields
                                                     if divid is in divs
                                                     halt the event's default
-                                                    set div to #div_id_{{field}}__{{lookup}}
-                                                    go to the top of #div_id_{{field}}__{{lookup}} -35px
-                                                    transition #div_id_{{field}}__{{lookup}} opacity to 0.1
-                                                    transition #div_id_{{field}}__{{lookup}} opacity to 1
+                                                    set div to #div_id_{{lookup_expr}}
+                                                    go to the top of #div_id_{{lookup_expr}} -35px
+                                                    transition #div_id_{{lookup_expr}} opacity to 0.1
+                                                    transition #div_id_{{lookup_expr}} opacity to 1
                                                   "
                                                   >
-                                                  {{label}}
+                                                  {{lookup.label}}
                                                 
                                             </button>
                                             {% endfor %}

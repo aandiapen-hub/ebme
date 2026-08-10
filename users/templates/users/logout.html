@@ -1,17 +1,15 @@
 {% extends "base.html" %}
-{% load django_bootstrap5 %}
+
 
 {% block content %}
 
 
-<h3>Are you sure you would like to logout?</h3>
 
 <div class="container">
 
+<h3>Are you sure you would like to logout?</h3>
     <form action="{% url 'users:logout_confirmation' %}" method="post">
         {% csrf_token %}
-        {% bootstrap_form form %}
-
         <button class="btn btn-warning" type="submit">Log Out</button>
     </form>
 </div>
