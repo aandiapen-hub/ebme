@@ -49,6 +49,10 @@
             {% include "users/partials/column_chooser_button.html" with column_chooser_model=model_name success_url=request.url %}
             <!-- column chooser modal (modal and modal open button)-->
             {% include "partials/add_filter_modal.html" %}
+
+            <img id="spinner" class="htmx-indicator"
+                width="24" height="24"
+                src="{% static 'spinners/3-dots-fade.svg' %}">
             <!-- count of results -->
             {% include "partials/summary_data.html" %}
         </div>

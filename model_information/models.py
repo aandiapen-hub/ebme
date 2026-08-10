@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import Q
+from django.urls import reverse
 
 
 # Create your models here.
@@ -82,6 +83,9 @@ class Software(models.Model):
 
     def __str__(self):
         return f"{self.name} {self.version}"
+    
+    def get_absolute_url(self):
+        return reverse('model_information:software_detail', kwargs={'pk':self.pk})
 
 
 class SoftwareModel(models.Model):
@@ -269,6 +273,9 @@ class EquipmentConfiguration(models.Model):
     class Meta:
         managed = False
         db_table = "equipment_configuration"
+
+    def get_absolute_url(self):
+        return reverse('model_information:configuration_detail', kwargs={'pk':self.pk})
 
     def __str__(self):
         return self.name

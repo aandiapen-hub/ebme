@@ -29,7 +29,7 @@ from assets.models import (
 from documents.mixins import TempUploadMixin
 from documents.services.documents import delete_object_document_links
 from parts.models import Tblpartslist
-from utils.generic_views import BulkUpdateView, FilteredTableView
+from utils.generic_views import BulkUpdateView, FilteredTableView, TableAction
 
 from .forms import (
     JobBulkUpdateForm,
@@ -373,7 +373,7 @@ class FilteredJobTableView(
     permission_required = "assets.view_jobview"
     table_class = None
     model = JobView
-    template_columns = {"open": "jobs/tables/open.html"}
+    open_column = 'jobid'
     universal_search_fields = SEARCHFILEDS
     default_columns = [
         "jobid",
@@ -385,29 +385,29 @@ class FilteredJobTableView(
         "startdate",
         "enddate",
     ]
-    actions = {
-        "add_new": {
-            "type": 'link',
-            "url": reverse_lazy("jobs:job_create"),
-            "permission": "assets.bulk_update_tbljob",
-            "name": "New",
-            "icon":"bi-plus",
-            "color":'outline-secondary'
-        },
-        "bulk_update": {
-            "type": 'bulk_htmx',
-            "url": reverse_lazy("jobs:bulk_update_jobs"),
-            "permission": "assets.bulk_update_tbljob",
-            "name": "Update",
-            "color":'outline-secondary',
-            "icon":"bi-pencil",
-        },
-        "bulk_link_document": {
-            "type": 'bulk_htmx',
-            "url": reverse_lazy("documents:bulk_link_to_jobs"),
-            "permission": "documents.bulk_create_links",
-            "name": "Link Document",
-            "color":'outline-secondary',
-            "icon":"bi-file-earmark-plus",
-        },
-    }
+    actions = [
+        TableAction(
+            name="New",
+            type='link',
+            url=reverse_lazy("jobs:job_create"),
+            permission="assets.bulk_update_tbljob",
+            icon="bi-plus",
+            color='outline-secondary'
+        ),
+        TableAction(
+            name="Update",
+            type='bulk_htmx',
+            url=reverse_lazy("jobs:bulk_update_jobs"),
+            permission="assets.bulk_update_tbljob",
+            icon="bi-pencil",
+            color='outline-secondary',
+        ),
+        TableAction(
+            name="Link Document",
+            type='bulk_htmx',
+            url=reverse_lazy("documents:bulk_link_to_jobs"),
+            permission="documents.bulk_create_links",
+            icon="bi-file-earmark-plus",
+            color='outline-secondary',
+        ),
+    ]

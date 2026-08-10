@@ -7,6 +7,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 import uuid
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from django.urls import reverse
 
 
 # Create your models here.
@@ -61,6 +62,9 @@ class TblDocuments(models.Model):
 
     def __str__(self):
         return self.document_name
+
+    def get_absolute_url(self):
+        reverse('documents:view_document', kwargs={'pk':self.pk})
 
     def set_content(self, content, file_hash=None):
         self.document_bytea = content
@@ -257,6 +261,7 @@ class TblDocumentLinks(models.Model):
             ("bulk_create_links", "Can bulk create links"),
             ("bulk_delete_links", "Can bulk delete links"),
         ]
+
 
     def __str__(self):
         return repr(self.document_link_id)

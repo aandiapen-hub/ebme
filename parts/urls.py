@@ -22,7 +22,7 @@ urlpatterns = [
     path("parts/",PartsTableView.as_view(),name='parts'),
     path("parts/<int:pk>/detail",PartDetailView.as_view(),name='part_detail'),
     path("parts/<int:pk>/update",PartUpdateView.as_view(),name='update_part'),
-    path("parts/bulk_pdate",PartBulkUpdateView.as_view(),name='bulk_update_part'),
+    path("parts/bulk_update",PartBulkUpdateView.as_view(),name='bulk_update_part'),
 
     path("parts/<int:pk>/delete",PartDeleteView.as_view(),name='delete_part'),
     path("parts/create/",PartCreateView.as_view(),name='create_part'),

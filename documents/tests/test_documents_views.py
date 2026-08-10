@@ -398,7 +398,7 @@ def test_document_link_table_view_renders(client, user_setup, customer):
 
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "documents/documents_links.html")
+    assertTemplateUsed(response, "filter_table.html")
 
 
 @pytest.mark.django_db

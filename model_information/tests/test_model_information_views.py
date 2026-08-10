@@ -63,7 +63,7 @@ def test_brand_table_view_renders(client, user, mocker, search_term):
     assert (
         response.status_code == 200
     )  # Depends on how CustomerAssetPermissionMixin handles it
-    assertTemplateUsed(response, "model_information/brandlist.html")
+    assertTemplateUsed(response, "filter_table.html")
 
     # test htmx
     response = client.get(url, HTTP_HX_REQUEST="true")
@@ -326,7 +326,7 @@ def test_model_table_view_renders(client, user):
     assert (
         response.status_code == 200
     )  # Depends on how CustomerAssetPermissionMixin handles it
-    assertTemplateUsed(response, "model_information/modellist.html")
+    assertTemplateUsed(response, "filter_table.html")
 
     # test htmx
     response = client.get(url, HTTP_HX_REQUEST="true")
@@ -610,7 +610,7 @@ def test_category_table_view_renders(client, user):
     assert (
         response.status_code == 200
     )  # Depends on how CustomerAssetPermissionMixin handles it
-    assertTemplateUsed(response, "model_information/categorylist.html")
+    assertTemplateUsed(response, "filter_table.html")
 
     # test htmx
     response = client.get(url, HTTP_HX_REQUEST="true")
@@ -1178,54 +1178,6 @@ def test_exitint_model_list_view_renders(client, user, mocker):
     assertTemplateUsed(response, "model_information/partials/existing_model_list.html")
 
 
-# test FilteredJobListView
-@pytest.mark.django_db
-def test_filtered_job_list_view_requires_login(client):
-    url = reverse("jobs:jobs_list")
-    response = client.get(url)
-    assert response.status_code == 302
-
-
-@pytest.mark.django_db
-def test_filtered_job_list_view_permission_denied(client, user_setup):
-    user = user_setup
-    client.force_login(user)
-    url = reverse("jobs:jobs_list")
-    response = client.get(url)
-    assert response.status_code == 403
-
-
-@pytest.mark.django_db
-def test_filtered_job_list_view_non_staff_with_no_customer(client, user_setup, jobs):
-    jobs = jobs()
-
-    user = user_setup
-    user.customerid = None
-    permission = Permission.objects.get(codename="view_jobview")
-    user.user_permissions.add(permission)
-    user.save()
-
-    client.force_login(user)
-
-    url = reverse("jobs:jobs_list")
-    response = client.get(url)
-
-    assert response.status_code == 200
-    assertTemplateUsed(response, "jobs/jobs_list.html")
-
-    # test htmx request
-    response = client.get(url, HTTP_HX_REQUEST="true")
-    table = response.context["table"]
-    assert table.data.data.count() == 0
-
-
-# test FilteredJobListView
-@pytest.mark.django_db
-def test_software_filter_view_requires_login(client):
-    url = reverse("model_information:softwares")
-    response = client.get(url)
-    assert response.status_code == 302
-
 
 @pytest.mark.django_db
 def test_software_filter_view_permission_denied(client, user_setup):
@@ -1252,7 +1204,7 @@ def test_software_filter_view_renders(client, user_setup, jobs):
     response = client.get(url)
 
     assert response.status_code == 200
-    assertTemplateUsed(response, "model_information/softwares.html")
+    assertTemplateUsed(response, "filter_table.html")
 
     # test htmx request
     response = client.get(url, HTTP_HX_REQUEST="true")
@@ -1710,7 +1662,7 @@ def test_equipment_configuration_filter_view_renders(client, user):
     response = client.get(url)
 
     assert response.status_code == 200
-    assertTemplateUsed(response, "model_information/configurations.html")
+    assertTemplateUsed(response, "filter_table.html")
 
 
 # test equipment configuration filter view

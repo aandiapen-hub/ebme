@@ -3,7 +3,7 @@
 {% load django_bootstrap5 %}
 
 <div id="filter-column"  hx-swap-oob='innerHTML' >
-  <div id='div_filter_fields' class='row gy-3'>
+  <div id='div_filter_fields' class='row'>
     {{ filter.form.media }}
     {% bootstrap_messages %}
     {% for field in filter.form %}
@@ -39,9 +39,6 @@
         <button hidden id='filter_form_submit_button' class='btn btn-warning'  type='submit'>Apply filters</button>
     </div>
   </div>
-<img id="spinner" class="htmx-indicator"
-     width="24" height="24"
-     src="{% static 'spinners/3-dots-fade.svg' %}">
 </div>
 
 

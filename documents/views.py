@@ -63,7 +63,7 @@ from .forms import (
 )
 
 # import generic filter table view
-from utils.generic_views import FilteredTableView, BulkUpdateView
+from utils.generic_views import FilteredTableView, BulkUpdateView, TableAction
 from django.db.models import ForeignKey
 
 
@@ -71,6 +71,8 @@ from django.db.models import ForeignKey
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from .mixins import DocumentLinkPermissionMixin
 from pdf2image import convert_from_path
+
+from documents.services import documents
 
 # Create your views here.
 DOCUMENT_LINK_SEARCH = [
@@ -238,29 +240,32 @@ class DocumentLinksTableView(
     LoginRequiredMixin, DocumentLinkPermissionMixin, FilteredTableView
 ):
     model = TblDocumentLinks
-    paginate_by = 20
+    title = 'Document Links'
+    paginate_by = 25
     permission_required = "documents.view_tbldocumentlinks"
-    template_name = "documents/documents_links.html"
     template_columns = {"actions": "documents/tables/document_links_buttons.html"}
     universal_search_fields = DOCUMENT_LINK_SEARCH
     exclude = ["document_bytea"]
 
-    bulk_actions = {
-        "bulk_delete": {
-            "url": reverse_lazy("documents:bulk_delete_links"),
-            "permission": "documents.bulk_delete_links",
-            "name": "Delete",
-        },
-    }
-
+    actions = [
+        TableAction(
+            name="Delete",
+            type='bulk_htmx',
+            url=reverse_lazy("documents:bulk_delete_links"),
+            permission="assets.bulk_delete_links",
+            icon="bi-bin",
+            color='outline-danger',
+        ),
+    ]
 
 class DocumentsTableView(
     LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
 ):
     model = TblDocuments
+    title = 'Documents'
     paginate_by = 20
     permission_required = "documents.view_tbldocuments"
-    template_name = "documents/documents.html"
+    open_column = 'document_id'
     template_columns = {"open": "documents/tables/open.html"}
     universal_search_fields = [
         "document_name__icontains",
@@ -269,6 +274,8 @@ class DocumentsTableView(
     ]
     exclude = ("document_bytea",)
 
+    actions = [
+    ]
 
 class DocumentDownloadFromLinkView(
     LoginRequiredMixin, DocumentLinkPermissionMixin, DetailView

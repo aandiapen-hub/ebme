@@ -121,7 +121,7 @@ def test_column_chooser_post_updates_preferences(client, django_user_model, user
     post_data = {
         "request_model": "AssetView",
         "columns": ["assetid", "serialnumber", "modelname"],
-        "success_url": "assets:assets_list",
+        "next": reverse("assets:assets_list"),
     }
     response = client.post(url, post_data)
 

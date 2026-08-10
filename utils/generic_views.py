@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.shortcuts import render
 from django.views.generic.edit import FormMixin
 from django_filters.views import FilterView
-from django_tables2 import SingleTableMixin, CheckBoxColumn, TemplateColumn, Table
+from django_tables2 import SingleTableMixin, CheckBoxColumn, TemplateColumn, Table, Column
 from django.db.models.query import QuerySet
 from django.db.models import Count, ForeignKey, DateField, JSONField
 from users.models import UserProfiles
@@ -23,6 +23,8 @@ from django.utils.decorators import method_decorator
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django import forms
 
+from dataclasses import dataclass
+from typing import Literal
 
 EXPORT_LIMIT = 3000
 
@@ -44,11 +46,15 @@ def get_visible_columns(request, model):
 
 class CustomCheckBoxColumn(CheckBoxColumn):
     def header(self):
-        return "Select"
+        return ""
 
 
 # Function to dynamically create table class
-def get_dynamic_table_class(table_model, visible_columns=None, template_columns=None):
+def get_dynamic_table_class(
+        table_model,
+        visible_columns=None,
+        template_columns=None,
+        open_column=None):
     """
     Create a dynamic Table class based on user's column preferences.
 
@@ -70,10 +76,19 @@ def get_dynamic_table_class(table_model, visible_columns=None, template_columns=
                 attrs={"td": {"style": "position: sticky; left:0; ; z-index:3;"}},
             )
 
+    if open_column:
+        table_columns[open_column] = Column(
+            linkify=True,
+        )
+        if open_column in visible_columns:
+            visible_columns.remove(open_column)
+
+
     # Always include checkbox column
     table_columns["selected"] = CustomCheckBoxColumn(
         accessor="pk", exclude_from_export=True
     )  # Define Meta dynamically
+
 
     class Meta:
         model = table_model
@@ -81,19 +96,20 @@ def get_dynamic_table_class(table_model, visible_columns=None, template_columns=
             "class": "table table-hover table-bordered table-striped  ",
             "thead": {
                 "class": "table-bordered align-middle",
-                "style": ("position: sticky; top: 0; z-index: 1; "),
+                "style": "position: sticky; top: 0; z-index: 1;",
             },
         }
         template_name = "tables/tables2_with_filter.html"
         if template_columns:
             fields = (
                 ["selected"]
-                + (["open"] if template_columns.get("open", []) else [])
+                + ([open_column] if open_column else [])
                 + visible_columns
                 + (["actions"] if template_columns.get("actions", []) else [])
             )
         else:
-            fields = visible_columns
+            fields = ['selected', open_column] + visible_columns
+        print('fields', fields)
 
     # Dynamically create the table class
     DynamicTable = type(
@@ -109,8 +125,8 @@ class TableViewActionsContentMixins:
         context = super().get_context_data(**kwargs)
 
         actions = []
-        for action in self.actions.values():
-            if self.request.user.has_perm(action["permission"]):
+        for action in self.actions:
+            if self.request.user.has_perm(action.permission):
                 actions.append(action)
         context["actions"] = actions
         return context
@@ -126,9 +142,9 @@ class FilteredTableView(
 ):
     paginate_by = 20
     title = None  # Override in subclass - Mandatory
-
     permission_required = None  # Override in subclass - Mandatory
     model = None  # override in subclass - Mandatory
+    open_column = None # override in subclass - Mandatory
     template_columns = None  # override in subclass - optional
     template_name = "filter_table.html"  # override in subclass - Mandatory
     universal_search_fields = None  # override in subclass - Mandatory
@@ -174,6 +190,7 @@ class FilteredTableView(
             table_model=self.model,
             visible_columns=self.visible_columns,
             template_columns=self.template_columns,
+            open_column=self.open_column
         )
         return table
 
@@ -495,3 +512,17 @@ class BulkUpdateView(FilteredTableView, FormMixin):
             return HttpResponseClientRedirect(self.get_success_url())
 
         return self.form_invalid(form)
+
+
+
+# define table actions
+ActionType = Literal["link", "bulk_htmx"]
+@dataclass(frozen=True)
+class TableAction:
+    name: str
+    url: str
+    permission: str
+    type: ActionType = "link"
+    icon: str | None = None
+    color: str | None = None
+

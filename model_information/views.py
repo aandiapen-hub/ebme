@@ -48,7 +48,7 @@ from .forms import (
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 
 
-from utils.generic_views import FilteredTableView
+from utils.generic_views import FilteredTableView, TableAction
 
 # brand views
 
@@ -57,17 +57,27 @@ class FilteredBrandTableView(
     LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
 ):
     paginate_by = 25
+    title = 'Brands'
     permission_required = "assets.view_tblbrands"
     table_class = None
+    open_column = 'brandname'
     model = Tblbrands
     template_columns = {
-        "actions": "model_information/tables/brandlist_buttons.html",
         "open": "model_information/tables/brand_open.html",
     }
-    template_name = "model_information/brandlist.html"
     universal_search_fields = ["brandname__icontains"]
     default_columns = ["brandname"]
 
+    actions = [
+        TableAction(
+            name='Add',
+            type='link',
+            url=reverse_lazy('model_information:create_brand'),
+            permission='assets.add_tblbrands',
+            icon='bi-plus',
+            color='outline-secondary'
+        ),
+    ]
 
 class BrandUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Tblbrands
@@ -158,12 +168,22 @@ class FilteredModelTableView(
     LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
 ):
     model = Tblmodel
+    title = 'Models'
     paginate_by = 25
+    open_column = 'modelid'
     permission_required = "assets.view_tblmodel"
-    template_name = "model_information/modellist.html"
     universal_search_fields = ["modelname__icontains"]
-    template_columns = {"open": "model_information/tables/model_open.html"}
 
+    actions = [
+        TableAction(
+            name='Add',
+            type='link',
+            url=reverse_lazy('model_information:create_model'),
+            permission='assets.add_tblmodel',
+            icon='bi-plus',
+            color='outline-secondary'
+        ),
+    ]
 
 class ModelUpdateView(
     LoginRequiredMixin,
@@ -290,16 +310,23 @@ class FilteredCategoryTableView(
     LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
 ):
     model = Tblcategories
+    title = 'Categories'
     paginate_by = 25
     permission_required = "assets.view_tblcategories"
-    template_name = "model_information/categorylist.html"
     universal_search_fields = ["categoryname__icontains"]
-    template_columns = {
-        "actions": "model_information/tables/categorylist_buttons.html",
-        "open": "model_information/tables/category_open.html",
-    }
+    open_column = 'categoryid'
     default_columns = ["categoryid", "categoryname"]
 
+    actions = [
+        TableAction(
+            name='Add',
+            type='link',
+            url=reverse_lazy('model_information:create_category'),
+            permission='assets.add_tblcategories',
+            icon='bi-plus',
+            color='outline-secondary'
+        ),
+    ]
 
 class CategoryUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Tblcategories
@@ -528,11 +555,11 @@ class SoftwareFilterView(
     LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
 ):
     paginate_by = 25
+    title = 'Software'
     permission_required = "model_information.view_software"
     model = Software
     table_class = None
-    template_columns = {"open": "model_information/tables/software_open.html"}
-    template_name = "model_information/softwares.html"
+    open_column = 'id'
     universal_search_fields = SOFTWARE_SEARCH_FIELDS
     default_columns = [
         "brand",
@@ -541,7 +568,16 @@ class SoftwareFilterView(
         "release_date",
         "software_type_id",
     ]
-    bulk_actions = {}
+    actions = [
+        TableAction(
+            name='Add',
+            type='link',
+            url=reverse_lazy('model_information:software_create'),
+            permission='model_information.add_software',
+            icon='bi-plus',
+            color='outline-secondary'
+        ),
+    ]
 
 
 class SoftwareDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
@@ -672,18 +708,27 @@ class ConfigurationFilterView(
     LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
 ):
     paginate_by = 25
+    title = 'Configuration'
     permission_required = "model_information.view_equipmentconfiguration"
     model = EquipmentConfiguration
     table_class = None
-    template_columns = {"open": "model_information/tables/configuration_open.html"}
-    template_name = "model_information/configurations.html"
+    open_column = 'id'
     universal_search_fields = SOFTWARE_SEARCH_FIELDS
     default_columns = [
         "brand",
         "configuration_status",
         "version",
     ]
-    bulk_actions = {}
+    actions = [
+        TableAction(
+            name='Add',
+            type='link',
+            url=reverse_lazy('model_information:configuration_create'),
+            permission='model_information.add_equipmentconfiguration',
+            icon='bi-plus',
+            color='outline-secondary'
+        ),
+    ]
 
 
 class ConfigurationDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):

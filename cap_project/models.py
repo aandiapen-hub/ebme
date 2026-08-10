@@ -1,5 +1,6 @@
 from django.db import transaction, IntegrityError, models
 import random
+from django.urls import reverse
 
 
 class CapitalProjectStatus(models.Model):
@@ -49,6 +50,9 @@ class CapitalProject(models.Model):
     class Meta:
         managed = False
         db_table = 'capital_project'
+
+    def get_absolute_url(self):
+        return reverse('capital_projects:project_detail', kwargs={'pk':self.pk})
 
     def __str__(self):
         return self.name
@@ -101,6 +105,9 @@ class CapitalAcquisition(models.Model):
         managed = False
         db_table = 'capital_acquisition'
 
+    def get_absolute_url(self):
+        return reverse('capital_projects:acquisition_detail', kwargs={'pk':self.pk})
+
     def __str__(self):
         return self.name
 
@@ -151,6 +158,9 @@ class CommissionRequest(models.Model):
     class Meta:
         managed = False
         db_table = 'commission_request'
+
+    def get_absolute_url(self):
+        return reverse('capital_projects:commission_request_detail', kwargs={'pk':self.pk})
 
     def save(self, *args, **kwargs):
         creating = self.pk is None

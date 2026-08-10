@@ -48,8 +48,7 @@
       <form method='post' action='{{ request.get_full_path }}'>
         {% csrf_token %}
         <input type="hidden" name="request_model" value="{{ request_model }}">
-        <input type="hidden" name="success_url" value="{{ success_url }}">
-        <input type="hidden" name="query_params" value="{{ query_params }}">
+        <input type="hidden" name="next" value="{{ next }}">
         <ul id='selected_columns' class="list-group" value="selected_columns">
             {% for column in visible_columns  %}
           <li class="list-group-item list-group-item-action"

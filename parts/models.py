@@ -1,5 +1,6 @@
 from django.db import models
 import datetime
+from django.urls import reverse 
 
 # Create your models here.
 class Tblpartslist(models.Model):
@@ -37,6 +38,9 @@ class SparepartView(models.Model):
 
     def __str__(self):
         return f"{self.short_name} - {self.part_number}"
+    
+    def get_absolute_url(self):
+        return reverse('parts:part_detail', kwargs={'pk':self.pk})
     
     
 class Tblpartsprice(models.Model):

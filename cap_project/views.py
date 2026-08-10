@@ -6,7 +6,8 @@ from .models import (
     CommissionRequest,
 )
 
-from utils.generic_views import FilteredTableView
+from utils.generic_views import FilteredTableView, TableAction
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 
 from django.views.generic import (
     CreateView,
@@ -19,13 +20,17 @@ from django.views.generic import (
 CAPITAL_PROJECT_SEARCH_FIELDS = ["code", "name"]
 
 
-class CapitalProjectFilterView(FilteredTableView):
+class CapitalProjectFilterView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    FilteredTableView
+):
     paginate_by = 25
+    title = 'Projects'
     permission_required = "capital_project.view_capitalproject"
     table_class = None
+    open_column = 'code'
     model = CapitalProject
-    template_columns = {"open": "capital_project/tables/capital_project_open.html"}
-    template_name = "capital_project/capital_projects.html"
     universal_search_fields = CAPITAL_PROJECT_SEARCH_FIELDS
     default_columns = [
         "code",
@@ -34,6 +39,17 @@ class CapitalProjectFilterView(FilteredTableView):
         "typeid",
         "startdate",
         "enddate",
+    ]
+
+    actions = [
+        TableAction(
+                name='Add',
+                type='link',
+                url=reverse_lazy('capital_projects:project_create'),
+                permission='capital_project.add_capitalproject',
+                icon='bi-plus',
+                color='outline-secondary'
+            ),
     ]
 
 
@@ -99,13 +115,17 @@ class CapitalProjectDeleteView(DeleteView):
 CAPITAL_ACQUISITION_SEARCH_FIELDS = ["code", "name"]
 
 
-class CapitalAcquisitionFilterView(FilteredTableView):
-    paginate_by = 25
-    permission_required = "capital_project.view_capitalacquisition"
-    table_class = None
+class CapitalAcquisitionFilterView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    FilteredTableView
+):
     model = CapitalAcquisition
-    template_columns = {"open": "capital_project/tables/acquisition_open.html"}
-    template_name = "capital_project/acquisitions.html"
+    permission_required = "capital_project.view_capitalacquisition"
+    title = 'Acquisitions' 
+    open_column = 'code'
+    table_class = None
+    paginate_by = 25
     universal_search_fields = CAPITAL_ACQUISITION_SEARCH_FIELDS
     default_columns = [
         "code",
@@ -115,7 +135,16 @@ class CapitalAcquisitionFilterView(FilteredTableView):
         "startdate",
         "enddate",
     ]
-    bulk_actions = {}
+    actions = [
+    TableAction(
+            name='Add',
+            type='link',
+            url=reverse_lazy('capital_projects:acquisition_create'),
+            permission='capital_project.add_capitalacquisition',
+            icon='bi-plus',
+            color='outline-secondary'
+        )
+    ]
 
 
 class CapitalAcquisitionDetailView(DetailView):
@@ -192,13 +221,17 @@ class CapitalAcquisitionDeleteView(DeleteView):
 COMMISSION_REQUEST_SEARCH_FIELDS = ["code", "capital_acquisition"]
 
 
-class CommissionRequestFilterView(FilteredTableView):
+class CommissionRequestFilterView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    FilteredTableView
+):
     paginate_by = 25
+    title = 'Commission Requests'
     permission_required = "capital_project.view_commissionrequest"
     model = CommissionRequest
+    open_column = 'code'
     table_class = None
-    template_columns = {"open": "capital_project/tables/commission_request_open.html"}
-    template_name = "capital_project/commission_requests.html"
     universal_search_fields = COMMISSION_REQUEST_SEARCH_FIELDS
     default_columns = [
         "code",
@@ -208,7 +241,16 @@ class CommissionRequestFilterView(FilteredTableView):
         "startdate",
         "enddate",
     ]
-    bulk_actions = {}
+    actions = [
+    TableAction(
+            name='Add',
+            type='link',
+            url=reverse_lazy('capital_projects:commission_request_create'),
+            permission='capital_project.add_commissionrequest',
+            icon='bi-plus',
+            color='outline-secondary'
+        )
+    ]
 
 
 class CommissionRequestDetailView(DetailView):

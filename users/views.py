@@ -41,9 +41,8 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
     template_name = 'users/partials/column_chooser.html'
 
     def get_success_url(self):
-        base_url = reverse(self.request.POST.get("success_url"))
-        query_params = self.request.POST.get("query_params",'')
-        return f"{base_url}?{query_params}"
+        url = self.request.POST.get("next")
+        return url
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -67,8 +66,10 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
         context["available_columns"] = available_columns
 
         context['request_model'] = model_name
-        context['success_url'] = self.request.GET.get('success_url')
-        context["query_params"] = self.request.GET.urlencode()
+
+        next_url = self.request.GET.get("next_path")
+        query_params = self.request.GET.urlencode()
+        context['next'] = f"{next_url}?{query_params}"
         return context
 
     def post(self, request, *args, **kwargs):

@@ -1,3 +1,4 @@
+from assets.views import UNIVERSAL_SEARCH_FIELDS
 from django.utils.safestring import mark_safe
 from django.db import transaction
 from django.db.utils import IntegrityError
@@ -27,7 +28,7 @@ from django.views.generic import (
 
 
 # import generic filter table view
-from utils.generic_views import FilteredTableView
+from utils.generic_views import FilteredTableView, TableAction
 
 # import form tools
 from .forms import (
@@ -40,23 +41,41 @@ from .forms import (
 # import permission and login mixins
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 
-
+UNIVERSAL_SEARCH_FIELDS = [
+    "partid__icontains",
+    "description__icontains",
+    "part_number__icontains",
+    "short_name__icontains",
+    "supplier_name__icontains",
+]
+ 
 # Create your views here.
 # part views
 class PartsTableView(LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView):
     model = SparepartView
+    title = 'Spare Parts'
     paginate_by = 20
     permission_required = "parts.view_tblpartslist"
-    template_name = "parts/parts_list.html"
-    template_columns = {"open": "parts/tables/sparepart_open.html"}
-    universal_search_fields = [
-        "partid__icontains",
-        "description__icontains",
-        "part_number__icontains",
-        "short_name__icontains",
-        "supplier_name__icontains",
+    open_column = 'partid'
+    universal_search_fields = UNIVERSAL_SEARCH_FIELDS
+    actions = [
+        TableAction(
+            name='Add',
+            type='link',
+            url=reverse_lazy('parts:create_part'),
+            permission="parts.add_tblpartslist",
+            icon='bi-plus',
+            color='outline-secondary'
+        ),
+        TableAction(
+            name="Update",
+            type='bulk_htmx',
+            url=reverse_lazy("parts:bulk_update_part"),
+            permission="parts.change_tblpartslist",
+            icon="bi-pencil",
+            color='outline-secondary'
+        ),
     ]
-
 
 class PartDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = Tblpartslist
@@ -86,13 +105,13 @@ class PartUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
 
 class PartBulkUpdateView(BulkUpdateView):
     # filterset_class = PartFilter
-    context_object_name = "parts"
     model = SparepartView
-    db_table = Tblpartslist
     permission_required = "parts.change_tblpartslist"
+    template_name = 'parts/bulk_update_parts.html'
+    universal_search_fields = UNIVERSAL_SEARCH_FIELDS
     form_class = PartsBulkUpdateForm
-    summary_field_names = ["supplier_name", "inactive"]
-    success_url = reverse_lazy("parts:parts")
+    success_view = "parts:parts"
+    table_to_update = Tblpartslist
 
 
 class PartDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):

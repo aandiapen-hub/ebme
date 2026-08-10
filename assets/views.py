@@ -42,7 +42,7 @@ from .forms import (
     ReplicateAssetForm,
 )
 
-from utils.generic_views import BulkUpdateView
+from utils.generic_views import BulkUpdateView, TableAction
 
 # import permissions
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -66,11 +66,11 @@ class FilteredAssetTableView(
     LoginRequiredMixin, CustomerAssetPermissionMixin, FilteredTableView
 ):
     paginate_by = 25
+    title = 'Assets'
     permission_required = "assets.view_assetview"
     table_class = None
+    open_column = 'assetid'
     model = AssetView
-    template_columns = {"open": "assets/tables/open.html"}
-    template_name = "assets/assetview_filter.html"
     universal_search_fields = UNIVERSAL_SEARCH_FIELDS
     default_columns = [
         "assetid",
@@ -80,18 +80,32 @@ class FilteredAssetTableView(
         "customerid",
         "ppm_compliance",
     ]
-    bulk_actions = {
-        "bulk_update": {
-            "url": reverse_lazy("assets:bulk_update_assets"),
-            "permission": "assets.bulk_change_assets",
-            "name": "Update",
-        },
-        "bulk_link_document": {
-            "url": reverse_lazy("documents:bulk_link_to_assets"),
-            "permission": "documents.bulk_create_links",
-            "name": "Link Document",
-        },
-    }
+    actions = [
+        TableAction(
+            name='Add',
+            type='link',
+            url=reverse_lazy('assets:create_asset'),
+            permission='assets.add_tblassets',
+            icon='bi-plus',
+            color='outline-secondary'
+        ),
+        TableAction(
+            name="Update",
+            type='bulk_htmx',
+            url=reverse_lazy("assets:bulk_update_assets"),
+            permission="assets.bulk_change_assets",
+            icon="bi-pencil",
+            color='outline-secondary'
+        ),
+        TableAction(
+            name='Link Document',
+            type='bulk_htmx',
+            url=reverse_lazy("documents:bulk_link_to_assets"),
+            permission="documents.bulk_create_links",
+            icon="bi-file-earmark-plus",
+            color='outline-secondary'
+        ),
+    ]
 
 
 class AssetDetailView(

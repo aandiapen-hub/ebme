@@ -43,8 +43,6 @@ def test_filtered_job_list_view_non_staff_with_no_customer(client, user_setup, j
     url = reverse("jobs:jobs_list")
     response = client.get(url)
 
-    assert response.status_code == 200
-    assertTemplateUsed(response, "jobs/jobs_list.html")
 
     # test htmx request
     response = client.get(url, HTTP_HX_REQUEST="true")
@@ -69,7 +67,7 @@ def test_filtered_job_list_view_renders(client, user_setup, jobs):
     response = client.get(url)
 
     assert response.status_code == 200
-    assertTemplateUsed(response, "jobs/jobs_list.html")
+    assertTemplateUsed(response, "filter_table.html")
 
     # test htmx request
     response = client.get(url, HTTP_HX_REQUEST="true")

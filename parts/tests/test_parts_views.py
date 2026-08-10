@@ -40,7 +40,7 @@ def test_parts_table_view_renders(client, user):
     url = reverse("parts:parts")
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "parts/parts_list.html")
+    assertTemplateUsed(response, "filter_table.html")
     # test filter
     response_with_params = client.get(url)
     assert response_with_params.status_code == 200

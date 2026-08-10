@@ -40,7 +40,7 @@ def test_po_table_view_renders(client, user):
     url = reverse("procurement:po")
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "procurement/purchaseorders.html")
+    assertTemplateUsed(response, "filter_table.html")
 
     # test htmx response
     response_htmx = client.get(url, HTTP_HX_REQUEST="true")

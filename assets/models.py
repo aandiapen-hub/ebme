@@ -8,7 +8,7 @@
 from django.db import models
 from django.utils.timezone import now
 from django.contrib.contenttypes.fields import GenericRelation
-
+from django.urls import reverse
 from model_information.models import EquipmentConfigurationLink, EquipmentConfiguration
 
 
@@ -241,6 +241,9 @@ class AssetView(models.Model):
 
         ordering = ("assetid",)
 
+    def get_absolute_url(self):
+        return reverse('assets:view_asset', kwargs={'pk':self.pk})
+
     def __str__(self):
         return f"{self.brandname} - {self.modelname} - {self.serialnumber} ({self.categoryname})"
 
@@ -392,6 +395,10 @@ class JobView(models.Model):
     def __str__(self):
         return f"{self.jobid} - {self.model} - {self.serialnumber} - {self.jobstatus} - {self.customer} "
 
+    def get_absolute_url(self):
+            # Maps to an existing URL route pattern named 'article_detail'
+        return reverse('jobs:job_summary', kwargs={'pk': self.pk})  #
+
     @property
     def job(self):
         return Tbljob.objects.get(pk=self.pk)
@@ -408,6 +415,9 @@ class Tblbrands(models.Model):
         managed = False
         db_table = "tblBrands"
         ordering = ["brandid"]
+
+    def get_absolute_url(self):
+        return reverse('model_information:brand_detail', kwargs={'pk':self.pk})
 
     def __str__(self):
         return f"{self.brandname}"
@@ -573,7 +583,7 @@ class Tblmodel(models.Model):
         db_column="ModelName", max_length=100, verbose_name="Model Name"
     )
     modelid = models.BigAutoField(
-        db_column="ModelID", primary_key=True
+        db_column="ModelID", primary_key=True, verbose_name='ID'
     )
     brandid = models.ForeignKey(
         "Tblbrands",
@@ -605,6 +615,9 @@ class Tblmodel(models.Model):
         permissions = [
             ("bulk_update_tblmodel", "Can perform bulk updates"),
         ]
+
+    def get_absolute_url(self):
+        return reverse('model_information:model_view', kwargs={'pk':self.pk})
 
     def __str__(self):
         return f"{self.modelname}"
@@ -800,6 +813,9 @@ class Tblcategories(models.Model):
         managed = False
         db_table = "tblcategories"
         ordering = ["categoryid"]
+
+    def get_absolute_url(self):
+        return reverse('model_information:category_detail', kwargs={'pk':self.pk})
 
     def __str__(self):
         return self.categoryname

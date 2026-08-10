@@ -594,7 +594,7 @@ def test_filtered_asset_table_view_renders(client, user_setup, asset):
     # test html get
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "assets/assetview_filter.html")
+    assertTemplateUsed(response, "filter_table.html")
     content = response.content.decode()
 
     # test htmx get

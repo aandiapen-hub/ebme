@@ -10,7 +10,7 @@ from utils.generic_filters import get_filter_fields
 from django.contrib.auth.models import Permission
 
 URL = reverse("jobs:jobs_list")
-GET_TEMPLATE = "jobs/jobs_list.html"
+GET_TEMPLATE = "filter_table.html"
 PERMISSION = 'view_jobview'
 FK_FIELD = 'modelid'
 TEXT_FIELD = 'brandname'
@@ -61,7 +61,7 @@ def test_filtered_table_view_add_filter_fk(client, user_setup, lookup):
 
     # --- Prepare test data ---
 
-    filter_name = f"{FK_FIELD}__{lookup}"
+    filter_name = f"{lookup['lookup_expr']}"
 
     response = client.get(
         URL,
@@ -87,7 +87,7 @@ def test_filtered_table_view_add_filter_text(client, user_setup, lookup):
 
     # --- Prepare test data ---
 
-    filter_name = f"{TEXT_FIELD}__{lookup}"
+    filter_name = f"{lookup['lookup_expr']}"
 
     response = client.get(
         URL,
@@ -113,7 +113,7 @@ def test_filtered_table_view_add_filter_date(client, user_setup, lookup):
 
     # --- Prepare test data ---
 
-    filter_name = f"{DATE_FIELD}__{lookup}"
+    filter_name = f"{lookup['lookup_expr']}"
 
     response = client.get(
         URL,
@@ -122,7 +122,7 @@ def test_filtered_table_view_add_filter_date(client, user_setup, lookup):
     )
 
     assert response.status_code == 200
-    if lookup == 'range':
+    if 'range' in lookup['lookup_expr']:
         assert f'name="{DATE_FIELD}__range__lte"' in response.content.decode()
     else:
         assert f'name="{filter_name}"' in response.content.decode()
@@ -142,7 +142,7 @@ def test_filtered_table_view_add_filter_numeric(client, user_setup, lookup):
 
     # --- Prepare test data ---
 
-    filter_name = f"{NUMERIC_FIELD}__{lookup}"
+    filter_name = f"{lookup['lookup_expr']}"
 
     response = client.get(
         URL,

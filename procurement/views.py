@@ -53,7 +53,7 @@ from .forms import (
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 
 # import generic filter table view
-from utils.generic_views import FilteredTableView
+from utils.generic_views import FilteredTableView, TableAction
 
 from .reports.purchase_order import print_po
 
@@ -62,14 +62,25 @@ from .reports.purchase_order import print_po
 # Purchase order views
 class PoTableView(LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView):
     model = TblPurchaseOrder
+    title = 'Purchase Orders'
     paginate_by = 20
     permission_required = "procurement.view_tblpurchaseorder"
-    template_name = "procurement/purchaseorders.html"
-    template_columns = {"open": "procurement/tables/open_po.html"}
+    open_column = 'po_id'
     universal_search_fields = {
         "po_id__icontains",
         "supplier__supplier_name__icontains",
     }
+    actions = [
+        TableAction(
+            name="Add",
+            type='bulk_htmx',
+            url=reverse_lazy("documents:bulk_link_to_jobs"),
+            permission="procurement.add_tblpurchaseorder",
+            icon="bi-plus",
+            color='outline-secondary',
+        ),
+ 
+    ]
 
 
 class PoCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
