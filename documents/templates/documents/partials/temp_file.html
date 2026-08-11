@@ -17,7 +17,7 @@
                 if my.src contains '/static/'  then halt
       
                 else
-                  show #openseadragon_{{group.pk}}
+                  show #openseadragon_{{temp_group.pk}}
                   set file_pk to file.pk
                   set url to `{% url 'documents:load_image' pk=file.pk %}`
                   
