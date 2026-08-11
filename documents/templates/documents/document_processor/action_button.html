@@ -1,2 +1,6 @@
-<a href="{{ action.url }}" class="btn btn-{{action.color}}">{{action.label}}</a>
 
+{% if action.enabled %}
+<a type='button' href="{{ action.url }}" class="btn btn-sm btn-{{action.color}}">{{action.label}}</a>
+{% else %}
+<button type='button' class="btn btn-sm btn-{{action.color}} disabled" aria-disabled='true'>{{action.label}}</button>
+{% endif %}

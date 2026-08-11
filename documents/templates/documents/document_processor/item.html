@@ -8,9 +8,11 @@
     <p class="card-text">
     {{item.description}}
   <div class="card-footer bg-transparent border-success">
-     {% for action in item.actions %}
-        {% include 'documents/document_processor/action_button.html' %}
-    {% endfor %}
+     <div class='d-flex align-items-center gap-1'>
+      {% for action in item.actions %}
+          {% include 'documents/document_processor/action_button.html' %}
+      {% endfor %}
+      </div>
   </div>
   </div>
 </div>

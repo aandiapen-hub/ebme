@@ -47,7 +47,6 @@ def asset_data_builder(
     customerid=None,
     unitprice=None,
 ):
-    print('buildier prod date', prod_date)
     return {
         "gtin": {
             "value": gtin,
@@ -310,7 +309,6 @@ def gs1_resolver(parsed_data):
     gtin = parsed_data.get("GTIN")
     serial = parsed_data.get("SERIAL")
     prod_date = parsed_data.get("PROD DATE")
-    print('prod date', prod_date)
 
     # defaults
     known_model = None

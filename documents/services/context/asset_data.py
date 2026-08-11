@@ -30,7 +30,7 @@ def get_gtin_actions(data, temp_group_id=None):
                 label='Add as a Model',
                 enabled=True,
                 url = f'{reverse("model_information:create_model")}?{query_params}',
-                color='primary'
+                color='warning'
             )
         )
 
@@ -39,7 +39,7 @@ def get_gtin_actions(data, temp_group_id=None):
                 label='Add as a Part',
                 enabled=True,
                 url = f'{reverse("parts:create_part")}?{query_params}',
-                color='primary'
+                color='warning'
             )
         )
         items += [ MatchedItem(
@@ -115,15 +115,15 @@ def get_models_without_gtin(data, temp_group_id=None):
                     label='Open',
                     enabled=True,
                     url=reverse('model_information:model_view', kwargs={'pk': model.pk}),
-                    color='secondary'
+                    color='outline-secondary'
                 )
             )
             actions.append(
                 Action(
-                    label='Update',
+                    label='Add GTIN',
                     enabled=True,
                     url=f"{reverse('model_information:update_model', kwargs={'pk': model.pk})}?{query_params}",
-                    color='primary'
+                    color='warning'
                 )
             )
             items += [MatchedItem(
@@ -191,7 +191,7 @@ def get_fully_matched_asset(data, temp_group_id=None):
         if prod_date_missing: 
             actions.append(
                 Action(
-                    label='Update (Prod Date mismatch)',
+                    label='Update Prod Date',
                     enabled=True,
                     url=f"{reverse("assets:update_asset", kwargs={'pk':asset.pk})}?{query_params}",
                     color='warning'
@@ -224,7 +224,7 @@ def get_partially_matched_asset(data, temp_group_id=None):
                     label='Open',
                     enabled=True,
                     url=f"{reverse("assets:view_asset", kwargs={'pk': asset.pk})}?{query_params}",
-                    color='secondary'
+                    color='outline-secondary'
                 )
             )
             items += [ MatchedItem(
@@ -241,22 +241,32 @@ def get_create_asset(data, temp_group_id=None):
     query_params = temp_group_params(temp_group_id)
     items = []
 
-    asset = data.get("asset", {})
-    has_no_asset_id = not asset.get("asset_id")
-    has_serial = bool(asset.get("serialnumber"))
+    asset_data = data.get("asset", {})
+    has_no_asset_id = not asset_data.get("asset_id")
+    has_serial = bool(asset_data.get("serialnumber"))
+    model_id = bool(asset_data.get("model_id"))
+    gtin = data.get("gtin", {}).get("add_gtin", None)
+
+    if gtin and not model_id:
+        enabled = False
+        description = 'New asset cannot be created. Create a new Model or add GTIN to an existing model.'
+    else:
+        enabled = True
+        description = "Create Asset using the extracted information"
+    
 
     if has_no_asset_id and has_serial:
-    
+
         action = Action(
                 label='Create',
-                enabled=True,
+                enabled=enabled,
                 url=f"{reverse("assets:create_asset")}?{query_params}",
-                color='primary'
+                color='warning'
             )
         items += [ MatchedItem(
             item_type='Asset',
             title="Create Asset",
-            description='Create Asset using the extracted information',
+            description=description,
             obj=None,
             actions=[action]
         ) ]

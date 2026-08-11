@@ -12,6 +12,7 @@ from .views import (
     ModelCreateView,
     ModelDeleteView,
     ModelDetailView,
+    ModelCopyView,
     ExistingModelListView,
     FilteredCategoryTableView,
     CategoryDetailView,
@@ -61,6 +62,7 @@ urlpatterns = [
     path("create_model/",ModelCreateView.as_view(),name='create_model'),
     path("delete_model/<int:pk>",ModelDeleteView.as_view(),name='delete_model'),
     path("view_model/<int:pk>",ModelDetailView.as_view(),name='model_view'),
+    path("model/<int:pk>/copy_model/",ModelCopyView.as_view(),name='copy_model'),
 
 
     path("categorylist/",FilteredCategoryTableView.as_view(),name='categorylist'),

@@ -42,6 +42,7 @@ from .forms import (
     ModelBulkUpdateForm,
     AddNewConfigVersionForm,
     AddNewSoftwareVersionForm,
+    ModelCopyForm,
 )
 
 # import permissions mixins
@@ -243,6 +244,53 @@ class ModelCreateView(
 
         return context
 
+class ModelCopyView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    TempUploadMixin,
+    FormView,
+):
+    model = Tblmodel
+    form_class = ModelCopyForm
+    template_name = "model_information/model_copy.html"
+    permission_required = "assets.add_tblmodel"
+    success_url_app_view = "model_information:model_view"
+    initial_mapper = "create_model"
+
+    def form_valid(self, form):
+        model_id = self.request.POST.get('model_id', None)
+        gtin = self.request.POST.get('gtin', None)
+        model = Tblmodel.objects.filter(pk=model_id).first()
+        if not gtin or not model:
+            form.add(None, 'Copying not possbile, model or gtin missing')
+            return self.form_invalid(form)
+
+        model.pk = None
+        model.gtin = gtin
+
+        with transaction.atomic():
+            model.save()
+            self.object = model
+            self.after_save(form)
+
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_initial(self):
+        initial = super().get_initial()
+        print('initial', initial)
+        initial['model_id'] = self.kwargs.get('pk')
+        return initial
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+
+        model_id = self.kwargs.get('pk')
+        context['model'] = Tblmodel.objects.filter(pk=model_id).first()
+
+        if context.get("cancel_url", None) is None:
+            context["cancel_url"] = reverse("model_information:modellist")
+
+        return context
 
 class ExistingModelListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     model = Tblmodel
@@ -252,18 +300,18 @@ class ExistingModelListView(LoginRequiredMixin, PermissionRequiredMixin, ListVie
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["temp_document_group"] = self.request.GET.get("temp_document_group")
+        context["temp_group_id"] = self.request.GET.get("temp_group_id")
+        context['search_term'] = self.request.GET.get("modelname")
         return context
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        modelname = self.request.GET.get("modelname")
+        search_term = self.request.GET.get("modelname")
+        if search_term:
+            queryset = queryset.filter(modelname__icontains=search_term).exclude()
+            return queryset[:10]
+        return None
 
-        if modelname:
-            queryset = queryset.filter(modelname__icontains=modelname).exclude(
-                gtin__isnull=False
-            )[:10]
-            return queryset
 
 
 class ModelDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):

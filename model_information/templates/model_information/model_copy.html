@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+
+{% block content %}
+<div id='update_model'class='container bg-white p-2'>
+{% include 'documents/partials/temp_file_group_mini.html' %}
+<form class="form" method="post" action="{{request.path}}" >
+
+  Model:{{model}}<br>
+  Brand: {{model.brandid}}<br> 
+  Category: {{model.categoryid}}<br>
+
+        {% csrf_token %}
+        {{form.media}}
+        {% include 'partials/form_with_comparison.html' %}
+
+        {% include 'partials/form_buttons.html' %}
+        </form>
+<div>
+{% endblock %}

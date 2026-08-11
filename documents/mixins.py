@@ -70,8 +70,9 @@ class TempUploadMixin:
         # populate from query params
         initial.update(self.request.GET.items())
 
-        # populate from payload
+        #populate from payload
         initial = self.apply_temp_payload_to_initial(initial)
+        print('initial', initial)
 
         return initial
 

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load django_bootstrap5 %}
 {% load custom_tags %}
+{% load static %}
 
 {% block content %}
 
@@ -122,6 +123,18 @@
                                   {% bootstrap_field field %}
                                   {% if field.name in 'modelname' %}
                                     {% partial modelname %}
+
+                                    <img id="spinner" class="htmx-indicator" width="24" height="24" src="{% static 'spinners/3-dots-fade.svg' %}">
+                                    <div
+                                        hx-get='{% url "model_information:existing_modellist" %}?temp_group_id={{temp_group.pk}}'
+                                        hx-trigger='keyup from:#id_modelname delay:50ms'
+                                        hx-include='#model_create_form'
+                                        hx-target='this'
+                                        hx-swap='innerHTML'
+                                        hx-indicator='#spinner'></div>
+                                    </div>
+
+
                                   {% elif field.name in 'brandid' %}
                                     {% partial brand %}
                                   {% elif field.name in 'categoryid' %}
@@ -134,6 +147,7 @@
                           {% include 'partials/form_buttons.html' %}
                         </form>
                 </div>
+                <div class='col'>
                 
 
 
