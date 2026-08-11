@@ -175,6 +175,7 @@ def get_duplicatable_models(data, temp_group_id=None):
 def get_fully_matched_asset(data, temp_group_id=None):
     query_params = temp_group_params(temp_group_id)
     asset_id = data.get("asset", {}).get("asset_id")
+    prod_date_missing = data.get("asset", {}).get("prod_date_missing")
     items = [] 
     asset = Tblassets.objects.filter(pk=asset_id).first()
     if asset:
@@ -187,14 +188,15 @@ def get_fully_matched_asset(data, temp_group_id=None):
                 color='primary'
             )
         )
-        actions.append(
-            Action(
-                label='Update',
-                enabled=True,
-                url=f"{reverse("assets:update_asset", kwargs={'pk':asset.pk})}?{query_params}",
-                color='primary'
+        if prod_date_missing: 
+            actions.append(
+                Action(
+                    label='Update (Prod Date mismatch)',
+                    enabled=True,
+                    url=f"{reverse("assets:update_asset", kwargs={'pk':asset.pk})}?{query_params}",
+                    color='warning'
+                )
             )
-        )
         items += [ MatchedItem(
             item_type='Asset',
             title=f"{asset}",

@@ -76,7 +76,6 @@ def apply_payload_to_initial(
         return initial
 
     payload, auto_update_fields = mapper(resolved_data)
-
     if payload:
         # update initial based on specifid payload in query params
         update_all_fields = True if auto_update_fields == '__all__' else False

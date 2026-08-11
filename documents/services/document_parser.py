@@ -25,7 +25,7 @@ def asset_data_builder(
     asset_no=None,
     too_many_assets=False,
     create_asset=False,
-    asset_serial_number_mismatch=False,
+    prod_date_missing=False,
     jobs=None,
     too_many_jobs=False,
     model_id=None,
@@ -47,6 +47,7 @@ def asset_data_builder(
     customerid=None,
     unitprice=None,
 ):
+    print('buildier prod date', prod_date)
     return {
         "gtin": {
             "value": gtin,
@@ -65,7 +66,7 @@ def asset_data_builder(
             "locationid":locationid,
             "customerid":customerid,
             "unitprice":unitprice,
-            "asset_serial_number_mismatch": asset_serial_number_mismatch
+            "prod_date_missing": prod_date_missing,
         },
         "job": {
             "jobs": jobs or [],
@@ -309,6 +310,7 @@ def gs1_resolver(parsed_data):
     gtin = parsed_data.get("GTIN")
     serial = parsed_data.get("SERIAL")
     prod_date = parsed_data.get("PROD DATE")
+    print('prod date', prod_date)
 
     # defaults
     known_model = None
@@ -328,7 +330,7 @@ def gs1_resolver(parsed_data):
     add_gtin = False
 
     # -------------------------
-    # 1. Asset lookup (strongest)
+    # 1. Asset Number lookup (strongest)
     # -------------------------
     asset = find_asset_by_asset_no(asset_no)
     if asset:
@@ -337,6 +339,7 @@ def gs1_resolver(parsed_data):
             gtin=gtin,
             asset_id=asset.pk,
             jobs=jobs,
+            prod_date=prod_date
         )
     create_asset = bool(asset)
 
@@ -351,20 +354,22 @@ def gs1_resolver(parsed_data):
     # 3. Exact asset match
     # -------------------------
 
-    asset2 = find_asset_by_serial_and_model(serial, known_model)
+    asset = find_asset_by_serial_and_model(serial, known_model)
 
-    # check if assetid match serial number on database
-    asset_serial_number_mismatch = bool(asset and asset2 and asset2 != asset)
-
-    if asset2:
-        jobs = list(asset2.jobs.values_list("pk", flat=True))
+    if asset:
+        prod_date_missing = asset.prod_date != prod_date
+        
+        jobs = list(asset.jobs.values_list("pk", flat=True))
         return asset_data_builder(
             gtin=gtin,
-            asset_id=asset2.pk,
+            asset_id=asset.pk,
             model_id=model_id,
             jobs=jobs,
+            prod_date=prod_date,
+            prod_date_missing = prod_date_missing
         )
-    create_asset = not bool(asset) or bool(serial and known_model)
+    create_asset = not bool(asset) and bool(serial and known_model)
+
 
     # -------------------------
     # 4. Partial match
@@ -451,7 +456,6 @@ def gs1_resolver(parsed_data):
         prod_date=prod_date,
         create_asset=create_asset,
         too_many_assets=too_many_assets,
-        asset_serial_number_mismatch=asset_serial_number_mismatch,
         jobs=jobs,
         model_id=model_id,
         duplicatable_models=models_with_gtin,

@@ -36,6 +36,7 @@
         <div class="col">
           <p><small class="text-muted">Next PPM Date: </small>{{asset.nextppmdate}}</p>
           <p><small class="text-muted">Schedule: </small>{{asset.ppmscheduleid}}</p>
+          <p><small class="text-muted">Prod Date: </small>{{asset.prod_date|default:'Unknown'}}</p>
           <p><small class="text-muted">Last PPM Date: </small>{{asset.lastppmdate}}</p>
           <p><small class="text-muted">Last Repair Date: </small>{{asset.lastrepairdate}}</p>
           <p><small class="text-muted">Required Config: </small>
@@ -99,22 +100,27 @@
 
           </div>
         </div>
+
+        {% if software in asset.assetid.installed_software.all %}
+          <div class="col-12">
+            <p><small class="text-muted">Software: </small>
+            <ul class="list-group">
+              {% for software in asset.assetid.installed_software.all %}
+              <li class="list-group-item" aria-current="true">
+                {{software.software}}
+                <a class='btn btn-sm btn-outline-secondary' href='{% url "assets:remove_equipment_software" pk=software.pk %}'>Remove</a>
+              </li>
+              {% empty %}
+              <p>No software installed</p>
+              {% endfor %}
+            </ul>
+
+          </div>
+        {% endif %}
+        
+
       </div>
 
-      <div class="col-12">
-        <p><small class="text-muted">Software: </small>
-        <ul class="list-group">
-          {% for software in asset.assetid.installed_software.all %}
-            <li class="list-group-item" aria-current="true">
-            {{software.software}}
-          <a class='btn btn-sm btn-outline-secondary' href='{% url "assets:remove_equipment_software" pk=software.pk %}'>Remove</a>
-            </li>
-            {% empty %}
-            <p>No software installed</p>
-            {% endfor %}
-        </ul>
-
-      </div>
         <div class="col-12" id="document_div">
             {% include "documents/partials/generic_document_partial.html" with object_id=asset.assetid content_type="assets.tblAssets" %}   
         </div>
