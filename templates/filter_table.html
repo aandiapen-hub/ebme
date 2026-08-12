@@ -15,14 +15,19 @@
 {% include "partials/summary_data.html" %}
 {% include "partials/form_filter_content.html" %}
 
-    <div class="d-none d-md-block">
-      {% render_table table%}
-    </div>
+    <div id='result-container'>
+      <div class="d-none d-md-block">
+        {% render_table table%}
+      </div>
 
-    <!-- Mobile -->
-    <div class="d-md-none">
-      {% render_table table 'tables/cards_with_filter.html' %}
-    </div>
+      <!-- Mobile -->
+      <div class="d-md-none">
+        {% render_table table 'tables/cards_with_filter.html' %}
+      </div>
+    <div>
+
+
+
   {% endpartialdef table-partial %}
 
 {% block content %}
@@ -97,6 +102,7 @@
                 </div>
         </section>
       <form id='row_select_form'>
+
         <div id='result-container'>
           <div class="d-none d-md-block">
             {% render_table table%}
@@ -104,9 +110,9 @@
 
           <!-- Mobile -->
           <div class="d-md-none">
-      {% render_table table 'tables/cards_with_filter.html' %}
+            {% render_table table 'tables/cards_with_filter.html' %}
           </div>
-          <div>
+        <div>
       </form>
     </article>
 

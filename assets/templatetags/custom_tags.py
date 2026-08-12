@@ -26,6 +26,8 @@ def get_original(value, name):
 
 @register.filter()
 def highlight(text, src_str):
+    if not src_str:
+        return text
     if text is not None:
         text = str(text)
         str_replaced = src_str.sub(

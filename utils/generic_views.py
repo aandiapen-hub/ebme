@@ -201,10 +201,13 @@ class FilteredTableView(
         table = super().get_table(**kwargs)
         # add the regex for the text to be hightlighted in the table
         # to the table context
-        search_term = self.request.GET.get("universal_search", '')
-        table.src_str = re.compile(re.escape(search_term), re.IGNORECASE)
-        search_fields = [x.split("__", 2)[0] for x in self.universal_search_fields]
-        table.search_fields = search_fields 
+        search_term = self.request.GET.get("universal_search", None)
+        if search_term:
+            table.src_str = re.compile(re.escape(search_term), re.IGNORECASE)
+            table.search_fields = [x.split("__", 2)[0] for x in self.universal_search_fields]
+        else:
+            table.src_str = table.search_fields = None
+            
         return table
 
     def clean_name(self, value):
