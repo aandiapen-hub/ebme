@@ -72,7 +72,6 @@ class TempUploadMixin:
 
         #populate from payload
         initial = self.apply_temp_payload_to_initial(initial)
-        print('initial', initial)
 
         return initial
 

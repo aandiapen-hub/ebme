@@ -160,9 +160,8 @@ class JobUpdateView(
     template_name = "jobs/update_job.html"
     permission_required = "assets.change_tbljob"
     config = FORMSET_CONFIG
+    success_url_app_view = "jobs:job_summary"
 
-    def get_success_url(self):
-        return reverse_lazy("jobs:job_summary", kwargs={"pk": self.object.jobid})
 
     def form_valid(self, form):
         try:

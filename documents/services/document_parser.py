@@ -261,8 +261,9 @@ def resolve_gtin(gtin):
     return model, part, add_gtin
 
 
-def find_partial_asset_matches(serial):
+def find_partial_matches(serial, model_id=None, part_id=None):
 
+    known_gtin = model_id or part_id
     assets_qs = AssetView.objects.filter(serialnumber__icontains=serial)
 
     assets = list(assets_qs.values_list("pk", flat=True))
@@ -276,22 +277,25 @@ def find_partial_asset_matches(serial):
             "models_without_gtin": [],
             "jobs": []
         }
+    models_without_gtin = []
+    models_with_gtin = []
+    
+    if not known_gtin:
+        model_ids = list(assets_qs.values_list("modelid", flat=True))
 
-    model_ids = list(assets_qs.values_list("modelid", flat=True))
+        models_with_gtin = list(
+            Tblmodel.objects.filter(
+                modelid__in=model_ids,
+                gtin__isnull=False
+            ).values_list("pk", flat=True)
+        )
 
-    models_with_gtin = list(
-        Tblmodel.objects.filter(
-            modelid__in=model_ids,
-            gtin__isnull=False
-        ).values_list("pk", flat=True)
-    )
-
-    models_without_gtin = list(
-        Tblmodel.objects.filter(
-            modelid__in=model_ids,
-            gtin__isnull=True
-        ).values_list("pk", flat=True)
-    )
+        models_without_gtin = list(
+            Tblmodel.objects.filter(
+                modelid__in=model_ids,
+                gtin__isnull=True
+            ).values_list("pk", flat=True)
+        )
 
     jobs = JobView.objects.filter(assetid__in=assets).values_list('pk', flat=True)
 
@@ -355,7 +359,7 @@ def gs1_resolver(parsed_data):
     asset = find_asset_by_serial_and_model(serial, known_model)
 
     if asset:
-        prod_date_missing = asset.prod_date != prod_date
+        prod_date_missing = asset.prod_date.strftime("%y%m%d")  != prod_date
         
         jobs = list(asset.jobs.values_list("pk", flat=True))
         return asset_data_builder(
@@ -372,8 +376,8 @@ def gs1_resolver(parsed_data):
     # -------------------------
     # 4. Partial match
     # -------------------------
-    if serial and not known_model:
-        result = find_partial_asset_matches(serial)
+    if serial and not asset:
+        result = find_partial_matches(serial, model_id, part_id)
 
         assets = result["assets"]
         too_many_assets = result["too_many_assets"]
@@ -525,7 +529,7 @@ def job_resolver(parsed_data):
     # 4. Partial match
     # -------------------------
     if serial and not known_model:
-        result = find_partial_asset_matches(serial)
+        result = find_partial_matches(serial)
         assets = result["assets"]
         create_asset = True
 

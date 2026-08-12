@@ -55,7 +55,7 @@ def get_gtin_actions(data, temp_group_id=None):
 def get_model(data, temp_group_id=None):
     model_id = data.get("model", {}).get("model_id")
     if model_id:
-        model = Tblmodel.objects.get(pk=model_id)
+        model = Tblmodel.objects.filter(pk=model_id).first()
         actions = []
         actions.append(
             Action(
@@ -225,6 +225,14 @@ def get_partially_matched_asset(data, temp_group_id=None):
                     enabled=True,
                     url=f"{reverse("assets:view_asset", kwargs={'pk': asset.pk})}?{query_params}",
                     color='outline-secondary'
+                )
+            )
+            actions.append(
+                Action(
+                    label='Update',
+                    enabled=True,
+                    url=f"{reverse("assets:update_asset", kwargs={'pk': asset.pk})}?{query_params}",
+                    color='warning'
                 )
             )
             items += [ MatchedItem(

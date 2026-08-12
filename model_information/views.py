@@ -277,7 +277,6 @@ class ModelCopyView(
 
     def get_initial(self):
         initial = super().get_initial()
-        print('initial', initial)
         initial['model_id'] = self.kwargs.get('pk')
         return initial
 

@@ -137,12 +137,22 @@ class AssetUpdateView(
     model = Tblassets
     form_class = AssetUpdateForm
     template_name = "assets/update_form.html"
-
     permission_required = "assets.change_tblassets"
+    success_url_app_view = "assets:view_asset"
 
-    def get_success_url(self):
-        # Use self.object to access the updated object
-        return reverse("assets:view_asset", kwargs={"pk": self.object.assetid})
+
+    def form_valid(self, form):
+        
+        try:
+            with transaction.atomic():
+                # save document related records from TempUploadMixin
+                self.object = form.save()
+                self.after_save(form)
+            return HttpResponseRedirect(self.get_success_url())
+
+        except Exception as e:
+            form.add_error(None, f"Error while saving: {e}")
+            return super().form_invalid(form)
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)

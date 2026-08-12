@@ -21,7 +21,7 @@ def map_asset_data(resolved_data):
     for field, value in payload.items():
         if field == "prod_date" and isinstance(value,str):
             payload[field] = datetime.strptime(value, "%y%m%d").date()
-
+            
     auto_update_fields = '__all__'
     return payload, auto_update_fields
 

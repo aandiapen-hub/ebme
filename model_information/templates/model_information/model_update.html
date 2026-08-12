@@ -6,11 +6,7 @@
 <div id='update_model'class='container bg-white p-2'>
 {% include 'documents/partials/temp_file_group_mini.html' %}
 <form class="form" method="post"
-        hx-post="{{request.path}}"
-        hx-trigger="submit"
-        hx-target="#update_model"
-        hx-swap="outerHTML"
-        hx-select='#model-detail'>
+        href="{{request.path}}">
         {% csrf_token %}
         {{form.media}}
 
