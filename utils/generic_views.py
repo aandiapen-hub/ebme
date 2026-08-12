@@ -6,7 +6,6 @@ from django.shortcuts import render
 from django.views.generic.edit import FormMixin
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin, CheckBoxColumn, TemplateColumn, Table, Column
-from django.db.models.query import QuerySet
 from django.db.models import Count, ForeignKey, DateField, JSONField
 from users.models import UserProfiles
 from utils.generic_filters import (
@@ -25,6 +24,7 @@ from django import forms
 
 from dataclasses import dataclass
 from typing import Literal
+import re
 
 EXPORT_LIMIT = 3000
 
@@ -45,8 +45,9 @@ def get_visible_columns(request, model):
 
 
 class CustomCheckBoxColumn(CheckBoxColumn):
+    verbose_name = "Select"
     def header(self):
-        return ""
+        return "Select"
 
 
 # Function to dynamically create table class
@@ -92,6 +93,8 @@ def get_dynamic_table_class(
 
     class Meta:
         model = table_model
+
+        per_page = 20
         attrs = {
             "class": "table table-hover table-bordered table-striped  ",
             "thead": {
@@ -109,7 +112,6 @@ def get_dynamic_table_class(
             )
         else:
             fields = ['selected', open_column] + visible_columns
-        print('fields', fields)
 
     # Dynamically create the table class
     DynamicTable = type(
@@ -140,7 +142,6 @@ class FilteredTableView(
     ExportMixin,
     FilterView,
 ):
-    paginate_by = 20
     title = None  # Override in subclass - Mandatory
     permission_required = None  # Override in subclass - Mandatory
     model = None  # override in subclass - Mandatory
@@ -192,6 +193,18 @@ class FilteredTableView(
             template_columns=self.template_columns,
             open_column=self.open_column
         )
+        table.search_term = self.request.GET.get('universal_search','')
+        return table
+
+    def get_table(self, **kwargs):
+        
+        table = super().get_table(**kwargs)
+        # add the regex for the text to be hightlighted in the table
+        # to the table context
+        search_term = self.request.GET.get("universal_search")
+        table.src_str = re.compile(re.escape(search_term), re.IGNORECASE)
+        search_fields = [x.split("__", 2)[0] for x in self.universal_search_fields]
+        table.search_fields = search_fields 
         return table
 
     def clean_name(self, value):

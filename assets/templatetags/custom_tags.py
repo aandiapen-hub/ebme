@@ -25,16 +25,13 @@ def get_original(value, name):
 
 
 @register.filter()
-def highlight(text, value):
+def highlight(text, src_str):
     if text is not None:
         text = str(text)
-        src_str = re.compile(re.escape(value), re.IGNORECASE)
-
         str_replaced = src_str.sub(
             lambda m: f"<span class='text-bg-success'>{m.group(0)}</span>",
             text,
         )
-        print(repr(str_replaced))
     else:
         str_replaced = ''
 

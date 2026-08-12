@@ -14,14 +14,23 @@
 {% partialdef table-partial %}
 {% include "partials/summary_data.html" %}
 {% include "partials/form_filter_content.html" %}
-{% render_table table%}
-{% endpartialdef table-partial %}
+
+    <div class="d-none d-md-block">
+      {% render_table table%}
+    </div>
+
+    <!-- Mobile -->
+    <div class="d-md-none">
+      {% render_table table 'tables/cards_with_filter.html' %}
+    </div>
+  {% endpartialdef table-partial %}
 
 {% block content %}
 
 <div class="container-flex px-3">
   <div class='d-flex flex-row  gap-2 align-items-bottom'>
     <h4>{{title}}</h6>
+
         <div id="action_reports">
                 {% for action in actions %}
                   {% include "buttons/action_button.html" with button_content=action.name url=action.url %}        
@@ -34,7 +43,7 @@
   <div class="row border p-2">
     <div class="col" >
       
-      <form id='filter-form' hx-get="{{request.path}}" hx-target="div.table-container" 
+      <form id='filter-form' hx-get="{{request.path}}" hx-target="#result-container" 
             hx-trigger="submit from:#filter-form, click from:#column_filter_btn "
             hx-swap="innerHTML" hx-push-url='true' hx-indicator='#spinner' name="search" hx-include='#pivot_filters'
               _="on change
@@ -88,7 +97,16 @@
                 </div>
         </section>
       <form id='row_select_form'>
-        {% render_table table%}
+        <div id='result-container'>
+          <div class="d-none d-md-block">
+            {% render_table table%}
+          </div>
+
+          <!-- Mobile -->
+          <div class="d-md-none">
+      {% render_table table 'tables/cards_with_filter.html' %}
+          </div>
+          <div>
       </form>
     </article>
 

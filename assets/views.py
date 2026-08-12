@@ -65,7 +65,6 @@ UNIVERSAL_SEARCH_FIELDS = [
 class FilteredAssetTableView(
     LoginRequiredMixin, CustomerAssetPermissionMixin, FilteredTableView
 ):
-    paginate_by = 25
     title = 'Assets'
     permission_required = "assets.view_assetview"
     table_class = None

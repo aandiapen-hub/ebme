@@ -1,13 +1,12 @@
 {# templates/tables/bootstrap_htmx.html #}
-
 {% extends 'tables/bootstrap5-responsive.html' %}
 {% load i18n %}
 {% load django_tables2 %}
 {% load custom_tags %}
 
 {% block table.thead %}
-{% if table.show_header %}
 
+{% if table.show_header %}
 
 <thead {{ table.attrs.thead.as_html }} >
 <tr>
@@ -25,9 +24,6 @@
       style="cursor: pointer;"
       {% endif %}>
 
-    
-
-
     {{ column.header }}
     </h6>
     <div class=" d-inline-flex gap-2">
@@ -39,6 +35,7 @@
         <span><i class="bi bi-sort-alpha-up"></i></span>
         {% endif %}
     {% endif %}
+
 
 
         <!--clear filter button-->
@@ -80,6 +77,18 @@
 </thead>
 {% endif %}
 {% endblock table.thead %}
+
+{% block table.tbody.row %}
+                    <tr {{ row.attrs.as_html }}>
+                        {% for column, cell in row.items %}
+                          {% if column.name in table.search_fields %}
+                          <td {{ column.attrs.td.as_html }}>{% if column.localize == None %}{{ cell|highlight:table.src_str }}{% else %}{% if column.localize %}{{ cell|localize }}{% else %}{{ cell|unlocalize }}{% endif %}{% endif %}</td>
+                          {% else %}
+                            <td {{ column.attrs.td.as_html }}>{% if column.localize == None %}{{ cell }}{% else %}{% if column.localize %}{{ cell|localize }}{% else %}{{ cell|unlocalize }}{% endif %}{% endif %}</td>
+                          {% endif %}
+                        {% endfor %}
+                    </tr>
+{% endblock table.tbody.row %}
 
  {# Pagination block overrides #}
 {% block pagination.previous %}
