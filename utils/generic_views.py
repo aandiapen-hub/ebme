@@ -203,10 +203,11 @@ class FilteredTableView(
         # to the table context
         search_term = self.request.GET.get("universal_search", None)
         if search_term:
-            table.src_str = re.compile(re.escape(search_term), re.IGNORECASE)
+            table.src_re_obj = re.compile(re.escape(search_term), re.IGNORECASE)
             table.search_fields = [x.split("__", 2)[0] for x in self.universal_search_fields]
         else:
-            table.src_str = table.search_fields = None
+            table.src_re_obj =  None
+            table.search_fields = None
             
         return table
 

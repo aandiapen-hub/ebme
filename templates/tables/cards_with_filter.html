@@ -13,7 +13,11 @@
                 {% for column, value in row.items %}
                   {% if forloop.counter == 2 %}
                     <div class="d-flex">
-                        <div class="text-muted"> {{ column.header }}: {{ value }}</div>
+                          {% if column.name in table.search_fields %}
+                            <div class="text-muted"> {{ column.header }}: {{ value|highlight:table.src_re_obj }}</div>
+                          {% else %}
+                            <div class="text-muted"> {{ column.header }}: {{ value }}</div>
+                          {% endif %}
                     </div>
                     {% endif %}
                 {% endfor %}
@@ -43,7 +47,7 @@
 
                         <div class="col">
                           {% if column.name in table.search_fields %}
-                          {{ value|highlight:table.src_str }}
+                          {{ value|highlight:table.src_re_obj }}
                           {% else %}
                           {{ value }}
                           {% endif %}
