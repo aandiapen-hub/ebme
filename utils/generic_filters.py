@@ -50,6 +50,7 @@ LOOKUP_SYMBOL = {
 NULL_CHOICES = (
     (True, "Empty"),
     (False, "Not Empty"),
+    (None, "--------")
 )
 
 

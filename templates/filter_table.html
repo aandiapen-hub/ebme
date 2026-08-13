@@ -49,8 +49,8 @@
     <div class="col" >
       
       <form id='filter-form' hx-get="{{request.path}}" hx-target="#result-container" 
-            hx-trigger="submit from:#filter-form, click from:#column_filter_btn "
-            hx-swap="innerHTML" hx-push-url='true' hx-indicator='#spinner' name="search" hx-include='#pivot_filters'
+            hx-trigger="submit from:#filter-form"
+            hx-swap="innerHTML" hx-push-url='true' hx-indicator='#spinner' name="search"
               _="on change
                     remove @hidden from #filter_form_submit_button">
               {% include "partials/form_filter_content.html" %}
@@ -81,21 +81,8 @@
                 _="on hidden.bs.modal
                 put '' into #div_field_summary_data">
                   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                      <div class="modal-content">
-                        <div class="modal-header">
-                            <h3 class="modal-title fs-5" id="summaryModalLabel">Column Summary</h3>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div  class="modal-body">
-                          <form id='pivot_filters'>
-                                <div id='div_field_summary_data'></div>
-                          </form>
-                                <img id="spinner" class="htmx-indicator" width="24" height="24" src="{% static 'spinners/3-dots-fade.svg' %}">
-                        </div>
-                        <div class="modal-footer">
-                            <button id='column_filter_btn' type="button" class="btn btn-primary" data-bs-dismiss="modal">Apply</button>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>
+                      <div id='div_field_summary_data' class="modal-content">
+
                       </div>
                   </div>
                 </div>

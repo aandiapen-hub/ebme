@@ -134,10 +134,10 @@ class AssetView(models.Model):
         verbose_name="CustomerAsset",
     )
     customerid = models.ForeignKey(
-        "Tblcustomer", models.PROTECT, db_column="CustomerID", verbose_name="Customer"
+        "Tblcustomer", models.PROTECT, db_column="CustomerID", verbose_name="Customer ID"
     )
     modelid = models.ForeignKey(
-        "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model"
+        "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model ID"
     )
     serialnumber = models.CharField(
         db_column="SerialNumber",
@@ -174,7 +174,7 @@ class AssetView(models.Model):
         db_column="ppmscheduleid",
         default=1,
         null=True,
-        verbose_name="PPMSchedule",
+        verbose_name="PPMSchedule ID",
     )
     softwareversion = models.CharField(blank=True, null=True, verbose_name="Software")
     locationid = models.ForeignKey(
@@ -183,7 +183,7 @@ class AssetView(models.Model):
         db_column="locationid",
         blank=True,
         null=True,
-        verbose_name="Location",
+        verbose_name="Location ID",
     )
     asset_status_id = models.ForeignKey(
         "TblAssetStatus",
@@ -191,23 +191,23 @@ class AssetView(models.Model):
         db_column="asset_status_id",
         blank=True,
         null=True,
-        verbose_name="Asset Status",
+        verbose_name="Asset Status ID",
     )
     support_level_id = models.BigIntegerField(
         blank=True, null=True, verbose_name="Support Level"
     )
     customername = models.CharField(
-        max_length=100, blank=True, null=True, verbose_name="CustomerName"
+        max_length=100, blank=True, null=True, verbose_name="Customer"
     )
     modelname = models.CharField(
         db_column="ModelName",
         max_length=100,
         blank=True,
         null=True,
-        verbose_name="ModelName",
+        verbose_name="Model",
     )
     brandname = models.CharField(
-        db_column="BrandName", blank=True, null=True, verbose_name="Brand Name"
+        db_column="BrandName", blank=True, null=True, verbose_name="Brand"
     )
     brandid = models.ForeignKey(
         "Tblbrands",
@@ -215,7 +215,7 @@ class AssetView(models.Model):
         db_column="BrandID",
         blank=True,
         null=True,
-        verbose_name="Brand",
+        verbose_name="Brand ID",
     )
     categoryid = models.ForeignKey(
         "Tblcategories",
@@ -223,13 +223,13 @@ class AssetView(models.Model):
         db_column="categoryid",
         blank=True,
         null=True,
-        verbose_name="Category",
+        verbose_name="Category ID",
     )
-    locationname = models.CharField(blank=True, null=True, verbose_name="LocationName")
-    sitename = models.CharField(blank=True, null=True, verbose_name="SiteName")
-    categoryname = models.CharField(blank=True, null=True, verbose_name="CategoryName")
+    locationname = models.CharField(blank=True, null=True, verbose_name="Location")
+    sitename = models.CharField(blank=True, null=True, verbose_name="Site")
+    categoryname = models.CharField(blank=True, null=True, verbose_name="Category")
     schedulename = models.CharField(blank=True, null=True)
-    status_name = models.CharField(blank=True, null=True, verbose_name="StatusName")
+    status_name = models.CharField(blank=True, null=True, verbose_name="Status")
     support_level_name = models.CharField(blank=True, null=True)
     ppm_compliance = models.TextField(
         blank=True, null=True, verbose_name="PPM_Compliance"
@@ -274,7 +274,7 @@ class JobView(models.Model):
         db_column="JobStatusID",
         blank=True,
         null=True,
-        verbose_name="Job Status",
+        verbose_name="Job Status ID",
     )
     technicianid = models.ForeignKey(
         "Tbltechnicianlist",
@@ -282,7 +282,7 @@ class JobView(models.Model):
         db_column="TechnicianID",
         blank=True,
         null=True,
-        verbose_name="Technician",
+        verbose_name="Technician ID",
     )
     assetid = models.ForeignKey(
         Tblassets, models.PROTECT, db_column="AssetID", related_name="job_view"
@@ -301,7 +301,7 @@ class JobView(models.Model):
         db_column="TestsPerJob", blank=True, null=True, verbose_name="Checklist"
     )
     modelid = models.ForeignKey(
-        "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model"
+        "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model ID"
     )
     serialnumber = models.CharField(
         db_column="SerialNumber",
@@ -316,13 +316,13 @@ class JobView(models.Model):
         db_column="CustomerID",
         blank=True,
         null=True,
-        verbose_name="Customer",
+        verbose_name="Customer ID",
     )
     model = models.CharField(
-        db_column="Model", max_length=100, blank=True, null=True
+        db_column="Model", max_length=100, blank=True, null=True, verbose_name='Model'
     )
     customer = models.CharField(
-        db_column="Customer", max_length=100, blank=True, null=True
+        db_column="Customer", max_length=100, blank=True, null=True, verbose_name='Customer'
     )
     jobstatus = models.CharField(
         db_column="JobStatus",
@@ -332,7 +332,7 @@ class JobView(models.Model):
         verbose_name="Status",
     )
     jobtypename = models.CharField(
-        max_length=50, blank=True, null=True, verbose_name="Job Type Name"
+        max_length=50, blank=True, null=True, verbose_name="Job Type"
     )
     total_cost = models.DecimalField(
         db_column="Total Cost",
@@ -378,10 +378,10 @@ class JobView(models.Model):
         db_column="BrandID",
         blank=True,
         null=True,
-        verbose_name="Brand",
+        verbose_name="Brand ID",
     )
     jobtypeid = models.ForeignKey(
-        "Tbljobtypes", models.PROTECT, db_column="jobtypeid", verbose_name="Job Type"
+        "Tbljobtypes", models.PROTECT, db_column="jobtypeid", verbose_name="Job Type ID"
     )
     document_links = GenericRelation(
         "documents.TblDocumentLinks", related_query_name="assets"

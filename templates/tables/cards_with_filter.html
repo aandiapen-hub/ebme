@@ -8,16 +8,16 @@
 {% block table %}
     {% for row in table.paginated_rows %}
         <div class="card border-secondary mb-3">
-          <div class="card-header bg-transparent border-success">
+          <div class="card-header bg-transparent" >
               <div class='d-flex justify-content-between'>
                 {% for column, value in row.items %}
                   {% if forloop.counter == 2 %}
                   {% partialdef card_header inline %}
                     <div class="d-flex">
                       <div class="{% if request.GET|get:column.name %}text-fill-primary {%else%}text-muted{% endif %}">
-                              {{ column.header }}:
+                              {{ column.header }} 
                             </div>
-                          <div class=''>
+                          <div class='ms-2'>
                           {% if column.name in table.search_fields %}
                             {{ value|highlight:table.src_re_obj }}
                           {% else %}
@@ -42,7 +42,16 @@
                     <div class="row">
 
                         <div class="col {% if request.GET|get:column.name %}bg-primary-subtle {%else%}text-muted{% endif %}">
-                            {{ column.header }}
+                        <button
+                        hx-get="{% if request.GET %}{{ request.get_full_path }}&summary_field={{ column.name }}{% else %}{{ request.get_full_path }}?summary_field={{ column.name }}{% endif %}" 
+                        data-bs-toggle="modal"
+                        class="btn btn-link btn-sm p-0 text-decoration-none"
+                        data-bs-target="#summaryModal"
+                        hx-indicator='#spinner'
+                        hx-target='#div_field_summary_data'
+                        hx-swap='innerHTML'>
+                            {{ column.header }} <i class="bi bi-three-dots-vertical"></i>
+                            </button>
                         </div>
 
                         <div class="col">

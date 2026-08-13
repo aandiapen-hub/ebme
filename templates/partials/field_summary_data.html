@@ -1,14 +1,24 @@
+{% load static %}
+{% load custom_tags %}
+{% partialdef modal_content %}
+
 {% if 'list' in  summary_field_data.status %}
-    <input _=" on keydown[keyCode == 13]
-            halt the event
-            end
-      on input 
-      show <div>div/> in [#selected_values, #unselected_values]
-        when its dataset.value.toLowerCase() contains my value.toLowerCase()
-      "/>
-    <div class='container mt-3' id='checkbox_filter_div'>
+
+    <div class='container' id='checkbox_filter_div'>
+
       <div class='row'>
-        <div class='col border'>
+        <input 
+           placeholder='Search values'
+          _=" on keydown[keyCode == 13]
+          halt the event
+          end
+          on input 
+          show <div>div/> in [#selected_values, #unselected_values]
+          when its dataset.value.toLowerCase() contains my value.toLowerCase()"/>
+      </div>
+
+      <div class='row'>
+        <div class='col-6 border'>
           <h5>Available Values</h5>
           <div class='overflow-auto' id='unselected_values' style="max-height:250px;">
               {% for item in summary_field_data.data %}
@@ -41,8 +51,15 @@
                               on change 
                                   set x to the closest <div/> to me 
                                   if me.checked then put x at the start of #selected_values
+                                  set y to first <label/> in x
+                                  remove .btn-secondary from y 
+                                  add .btn-primary to y 
                                   
                                   else set sd to <div/> in #unselected_values
+                                        set y to first <label/> in x
+                                        remove .btn-primary from y 
+                                        add .btn-secondary to y 
+
                                         if sd.length is 0 then put x at the start of #unselected_values
                                         else repeat for el in sd
                                             if (el.dataset.order as an Int) >= (x.dataset.order as an Int) then put x before el exit 
@@ -55,30 +72,32 @@
                               on load
                                   set x to the closest <div/> to me 
                                   if me.checked then put x at the end of #selected_values
+                                  set y to first <label/> in x
+                                  remove .btn-secondary from y 
+                                  add .btn-primary to y 
                               end
                             " >
-                      <label class="btn btn-primary btn-sm text-start" for='{{forloop.counter}}_checkbox'
-                      >{{ item.name }} ({{item.count}})</label>
+                      <label class="btn btn-secondary btn-sm text-start" for='{{forloop.counter}}_checkbox'>{{ item.name }} ({{item.count}})</label>
                     </div>
               {% empty %}
                 <p>Lookup not available for this column. Use advanced filter to narrow down results</i></p>
                 <button
-                            class="btn" type="button"
-                            data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
-                            _="on click
-                            set the value of #filter_list_search_box to '{{item.fieldname}}'
-                            trigger input on #filter_list_search_box 
-                            to #flush-collapse_{{item.fieldname}}
-                                "> 
-                            <i class="bi bi-funnel-fill"></i>
-                        </button>
+                    class="btn" type="button"
+                    data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
+                    _="on click
+                    set the value of #filter_list_search_box to '{{field.verbose_name}}'
+                    trigger input on #filter_list_search_box 
+                    add .show to #flush-collapse_{{field.name}}
+                        "> 
+                    <i class="bi bi-funnel-fill"></i>
+                </button>
 
               {% endfor %}
             </div>
 
           </div>
 
-        <div class='col border'>
+        <div class='col-6 border'>
           <h5>Selected</h5>
           <div class='overflow-auto' id='selected_values' style="max-height:250px;">
           </div>
@@ -86,34 +105,111 @@
 
 
         {% elif 'datefield' in summary_field_data.status %}
-              <p>Lookup not available for this field. Use advanced filter to narrow down results </i></p>
+              <p>Lookup not available for date field {{field.verbose_name}}. Use advanced filter to narrow down results </i></p>
               <button
                           class="btn" type="button"
                           data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
                           _="on click
-                          set the value of #filter_list_search_box to '{{summary_field_data.data.field.verbose_name}}'
+                          set the value of #filter_list_search_box to '{{field.verbose_name}}'
                           trigger input on #filter_list_search_box 
-                          add .show to #flush-collapse_{{summary_field_data.data.field.name}}
+                          add .show to #flush-collapse_{{field.name}}
                               "> 
                           <i class="bi bi-funnel-fill"></i>
                       </button>
 
         {% elif "high_row_count" in summary_field_data.status %}
-              <p>This field has too many values. Use advanced filter to narrow down results </i></p>
+        <p>{{field.verbose_name}} field has too many values. Use advanced filter to narrow down results </i></p>
               <button
                           class="btn" type="button"
                           data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
                           _="on click
-                          set the value of #filter_list_search_box to '{{summary_field_data.data.field.verbose_name}}'
+                          set the value of #filter_list_search_box to '{{field.verbose_name}}'
                           trigger input on #filter_list_search_box 
-                          add .show to #flush-collapse_{{summary_field_data.data.field.name}}
+                          add .show to #flush-collapse_{{field.name}}
                               "> 
                           <i class="bi bi-funnel-fill"></i>
                       </button>
-        {% endif %}
         </div>
     </div>
   </div>
+
+{% endif %}
+{% endpartialdef %}
+
+<div class="modal-header">
+  
+  <h3 class="modal-title fs-5" id="summaryModalLabel">{{field.verbose_name}}</h3>
+
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div  class="modal-body">
+
+  <ul class="list-group list-group-flush">
+    <li class="list-group-item d-flex gap-2 align-items-start justify-content-between">
+    <p>Sort</p>
+      <!--sort by field-->
+      <button class="btn btn btn-outline-primary"
+      _='on click trigger click on #sort_button_{{field.name}}'>
+          {% if field.name in request.GET.sort %}
+              {% if '-' in request.GET.sort %}
+              <i class="bi bi-sort-alpha-down-alt"></i>
+              {% else %}
+              <span><i class="bi bi-sort-alpha-down"></i></span>
+              {% endif %}
+          {% else %}
+          None
+          {% endif %}
+      </button>
+    </li>
+    <li class="list-group-item d-flex gap-2 align-items-start justify-content-between">
+    <p>Filter</p>
+      <!--clear filter button-->
+      {% if request.GET|get:field.name %}
+      <button
+          data-bs-dismiss="modal"
+          class="btn btn-sm btn-outline-primary" type="button" id="clear_filter_{{field.name}}"
+          _='on click
+          remove <div[id^=div_id_{{field.name}}]/>
+          wait 300
+          then trigger submit on #filter-form'>
+          
+         Clear Filter <i class="bi bi-x-lg"></i>
+      </button>
+      {% endif %}
+
+      <button
+        class="btn btn-outline-secondary btn-sm" type="button"
+        data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
+        _="on click
+        set the value of #filter_list_search_box to '{{field.verbose_name}}'
+        trigger input on #filter_list_search_box 
+        add .show to #flush-collapse_{{field.name}} "> 
+        More Filters <i class="bi bi-funnel-fill"></i>
+      </button>
+
+    </li>
+
+    <li class="list-group-item">
+    <p>Quick filter</p>
+      <form id='pivot_filters'>
+        {% partial modal_content %}
+      </form>
+            <img id="spinner" class="htmx-indicator" width="24" height="24" src="{% static 'spinners/3-dots-fade.svg' %}">
+    </div>
+    </li>
+  </ul>
+
+<div class="modal-footer">
+    <button id='column_filter_btn' type="button" class="btn btn-primary" data-bs-dismiss="modal"
+    _=' on click
+      add @hx-include="#pivot_filters" to #filter-form
+      wait 50ms
+      trigger submit on #filter-form
+      remove @hx-include from #filter-form
+      '
+      >Apply</button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+</div>
 
 
 

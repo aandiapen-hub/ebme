@@ -9,6 +9,7 @@ from django.db.models.deletion import ProtectedError
 # import models
 from assets.models import Tblbrands, Tblmodel, Tblcategories, Tblcheckslists
 from .models import (
+    ModelView,
     Software,
     SoftwareModel,
     EquipmentConfiguration,
@@ -63,9 +64,6 @@ class FilteredBrandTableView(
     table_class = None
     open_column = 'brandname'
     model = Tblbrands
-    template_columns = {
-        "open": "model_information/tables/brand_open.html",
-    }
     universal_search_fields = ["brandname__icontains"]
     default_columns = ["brandname"]
 
@@ -168,12 +166,12 @@ class BrandDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
 class FilteredModelTableView(
     LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
 ):
-    model = Tblmodel
+    model = ModelView 
     title = 'Models'
     paginate_by = 25
-    open_column = 'modelid'
+    open_column = 'model_id'
     permission_required = "assets.view_tblmodel"
-    universal_search_fields = ["modelname__icontains"]
+    universal_search_fields = ["model_name__icontains"]
 
     actions = [
         TableAction(
@@ -361,7 +359,7 @@ class FilteredCategoryTableView(
     paginate_by = 25
     permission_required = "assets.view_tblcategories"
     universal_search_fields = ["categoryname__icontains"]
-    open_column = 'categoryid'
+    open_column = 'categoryname'
     default_columns = ["categoryid", "categoryname"]
 
     actions = [

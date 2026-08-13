@@ -213,7 +213,7 @@ def test_filtered_table_view_get_summary_field(
     field = MODEL._meta.get_field(summary_field)
 
     if isinstance(field, JSONField) or isinstance(field, DateField):
-        assert 'Lookup not available for this field' in content
+        assert 'Lookup not available for ' in content
     else:
         for value in values:
             if value is not None:

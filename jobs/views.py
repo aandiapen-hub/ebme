@@ -377,12 +377,14 @@ class FilteredJobTableView(
     default_columns = [
         "jobid",
         "assetid",
-        "jobtypeid",
-        "jobstatusid",
-        "brandid",
-        "modelid",
+        "serialnumber",
+        "jobtypename",
+        "jobstatus",
+        "brandname",
+        "model",
         "startdate",
         "enddate",
+        "customer",
     ]
     actions = [
         TableAction(

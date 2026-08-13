@@ -73,10 +73,11 @@ class FilteredAssetTableView(
     universal_search_fields = UNIVERSAL_SEARCH_FIELDS
     default_columns = [
         "assetid",
-        "brandid",
-        "modelid",
-        "categoryid",
-        "customerid",
+        "serialnumber",
+        "brandname",
+        "modelname",
+        "categoryname",
+        "customername",
         "ppm_compliance",
     ]
     actions = [

@@ -3,13 +3,16 @@
 {% load django_bootstrap5 %}
 
 <div id="filter-column"  hx-swap-oob='innerHTML' >
-  <div id='div_filter_fields' class='d-flex flex-row gap-3'>
+  <div id='div_filter_fields' class='d-flex flex-wrap gap-3'>
     {{ filter.form.media }}
     {% bootstrap_messages %}
     {% for field in filter.form %}
       {% if 'search' in field.name %}
         <div id="div_id_{{ field.name }}" class='d-flex m-1 p-1 gap-1 align-items-center' >
-              <div class="d-flex align-items-center gap-2">
+              <div>
+                {{ field.label_tag }}
+              </div>
+              <div>
                 {{ field }}
               </div>
         </div>

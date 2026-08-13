@@ -11,62 +11,42 @@
 <thead {{ table.attrs.thead.as_html }} >
 <tr>
   {% for column in table.columns %}
-  <th {% if request.GET|get:column.name %}class="table-primary"  {% endif %}>
+    <th class="{% if request.GET|get:column.name %}table-primary{% endif %}"
+      hx-get="{% if request.GET %}{{ request.get_full_path }}&summary_field={{ column.name }}{% else %}{{ request.get_full_path }}?summary_field={{ column.name }}{% endif %}" 
+      data-bs-toggle="modal"
+      data-bs-target="#summaryModal"
+      hx-indicator='#spinner'
+      hx-target='#div_field_summary_data'
+      hx-swap='innerHTML'
+      >
     <div class="d-flex align-items-center justify-content-between gap-2">
-    <h6 class="mb-0"
-      {{ column.attrs.th.as_html }} scope="col"
-      {% if column.orderable %}
-      hx-get="{% querystring table.prefixed_order_by_field=column.order_by_alias.next %}"
-      hx-trigger="click"
-      hx-target="#result-container"
-      hx-swap="outerHTML"
-      hx-push-url="true"
-      style="cursor: pointer;"
-      {% endif %}>
+        <small {{ column.attrs.th.as_html }} scope="col">
+        <span class='text-primary'>{{ column.header }} <i class="bi bi-three-dots-vertical"></i></span>
+        </small>
 
-    {{ column.header }}
-    </h6>
-    <div class=" d-inline-flex gap-2">
+        <!--sort by field-->
+        <button class="mb-0"
+          hidden
+          id='sort_button_{{column.name}}'
+          hx-get="{% querystring table.prefixed_order_by_field=column.order_by_alias.next %}"
+          hx-trigger="click"
+          hx-target="#result-container"
+          hx-swap="outerHTML"
+          hx-push-url="true"
+          style="cursor: pointer;">
+          </button>
+          <div class=" d-inline-flex gap-2">
 
-    {% if column.name in request.GET.sort %}
-        {% if '-' in request.GET.sort %}
-        <span><i class="bi bi-sort-alpha-down"></i></span>
-        {% else %}
-        <span><i class="bi bi-sort-alpha-up"></i></span>
-        {% endif %}
-    {% endif %}
+          {% if column.name in request.GET.sort %}
+              {% if '-' in request.GET.sort %}
+              <i class="bi bi-sort-alpha-down-alt"></i>
+              {% else %}
+              <span><i class="bi bi-sort-alpha-down"></i></span>
+              {% endif %}
+          {% endif %}
 
-
-
-        <!--clear filter button-->
-        {% if request.GET|get:column.name %}
-        <button
-            class="btn btn-sm" type="button" id="clear_filter_{{column.name}}"
-            _='on click
-            remove <div[id^=div_id_{{column.name}}]/>
-            wait 300
-            then trigger submit on #filter-form'>
-            
-                    <i class="bi bi-x-lg"></i>
-        </button>
-        {% endif %}
-
-
-        <!-- filter button-->
-        {% if column.orderable %}
-        <button
-            class="btn" type="button"
-            hx-get="{% if request.GET %}{{ request.get_full_path }}&summary_field={{ column.name }}{% else %}{{ request.get_full_path }}?summary_field={{ column.name }}{% endif %}" 
-            data-bs-toggle="modal"
-            data-bs-target="#summaryModal"
-            hx-indicator='#spinner'
-            hx-target='#div_field_summary_data'
-            hx-swap='innerHTML'>
-        <i class="bi bi-filter"></i></button>
-        {% endif %}
-
-    
-    </div>
+        </div>
+      </div>
   </th>
   
   {% endfor %}

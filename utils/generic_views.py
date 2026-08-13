@@ -45,10 +45,23 @@ def get_visible_columns(request, model):
 
 
 class CustomCheckBoxColumn(CheckBoxColumn):
-    verbose_name = "Select"
+    verbose_name = ""
     def header(self):
-        return "Select"
+        return ""
 
+from django_tables2.utils import Accessor
+class CustomBaseTable(Table):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for field in self._meta.model._meta.get_fields():
+            if isinstance(field, ForeignKey):
+                try:
+                    column = self.columns[field.name]
+                except KeyError:
+                    continue
+
+                column.accessor = Accessor(f"{field.name}.pk")
 
 # Function to dynamically create table class
 def get_dynamic_table_class(
@@ -115,7 +128,7 @@ def get_dynamic_table_class(
 
     # Dynamically create the table class
     DynamicTable = type(
-        f"{table_model.__name__}DynamicTable", (Table,), {**table_columns, "Meta": Meta}
+        f"{table_model.__name__}DynamicTable", (CustomBaseTable,), {**table_columns, "Meta": Meta}
     )
     return DynamicTable
 
@@ -226,16 +239,16 @@ class FilteredTableView(
         if isinstance(field, JSONField) or isinstance(field, DateField):
             summary_field_data = {
                 "status": "datefield",
-                "data": {"field": field},
+                "data": None,
             }
 
-            return self._render_field_summary(summary_field_data)
+            return self._render_field_summary(summary_field_data, field)
         # summariese all other type of data
         table_data = self.get_table_data()
         count = table_data.values(field.name).distinct().count()
         if count > 1000:
-            summary_field_data = {"status": "high_row_count", "data": {"field": field}}
-            return self._render_field_summary(summary_field_data)
+            summary_field_data = {"status": "high_row_count", "data": None}
+            return self._render_field_summary(summary_field_data, field)
 
         values_qs = dict(
             table_data.values_list(field.name).annotate(count=Count(field.name))
@@ -244,9 +257,9 @@ class FilteredTableView(
         values_qs = Counter(table_data.values_list(field.name, flat=True))
         items = {}
         if len(values_qs) > 1000:
-            summary_field_data = {"status": "high_row_count", "data": {"field": field}}
+            summary_field_data = {"status": "high_row_count", "data": None}
 
-            return self._render_field_summary(summary_field_data)
+            return self._render_field_summary(summary_field_data, field)
 
         if field.choices:
             # map value -> label
@@ -298,11 +311,11 @@ class FilteredTableView(
         # sort results aphabetically if they exist
         summary_field_data = {
             "status": "list",
-            "data": sorted(items, key=lambda x: x["name"] or ""),
+            "data": sorted(items, key=lambda x: x["name"] or ''),
         }
-        return self._render_field_summary(summary_field_data)
+        return self._render_field_summary(summary_field_data, field)
 
-    def _render_field_summary(self, summary_field_data):
+    def _render_field_summary(self, summary_field_data, field):
         query = self.request.GET.copy()
         for k in list(query.keys()):
             if "summary_field" in k:
@@ -310,6 +323,7 @@ class FilteredTableView(
         context_data = {}
         context_data["querystring"] = query.urlencode()
         context_data["summary_field_data"] = summary_field_data
+        context_data['field'] = field
         return render(self.request, "partials/field_summary_data.html", context_data)
 
     def get_filterset_kwargs(self, filterset_class):
