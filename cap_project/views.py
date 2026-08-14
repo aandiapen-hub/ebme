@@ -45,6 +45,7 @@ class CapitalProjectFilterView(
         TableAction(
                 name='Add',
                 type='link',
+                on_selectable_items = False, 
                 url=reverse_lazy('capital_projects:project_create'),
                 permission='capital_project.add_capitalproject',
                 icon='bi-plus',
@@ -139,6 +140,7 @@ class CapitalAcquisitionFilterView(
     TableAction(
             name='Add',
             type='link',
+            on_selectable_items = False, 
             url=reverse_lazy('capital_projects:acquisition_create'),
             permission='capital_project.add_capitalacquisition',
             icon='bi-plus',
@@ -245,6 +247,7 @@ class CommissionRequestFilterView(
     TableAction(
             name='Add',
             type='link',
+            on_selectable_items = False, 
             url=reverse_lazy('capital_projects:commission_request_create'),
             permission='capital_project.add_commissionrequest',
             icon='bi-plus',

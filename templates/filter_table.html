@@ -38,7 +38,9 @@
 
         <div id="action_reports">
                 {% for action in actions %}
+                  {% if not action.on_selectable_items %}
                   {% include "buttons/action_button.html" with button_content=action.name url=action.url %}        
+                  {% endif %}
                 {% endfor %}
         </div>
   </div>
@@ -148,8 +150,11 @@
         </span>
 
         <div id="action_reports" class='d-flex gap-1 align-items-center'>
+              
                 {% for action in actions %}
+                  {% if action.on_selectable_items %}
                   {% include "buttons/action_button.html" with button_content=action.name url=action.url %}        
+                  {% endif %}
                 {% endfor %}
         </div>
 

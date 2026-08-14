@@ -62,6 +62,7 @@ class PartsTableView(LoginRequiredMixin, PermissionRequiredMixin, FilteredTableV
         TableAction(
             name='Add',
             type='link',
+            on_selectable_items = False, 
             url=reverse_lazy('parts:create_part'),
             permission="parts.add_tblpartslist",
             icon='bi-plus',
@@ -70,6 +71,7 @@ class PartsTableView(LoginRequiredMixin, PermissionRequiredMixin, FilteredTableV
         TableAction(
             name="Update",
             type='bulk_htmx',
+            on_selectable_items = True, 
             url=reverse_lazy("parts:bulk_update_part"),
             permission="parts.change_tblpartslist",
             icon="bi-pencil",

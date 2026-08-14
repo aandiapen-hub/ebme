@@ -71,6 +71,7 @@ class FilteredBrandTableView(
         TableAction(
             name='Add',
             type='link',
+            on_selectable_items = False, 
             url=reverse_lazy('model_information:create_brand'),
             permission='assets.add_tblbrands',
             icon='bi-plus',
@@ -177,6 +178,7 @@ class FilteredModelTableView(
         TableAction(
             name='Add',
             type='link',
+            on_selectable_items = False, 
             url=reverse_lazy('model_information:create_model'),
             permission='assets.add_tblmodel',
             icon='bi-plus',
@@ -366,6 +368,7 @@ class FilteredCategoryTableView(
         TableAction(
             name='Add',
             type='link',
+            on_selectable_items = False, 
             url=reverse_lazy('model_information:create_category'),
             permission='assets.add_tblcategories',
             icon='bi-plus',
@@ -617,6 +620,7 @@ class SoftwareFilterView(
         TableAction(
             name='Add',
             type='link',
+            on_selectable_items = False, 
             url=reverse_lazy('model_information:software_create'),
             permission='model_information.add_software',
             icon='bi-plus',
@@ -768,6 +772,7 @@ class ConfigurationFilterView(
         TableAction(
             name='Add',
             type='link',
+            on_selectable_items = False, 
             url=reverse_lazy('model_information:configuration_create'),
             permission='model_information.add_equipmentconfiguration',
             icon='bi-plus',

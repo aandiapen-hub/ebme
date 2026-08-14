@@ -553,6 +553,7 @@ class TableAction:
     name: str
     url: str
     permission: str
+    on_selectable_items: bool
     type: ActionType = "link"
     qp: str | None = None
     icon: str | None = None

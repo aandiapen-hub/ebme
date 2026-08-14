@@ -391,6 +391,7 @@ class FilteredJobTableView(
         TableAction(
             name="New",
             type='link',
+            on_selectable_items = False,
             url=reverse_lazy("jobs:job_create"),
             permission="assets.bulk_update_tbljob",
             icon="bi-plus",
@@ -399,6 +400,7 @@ class FilteredJobTableView(
         TableAction(
             name="Update",
             type='bulk_htmx',
+            on_selectable_items = True,
             url=reverse_lazy("jobs:bulk_update_jobs"),
             permission="assets.bulk_update_tbljob",
             icon="bi-pencil",
@@ -407,6 +409,7 @@ class FilteredJobTableView(
         TableAction(
             name="Link Document",
             type='bulk_htmx',
+            on_selectable_items = True,
             url=reverse_lazy("documents:bulk_link_to_jobs"),
             permission="documents.bulk_create_links",
             icon="bi-file-earmark-plus",
@@ -415,6 +418,7 @@ class FilteredJobTableView(
         TableAction(
             name="Service Report",
             type='htmx',
+            on_selectable_items = True,
             url=reverse_lazy('jobs:gen_report'),
             qp = urlencode({'report_type':'service_report'}),
             permission="documents.bulk_create_links",
@@ -424,6 +428,7 @@ class FilteredJobTableView(
         TableAction(
             name="Job List",
             type='htmx',
+            on_selectable_items = True,
             url=reverse_lazy('jobs:gen_report'),
             qp=urlencode({'report_type':'job_list'}),
             permission="documents.bulk_create_links",

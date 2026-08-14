@@ -251,6 +251,7 @@ class DocumentLinksTableView(
         TableAction(
             name="Delete",
             type='bulk_htmx',
+            on_selectable_items = True, 
             url=reverse_lazy("documents:bulk_delete_links"),
             permission="assets.bulk_delete_links",
             icon="bi-bin",

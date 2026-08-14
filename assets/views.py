@@ -84,6 +84,7 @@ class FilteredAssetTableView(
         TableAction(
             name='Add',
             type='link',
+            on_selectable_items = False, 
             url=reverse_lazy('assets:create_asset'),
             permission='assets.add_tblassets',
             icon='bi-plus',
@@ -92,6 +93,7 @@ class FilteredAssetTableView(
         TableAction(
             name="Update",
             type='bulk_htmx',
+            on_selectable_items = True, 
             url=reverse_lazy("assets:bulk_update_assets"),
             permission="assets.bulk_change_assets",
             icon="bi-pencil",
@@ -100,6 +102,7 @@ class FilteredAssetTableView(
         TableAction(
             name='Link Document',
             type='bulk_htmx',
+            on_selectable_items = True, 
             url=reverse_lazy("documents:bulk_link_to_assets"),
             permission="documents.bulk_create_links",
             icon="bi-file-earmark-plus",
