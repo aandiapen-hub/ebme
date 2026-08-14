@@ -554,6 +554,7 @@ class TableAction:
     url: str
     permission: str
     type: ActionType = "link"
+    qp: str | None = None
     icon: str | None = None
     color: str | None = None
 

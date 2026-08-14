@@ -1,6 +1,7 @@
 import datetime
 from django.urls import reverse
 from django.db.models import Q
+from urllib.parse import urlencode
 from django.db import transaction, IntegrityError, DatabaseError
 from utils.dynamic_formset import (
     AddFormsetRowView,
@@ -411,4 +412,23 @@ class FilteredJobTableView(
             icon="bi-file-earmark-plus",
             color='outline-secondary',
         ),
+        TableAction(
+            name="Service Report",
+            type='htmx',
+            url=reverse_lazy('jobs:gen_report'),
+            qp = urlencode({'report_type':'service_report'}),
+            permission="documents.bulk_create_links",
+            icon="bi-file-earmark-pdf ",
+            color='outline-secondary',
+        ),
+        TableAction(
+            name="Job List",
+            type='htmx',
+            url=reverse_lazy('jobs:gen_report'),
+            qp=urlencode({'report_type':'job_list'}),
+            permission="documents.bulk_create_links",
+            icon="bi-file-earmark-pdf ",
+            color='outline-secondary',
+        ),
     ]
+

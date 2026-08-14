@@ -87,7 +87,14 @@
                   </div>
                 </div>
         </section>
-      <form id='row_select_form'>
+
+      <form id='row_select_form'
+      _='on click from <input/> in me
+        set x to target.value:String
+        set inputs to <input/> 
+        repeat for input in inputs
+        if the value of input is x then set input.checked to target.checked
+        end'>
 
         <div id='result-container'>
           <div class="d-none d-md-block">
@@ -117,7 +124,51 @@
   </div>
 </div>
 
+<!--- bulk actions pop up -->
+<div
+    id="bulkActions"
+    class="position-fixed bottom-0 start-50 translate-middle-x mb-3"
+>
+    <div class="bg-white border border-dark rounded-pill shadow px-3 py-2 d-flex align-items-center gap-3">
 
+        <span>
+            <strong id="selectedCount"
+            _=' on load or click from <input/> in #row_select_form 
+              set checked_boxes to <input:checked/> in .table
+              set count to length of checked_boxes
+              if count > 0 then
+                set my innerHTML to count
+                show #bulkActions
+              else  hide #bulkActions
+
+              end
+              '
+                
+              >0</strong> selected
+        </span>
+
+        <div id="action_reports" class='d-flex gap-1 align-items-center'>
+                {% for action in actions %}
+                  {% include "buttons/action_button.html" with button_content=action.name url=action.url %}        
+                {% endfor %}
+        </div>
+
+        <button
+            type="button"
+            class="btn btn-sm btn-outline-dark"
+            id="clearSelection"
+            
+            _=' on load or click 
+              set inputs to  <input:checked/> in #row_select_form
+              set inputs.checked to false
+              set innerHTML of #selectedCount to 0
+              hide #bulkActions
+              '>
+            Clear
+        </button>
+
+    </div>
+</div>
 
 <!--script to trigger change events from select2 fields-->
 <script>

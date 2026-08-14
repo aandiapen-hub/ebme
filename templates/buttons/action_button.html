@@ -21,4 +21,17 @@
   >
   {{action.name}} <i class="bi {{action.icon}}"></i>
 </a>
+{% elif action.type == 'htmx' %}
+
+    <button 
+      class="btn btn-sm btn-{{action.color}}"
+      hx-get="{{action.url}}?{{ request.GET.urlencode }}&{{action.qp}}"
+      hx-include='#filter-form'
+      type='button'
+      hx-trigger='click'>
+      {{ action.name }} <i class="bi {{action.icon}}"></i>
+    </button>
 {% endif %}
+
+
+
