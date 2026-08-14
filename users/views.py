@@ -54,14 +54,18 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
         # list available columns
         model = apps.get_model(request_app_model)
         if model:
-            available_columns = [field.name for field in model._meta.get_fields() if field.concrete and not field.auto_created]
+            available_columns = [field for field in model._meta.get_fields() if field.concrete and not field.auto_created]
 
         profile = UserProfiles.objects.filter(user_id=user).first()
         if profile and model_name:
-            visible_columns = profile.get_preference(model_name, 'visible_columns')
+            visible_columns_names = profile.get_preference(model_name, 'visible_columns')
+            print('visible_columns_names', visible_columns_names)
+            visible_columns = [f for f in available_columns if f.name in visible_columns_names]
+
+
             if visible_columns:
                 context['visible_columns'] = visible_columns
-                available_columns = [f for f in available_columns if f not in visible_columns]
+                available_columns = [f for f in available_columns if f.name not in visible_columns]
 
         context["available_columns"] = available_columns
 
@@ -80,6 +84,7 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
         )
 
         columns = request.POST.getlist('columns', None)
+        print(columns)
         if columns and profile:
             profile.set_preference(request_model, 'visible_columns', columns)
         return HttpResponseRedirect(self.get_success_url())

@@ -1,8 +1,8 @@
 
-<div class="container text-start">
+<div class="container">
   <div class="row">
-    <div class="col">
-      <h4>Available Columns</h4>
+    <div class="col-6">
+      <h4>Available</h4>
       <input
       id="available_column_search"
       type="search"
@@ -18,7 +18,7 @@
         value="available_columns">
 
         {% for column in available_columns  %}
-          <li class="list-group-item list-group-item-action"
+          <li class="list-group-item list-group-item-action text-wrap"
               draggable="true"
             _="on click
             if 'selected_columns' matches id of the closest <ul/> 
@@ -29,13 +29,13 @@
              set window.draggedItem to me
              on dragover halt default
              on drop put window.draggedItem before me">  
-             <span>{{ column }}</span>
-                <input type="hidden" name="columns" value={{column}}>
+             <p>{{ column.verbose_name }}<p>
+                <input type="hidden" name="columns" value={{column.name}}>
           </li>
         {% endfor %}
     </div>
-    <div class="col">
-      <h4>Selected Columns</h4> 
+    <div class="col-6">
+      <h4>Selected</h4> 
         <input
         id="selected_column_search"
         type="search"
@@ -45,7 +45,7 @@
           show <ul>li/> in next <ul/>
             when its textContent.toLowerCase() contains my value.toLowerCase()
           "/>
-      <form method='post' action='{{ request.get_full_path }}'>
+      <form id='column_chooser_form' method='post' action='{{ request.get_full_path }}'>
         {% csrf_token %}
         <input type="hidden" name="request_model" value="{{ request_model }}">
         <input type="hidden" name="next" value="{{ next }}">
@@ -61,14 +61,13 @@
              on dragstart set window.draggedItem to me
              on dragover halt default
              on drop put window.draggedItem before me">
-            <span>{{ column }}</span>
-            <input type="hidden" name="columns" value={{column}}>
+            <span>{{ column.verbose_name }}</span>
+            <input type="hidden" name="columns" value={{column.name}}>
           </li>
             {% endfor %}  
 
 
           </ul>
-        <button class='btn btn-outline-primary' type='submit'>Save</button>
 
       </form> 
     </div>

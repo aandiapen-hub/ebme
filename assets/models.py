@@ -131,7 +131,7 @@ class AssetView(models.Model):
         max_length=255,
         blank=True,
         null=True,
-        verbose_name="CustomerAsset",
+        verbose_name="Customer Asset No",
     )
     customerid = models.ForeignKey(
         "Tblcustomer", models.PROTECT, db_column="CustomerID", verbose_name="Customer ID"
@@ -174,7 +174,7 @@ class AssetView(models.Model):
         db_column="ppmscheduleid",
         default=1,
         null=True,
-        verbose_name="PPMSchedule ID",
+        verbose_name="PPM Schedule ID",
     )
     softwareversion = models.CharField(blank=True, null=True, verbose_name="Software")
     locationid = models.ForeignKey(
@@ -228,11 +228,11 @@ class AssetView(models.Model):
     locationname = models.CharField(blank=True, null=True, verbose_name="Location")
     sitename = models.CharField(blank=True, null=True, verbose_name="Site")
     categoryname = models.CharField(blank=True, null=True, verbose_name="Category")
-    schedulename = models.CharField(blank=True, null=True)
+    schedulename = models.CharField(blank=True, null=True, verbose_name='PPM Schedule Name')
     status_name = models.CharField(blank=True, null=True, verbose_name="Status")
     support_level_name = models.CharField(blank=True, null=True)
     ppm_compliance = models.TextField(
-        blank=True, null=True, verbose_name="PPM_Compliance"
+        blank=True, null=True, verbose_name="PPM Compliance"
     )
 
     class Meta:
