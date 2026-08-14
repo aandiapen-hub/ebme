@@ -1,16 +1,15 @@
 
-<div class="container">
-  <div class="row">
-    <div class="col-6">
+<div class="d-flex gap-1">
+    <div class="">
       <h4>Available</h4>
       <input
-      id="available_column_search"
-      type="search"
-        class="form-control"
-        _="on input
-         show <ul>li/> in next <ul/>
-            when its textContent.toLowerCase() contains my value.toLowerCase()
-          "/>
+        id="available_column_search"
+        type="search"
+          class="form-control"
+          _="on input
+          show <ul>li/> in next <ul/>
+              when its textContent.toLowerCase() contains my value.toLowerCase()
+            "/>
 
       <ul 
         id="available_columns"
@@ -18,23 +17,76 @@
         value="available_columns">
 
         {% for column in available_columns  %}
-          <li class="list-group-item list-group-item-action text-wrap"
-              draggable="true"
+          {% partialdef list_item inline %}
+
+            <li id='columnlist-{{column.name}}' class="list-group-item list-group-item-action"
+              draggable="true" style="cursor: grab;"
             _="on click
             if 'selected_columns' matches id of the closest <ul/> 
               then put me at the end of #available_columns
               else put me at the end of #selected_columns
               end
-             on dragstart
-             set window.draggedItem to me
+             on dragstart set window.draggedItem to me
              on dragover halt default
-             on drop put window.draggedItem before me">  
-             <p>{{ column.verbose_name }}<p>
-                <input type="hidden" name="columns" value={{column.name}}>
+             on drop put window.draggedItem before me">
+
+            <span  style="touch-action: none" class='btn' 
+            _= "on contextmenu halt
+
+              on pointerdown
+
+                log 'pointer down'
+                log event.pointerType
+                if event.pointerType == 'touch'
+                    wait 50ms
+                    set window.dragItem to closest <li/> 
+                    set window.isDragging to true
+                end
+              end
+
+              on pointermove 
+                  if window.isDragging is true
+                    set window.pressX to event.clientX
+                    set window.pressY to event.clientY
+                    set window.draggedItem to closest <li/>
+                    call moveDraggedItem()
+                  end
+              end
+
+              on pointerup from document 
+              set window.isDragging to false 
+                  if window.pressItem is me
+                      if window.isDragging is true
+                          call dropDraggedItem(event)
+                      end
+                  end
+
+                  set window.pressItem to null
+                  set window.dragItem to null
+                  set window.isDragging to false
+              end
+
+
+              on pointercancel 
+                  set window.isDragging to false 
+                  set window.pressItem to null
+                  set window.dragItem to null
+                  set window.isDragging to false
+              end
+
+                  "
+              ><i class="bi bi-grip-vertical"></i></span>
+            <span>{{ column.verbose_name }}</span>
+            <input type="hidden" name="columns" value={{column.name}}>
           </li>
+          
+          {% endpartialdef %}
+
+
         {% endfor %}
+        </ul>
     </div>
-    <div class="col-6">
+    <div class="">
       <h4>Selected</h4> 
         <input
         id="selected_column_search"
@@ -51,28 +103,72 @@
         <input type="hidden" name="next" value="{{ next }}">
         <ul id='selected_columns' class="list-group" value="selected_columns">
             {% for column in visible_columns  %}
-          <li class="list-group-item list-group-item-action"
-              draggable="true"
-            _="on click
-            if 'selected_columns' matches id of the closest <ul/> 
-              then put me at the end of #available_columns
-              else put me at the end of #selected_columns
-              end
-             on dragstart set window.draggedItem to me
-             on dragover halt default
-             on drop put window.draggedItem before me">
-            <span>{{ column.verbose_name }}</span>
-            <input type="hidden" name="columns" value={{column.name}}>
-          </li>
+              {% partial list_item %}
             {% endfor %}  
 
 
           </ul>
 
       </form> 
+
     </div>
 
-  </div>
 </div>
 
+<script type="text/hyperscript">
 
+    def moveDraggedItem()
+        set target to document.elementFromPoint(window.pressX, window.pressY)
+        if target is null
+            exit
+        end
+
+        set targetItem to target.closest('li')
+
+        if targetItem is null
+            exit
+        end
+
+        if targetItem is window.dragItem
+          exit
+        end
+
+        set targetList to targetItem.closest('ul')
+
+        if targetList is null
+            exit
+        end
+
+        put window.dragItem before targetItem
+
+    end
+
+
+    def dropDraggedItem(event)
+
+        set target to document.elementFromPoint(
+            event.clientX,
+            event.clientY
+        )
+
+        if target is null
+            exit
+        end
+
+        set targetList to target.closest('ul')
+
+        if targetList is null
+            exit
+        end
+
+        if targetList.id is 'available_columns'
+            put window.dragItem at end of targetList
+        end
+
+        if targetList.id is 'selected_columns'
+            put window.dragItem at end of targetList
+        end
+
+    end
+
+</script>

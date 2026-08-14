@@ -140,7 +140,9 @@ def test_column_chooser_post_updates_preferences(client, django_user_model, user
     ]
 
     response = client.get(url)
-    assert response.context["visible_columns"] == [
+    cols =  response.context["visible_columns"]
+    col_names = [f.name for f in cols]
+    col_names== [
         "assetid",
         "serialnumber",
         "modelname",
