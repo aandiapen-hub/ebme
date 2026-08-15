@@ -1,4 +1,5 @@
 import datetime
+import json
 from django.urls import reverse
 from django.db.models import Q
 from urllib.parse import urlencode
@@ -75,26 +76,38 @@ class GenerateReportView(
     universal_search_fields = SEARCHFILEDS
 
     def get(self, request, *args, **kwargs):
+        data = super().get_table_data().values()
+        count = data.count()
+
+        staff_allowed = request.user.is_staff and count < 300
+        user_allowed = count < 200
+
+        if not staff_allowed and not user_allowed:
+            response = HttpResponse(
+                "Too many records selected. Please narrow your filter.",
+                status=403,  # or 403 if it's a permissions issue
+            )
+            response["HX-Trigger"] = json.dumps({
+                "show_message": {
+                    "message": "Too many records selected. Download limit is 200 records",
+                    "level": "danger",
+                },
+            })
+            return response
+
         if request.htmx:
             # HTMX request – respond with a redirect header
             return HttpResponse(headers={"HX-Redirect": request.get_full_path()})
-        base_qs = self.get_queryset()
+
         report_type = request.GET.get("report_type")
         report_generator = REPORT_GENERATORS.get(report_type)
-        filterclass = self.get_filterset_class()
-        self.filterset = filterclass(self.request.GET, queryset=base_qs)
 
-        data = self.filterset.qs.values()
-        if request.user.is_staff and data.count() < 300:
-            return report_generator(data)
-        elif data.count() < 200:
-            return report_generator(data)
 
-        return HttpResponse(
-            "Too many records selected. Please narrow your filter.",
-            status=400,  # or 403 if it's a permissions issue
-        )
+        pdf, filename = report_generator(data)
 
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}.pdf"'
+        return response
 
 FORMSET_CONFIG = {
     "parts_used": {

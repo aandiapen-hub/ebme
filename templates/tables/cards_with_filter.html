@@ -12,25 +12,34 @@
               <div class='d-flex justify-content-between'>
                 {% for column, value in row.items %}
                   {% if forloop.counter == 2 %}
-                  {% partialdef card_header inline %}
                     <div class="d-flex">
                       <div class="{% if request.GET|get:column.name %}text-fill-primary {%else%}text-muted{% endif %}">
                               {{ column.verbose_name}} 
                             </div>
                           <div class='ms-2'>
-                          {% if column.name in table.search_fields %}
-                            {{ value|highlight:table.src_re_obj }}
-                          {% else %}
-                            {{ value }}
-                          {% endif %}
+                            {% if column.name in table.search_fields %}
+                              {{ value|highlight:table.src_re_obj }}
+                            {% else %}
+                              {{ value }}
+                            {% endif %}
                           </div>
-                    </div>
-                  {% endpartialdef %}
+                      </div>
                     {% endif %}
                 {% endfor %}
                 {% for column, value in row.items %}
                   {% if forloop.counter == 1 %}
-                  {% partial card_header %} 
+                    <div class="d-flex">
+                      <div class="{% if request.GET|get:column.name %}text-fill-primary {%else%}text-muted{% endif %}">
+                            </div>
+                          <div class='ms-2'>
+                            {% if column.name in table.search_fields %}
+                              {{ value|highlight:table.src_re_obj }}
+                            {% else %}
+                              {{ value }}
+                            {% endif %}
+                          </div>
+                    </div>
+
                   {% endif %}
                 {% endfor %}
 

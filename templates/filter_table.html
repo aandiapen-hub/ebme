@@ -15,7 +15,7 @@
 {% include "partials/summary_data.html" %}
 {% include "partials/form_filter_content.html" %}
 
-      <div class="d-none d-md-block">
+      <div id='result_table_div' data-row-count={{table.rows|length}} class="d-none d-md-block">
         {% render_table table%}
       </div>
 
@@ -44,7 +44,7 @@
   </div>
 </div>
 
-<div id='filter-table-container' class="container-flex px-3">
+<div id='filter-table-container' class="container-flex px-3 mb-5">
   <div class="row border p-2">
     <div class="col" >
       
@@ -89,15 +89,18 @@
         </section>
 
       <form id='row_select_form'
-      _='on click from <input/> in me
-        set x to target.value:String
-        set inputs to <input/> 
-        repeat for input in inputs
-        if the value of input is x then set input.checked to target.checked
+      _='on click from #result-container 
+          if  event.target.type is "checkbox"
+            set x to target.value:String
+            set inputs to <input/> 
+            repeat for input in inputs
+            if the value of input is x then set input.checked to target.checked
+            end
+          end
         end'>
 
         <div id='result-container'>
-          <div class="d-none d-md-block">
+          <div id='result_table_div' data-row-count={{table.rows|length}} class="d-none d-md-block">
             {% render_table table%}
           </div>
 
@@ -134,16 +137,23 @@
         <span>
             <strong id="selectedCount"
             _=' on load or click from #result-container
-                set select_all to <input:checked.select_all/> in .table
+                  set select_all to <input:checked.select_all/> in .table
                   set all_selected to length of select_all
 
                   set checked_boxes to <input:checked:not(.select_all)/> in .table
-                  set count to length of checked_boxes
-                  if  all_selected > 0
-                    set my innerHTML to {{table.rows|length}}
+                  set select_count to length of checked_boxes 
+
+                  if all_selected > 0 
+                    log "select all"
+                    set select_all to true
+                    set row_count to {{table.rows|length}}
+                  end
+
+                  if all_selected is true 
+                    set my innerHTML to #result_table_div.dataset.rowCount
                     show #bulkActions
-                  else if count > 0 then
-                    set my innerHTML to count
+                  else if select_count > 0 then
+                    set my innerHTML to select_count 
                     show #bulkActions
                   else 
                     set my innerHTML to 0 
@@ -161,7 +171,7 @@
 
         <div id="action_reports" class='d-flex gap-1 align-items-center'>
                 <div class="dropdown">
-                  <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <button class="btn btn-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                    Actions
                   </button>
                   <ul class="dropdown-menu dropdown-menu-dark">
@@ -182,11 +192,27 @@
             class="btn btn-sm btn-light"
             id="clearSelection"
             
+            _=' on click 
+                set cb to #select_all_checkbox
+                set cb.checked to true
+                trigger click on cb
+              '>
+           Select All 
+        </button>
+        <button
+            type="button"
+            class="btn btn-sm btn-light"
+            id="clearSelection"
+            
             _=' on load or click 
               set inputs to  <input:checked/> in #row_select_form
               set inputs.checked to false
               set innerHTML of #selectedCount to 0
               hide #bulkActions
+
+              set cb to #select_all_checkbox
+              set cb.checked to false 
+              trigger click on cb
               '>
             Clear
         </button>

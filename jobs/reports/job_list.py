@@ -205,4 +205,4 @@ def generate_jobs_list(data):
     uuid = generate_n_char_id(8)
     filename = f"{dt}-{uuid}-joblist.pdf"
 
-    return FileResponse(pdf, as_attachment=True, filename=filename)
+    return pdf, filename

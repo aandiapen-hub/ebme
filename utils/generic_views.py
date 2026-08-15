@@ -45,9 +45,7 @@ def get_visible_columns(request, model):
 
 
 class CustomCheckBoxColumn(CheckBoxColumn):
-    verbose_name = ""
-    def header(self):
-        return "Select All"
+    verbose_name = "Select All"
 
 from django_tables2.utils import Accessor
 class CustomBaseTable(Table):

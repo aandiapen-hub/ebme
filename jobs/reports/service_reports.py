@@ -179,5 +179,5 @@ def generate_service_report(data):
     uuid = generate_n_char_id(8)
     filename = f"{dt}-{uuid}-servicereports.pdf"
 
-    return FileResponse(pdf, as_attachment=True, filename=filename)
+    return pdf, filename 
 
