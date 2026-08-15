@@ -26,22 +26,11 @@
                       </div>
                     {% endif %}
                 {% endfor %}
-                {% for column, value in row.items %}
-                  {% if forloop.counter == 1 %}
                     <div class="d-flex">
-                      <div class="{% if request.GET|get:column.name %}text-fill-primary {%else%}text-muted{% endif %}">
-                            </div>
-                          <div class='ms-2'>
-                            {% if column.name in table.search_fields %}
-                              {{ value|highlight:table.src_re_obj }}
-                            {% else %}
-                              {{ value }}
-                            {% endif %}
-                          </div>
+                            <input type="checkbox" value='{{row.record.pk}}' name='selected' class="btn-check" id="btncheck-{{row.record.pk}}" autocomplete="off">
+                            <label class="btn btn-outline-primary btn-sm" for="btncheck-{{row.record.pk}}">Select</label>
+                            
                     </div>
-
-                  {% endif %}
-                {% endfor %}
 
               </div>
           </div>

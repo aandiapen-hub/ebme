@@ -10,6 +10,25 @@
           hx-include='#row_select_form'
           hx-swap='none' >
              Export(csv)
-          </button>
+        </button>
+          
 
+  <input type="checkbox" class="btn-check" id="select_all_checkbox" autocomplete="off">
+  <label id='select_all_label' class="btn btn-outline-primary btn-sm" for="select_all_checkbox"
+    _='on click 
+          set inputs to <input:not(.select_all)/> in #row_select_form
+          wait 50ms
+          
+          if #select_all_checkbox.checked then
+            set inputs.checked to true 
+            remove @name from inputs
+            add @disabled to inputs
+            trigger click on #result-container
+          end
+          if not #select_all_checkbox.checked then
+            set inputs.checked to false
+            add @name="selected" to inputs
+            remove @disabled from inputs
+            trigger click on #result-container'
+            >Select All</label>
 </div> 

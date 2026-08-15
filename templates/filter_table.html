@@ -137,21 +137,14 @@
         <span>
             <strong id="selectedCount"
             _=' on load or click from #result-container
-                  set select_all to <input:checked.select_all/> in .table
-                  set all_selected to length of select_all
 
                   set checked_boxes to <input:checked:not(.select_all)/> in .table
                   set select_count to length of checked_boxes 
 
-                  if all_selected > 0 
-                    log "select all"
-                    set select_all to true
-                    set row_count to {{table.rows|length}}
-                  end
-
-                  if all_selected is true 
+                  if #select_all_checkbox.checked 
                     set my innerHTML to #result_table_div.dataset.rowCount
                     show #bulkActions
+
                   else if select_count > 0 then
                     set my innerHTML to select_count 
                     show #bulkActions
@@ -195,7 +188,8 @@
             _=' on click 
                 set cb to #select_all_checkbox
                 set cb.checked to true
-                trigger click on cb
+                trigger click on #select_all_label
+                trigger click on #result-container
               '>
            Select All 
         </button>
@@ -204,9 +198,11 @@
             class="btn btn-sm btn-light"
             id="clearSelection"
             
-            _=' on load or click 
+            _=' on click 
               set inputs to  <input:checked/> in #row_select_form
               set inputs.checked to false
+              add @name="selected" to inputs
+              remove @disabled from inputs
               set innerHTML of #selectedCount to 0
               hide #bulkActions
 
