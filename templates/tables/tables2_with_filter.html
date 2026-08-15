@@ -12,16 +12,27 @@
 <tr>
   {% for column in table.columns %}
     <th class="{% if request.GET|get:column.name %}table-primary{% endif %}"
-      hx-get="{% if request.GET %}{{ request.get_full_path }}&summary_field={{ column.name }}{% else %}{{ request.get_full_path }}?summary_field={{ column.name }}{% endif %}" 
-      data-bs-toggle="modal"
-      data-bs-target="#summaryModal"
-      hx-indicator='#spinner'
-      hx-target='#div_field_summary_data'
-      hx-swap='innerHTML'
+      {% if column.orderable %}  
+          hx-get="{% if request.GET %}{{ request.get_full_path }}&summary_field={{ column.name }}{% else %}{{ request.get_full_path }}?summary_field={{ column.name }}{% endif %}" 
+          data-bs-toggle="modal"
+          data-bs-target="#summaryModal"
+          hx-indicator='#spinner'
+          hx-target='#div_field_summary_data'
+          hx-swap='innerHTML'
+      {% endif %}
       >
     <div class="d-flex align-items-center justify-content-between gap-2">
         <small {{ column.attrs.th.as_html }} scope="col">
-        <span class='text-primary'>{{ column.header }} <i class="bi bi-three-dots-vertical"></i></span>
+          {% if column.orderable %}{{ column.header }} <i class="bi bi-three-dots-vertical"></i>
+          {% elif column.name == 'selected' %}
+            <label for='select_all'>Select all</label>
+            <input class='select_all' type='checkbox' name='select_all' 
+            _='on click or load
+            set inputs to <input:not(.select_all)/> in #row_select_form
+            set inputs.checked to false 
+            if me.checked then hide inputs else show inputs'
+            >
+          {% endif %}
         </small>
 
         <!--sort by field-->
@@ -31,7 +42,7 @@
           hx-get="{% querystring table.prefixed_order_by_field=column.order_by_alias.next %}"
           hx-trigger="click"
           hx-target="#result-container"
-          hx-swap="outerHTML"
+          hx-swap="innerHTML"
           hx-push-url="true"
           style="cursor: pointer;">
           </button>
@@ -76,7 +87,7 @@
         <div hx-get="{% querystring table.prefixed_page_field=table.page.previous_page_number %}"
              hx-trigger="click"
              hx-target="#result-container"
-             hx-swap="outerHTML"
+             hx-swap="innerHTML"
             hx-indicator='#spinner'
              class="btn page-link">
             <span aria-hidden="true">&laquo;</span>
@@ -91,7 +102,7 @@
                  {% if p != '...' %}hx-get="{% querystring table.prefixed_page_field=p %}"{% endif %}
                  hx-trigger="click"
                  hx-target="#result-container"
-                 hx-swap="outerHTML"
+                 hx-swap="innerHTML"
                   hx-indicator='#spinner'>
                 {{ p }}
             </div>
@@ -103,7 +114,7 @@
         <div hx-get="{% querystring table.prefixed_page_field=table.page.next_page_number %}"
              hx-trigger="click"
              hx-target="#result-container"
-             hx-swap="outerHTML"
+             hx-swap="innerHTML"
              hx-indicator="#spinner"
              class="btn page-link">
             {% trans 'next' %}

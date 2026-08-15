@@ -33,10 +33,16 @@
             <span  style="touch-action: none" class='btn' 
             _= "on contextmenu halt
 
+              on load or click or click from closest <li/> 
+               wait 50ms
+               set value to id of closest <ul/>
+               if value is 'available_columns'
+                then  hide me
+                else show me
+              end
+
               on pointerdown
 
-                log 'pointer down'
-                log event.pointerType
                 if event.pointerType == 'touch'
                     wait 50ms
                     set window.dragItem to closest <li/> 

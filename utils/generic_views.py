@@ -47,7 +47,7 @@ def get_visible_columns(request, model):
 class CustomCheckBoxColumn(CheckBoxColumn):
     verbose_name = ""
     def header(self):
-        return ""
+        return "Select All"
 
 from django_tables2.utils import Accessor
 class CustomBaseTable(Table):
@@ -100,7 +100,7 @@ def get_dynamic_table_class(
 
     # Always include checkbox column
     table_columns["selected"] = CustomCheckBoxColumn(
-        accessor="pk", exclude_from_export=True
+        accessor="pk", exclude_from_export=True,
     )  # Define Meta dynamically
 
 

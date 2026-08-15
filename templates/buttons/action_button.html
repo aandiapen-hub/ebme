@@ -6,7 +6,7 @@
       hx-target='#bulk_update_content'
       hx-indicator='#bulk_update_spinner'
       hx-swap='innerHTML'
-      class="btn btn-sm btn-{{action.color}}"
+      class="dropdown-item btn btn-sm btn-{{action.color}}"
       type="button"
       data-bs-toggle="offcanvas"
       data-bs-target="#bulk_update_offcanvas"
@@ -24,9 +24,9 @@
 {% elif action.type == 'htmx' %}
 
     <button 
-      class="btn btn-sm btn-{{action.color}}"
+      class="dropdown-item btn btn-sm btn-{{action.color}}"
       hx-get="{{action.url}}?{{ request.GET.urlencode }}&{{action.qp}}"
-      hx-include='#filter-form'
+      hx-include='#filter-form, #row_select_form'
       type='button'
       hx-trigger='click'>
       {{ action.name }} <i class="bi {{action.icon}}"></i>

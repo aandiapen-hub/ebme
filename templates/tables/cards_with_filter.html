@@ -15,7 +15,7 @@
                   {% partialdef card_header inline %}
                     <div class="d-flex">
                       <div class="{% if request.GET|get:column.name %}text-fill-primary {%else%}text-muted{% endif %}">
-                              {{ column.header }} 
+                              {{ column.verbose_name}} 
                             </div>
                           <div class='ms-2'>
                           {% if column.name in table.search_fields %}

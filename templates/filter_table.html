@@ -15,7 +15,6 @@
 {% include "partials/summary_data.html" %}
 {% include "partials/form_filter_content.html" %}
 
-    <div id='result-container'>
       <div class="d-none d-md-block">
         {% render_table table%}
       </div>
@@ -24,7 +23,6 @@
       <div class="d-md-none">
         {% render_table table 'tables/cards_with_filter.html' %}
       </div>
-    <div>
 
 
 
@@ -39,7 +37,7 @@
         <div id="action_reports">
                 {% for action in actions %}
                   {% if not action.on_selectable_items %}
-                  {% include "buttons/action_button.html" with button_content=action.name url=action.url %}        
+                    {% include "buttons/action_button.html" with button_content=action.name url=action.url %}        
                   {% endif %}
                 {% endfor %}
         </div>
@@ -129,38 +127,59 @@
 <!--- bulk actions pop up -->
 <div
     id="bulkActions"
-    class="position-fixed bottom-0 start-50 translate-middle-x mb-3"
+    class="position-fixed bottom-0 start-50 translate-middle-x mb-3 hidden"
 >
-    <div class="bg-white border border-dark rounded-pill shadow px-3 py-2 d-flex align-items-center gap-3">
+    <div class="bg-dark text-white border-dark rounded-pill shadow px-3 py-2 d-flex align-items-center gap-3">
 
         <span>
             <strong id="selectedCount"
-            _=' on load or click from <input/> in #row_select_form 
-              set checked_boxes to <input:checked/> in .table
-              set count to length of checked_boxes
-              if count > 0 then
-                set my innerHTML to count
-                show #bulkActions
-              else  hide #bulkActions
+            _=' on load or click from #result-container
+                set select_all to <input:checked.select_all/> in .table
+                  set all_selected to length of select_all
 
+                  set checked_boxes to <input:checked:not(.select_all)/> in .table
+                  set count to length of checked_boxes
+                  if  all_selected > 0
+                    set my innerHTML to {{table.rows|length}}
+                    show #bulkActions
+                  else if count > 0 then
+                    set my innerHTML to count
+                    show #bulkActions
+                  else 
+                    set my innerHTML to 0 
+                    hide #bulkActions
+                  end
               end
+              on htmx:afterSettle from #result-container
+                    set my innerHTML to 0 
+                    hide #bulkActions
+               end 
               '
-                
-              >0</strong> selected
+
+              ></strong> selected
         </span>
 
         <div id="action_reports" class='d-flex gap-1 align-items-center'>
-              
-                {% for action in actions %}
-                  {% if action.on_selectable_items %}
-                  {% include "buttons/action_button.html" with button_content=action.name url=action.url %}        
-                  {% endif %}
-                {% endfor %}
+                <div class="dropdown">
+                  <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                   Actions
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-dark">
+                    <li>
+                      {% for action in actions %}
+                        {% if action.on_selectable_items %}
+                        {% include "buttons/action_button.html" with button_content=action.name url=action.url %}        
+                        {% endif %}
+                      {% endfor %}
+                    </li>
+                  </ul>
+                </div>    
+          
         </div>
 
         <button
             type="button"
-            class="btn btn-sm btn-outline-dark"
+            class="btn btn-sm btn-light"
             id="clearSelection"
             
             _=' on load or click 
