@@ -389,7 +389,6 @@ class FilteredJobTableView(
     open_column = 'jobid'
     universal_search_fields = SEARCHFILEDS
     default_columns = [
-        "jobid",
         "assetid",
         "serialnumber",
         "jobtypename",
@@ -406,7 +405,7 @@ class FilteredJobTableView(
             type='link',
             on_selectable_items = False,
             url=reverse_lazy("jobs:job_create"),
-            permission="assets.bulk_update_tbljob",
+            permission="assets.add_tbljob",
             icon="bi-plus",
             color='outline-secondary'
         ),
@@ -434,7 +433,7 @@ class FilteredJobTableView(
             on_selectable_items = True,
             url=reverse_lazy('jobs:gen_report'),
             qp = urlencode({'report_type':'service_report'}),
-            permission="documents.bulk_create_links",
+            permission="assets.view_jobview",
             icon="bi-file-earmark-pdf ",
             color='outline-secondary',
         ),
@@ -444,7 +443,7 @@ class FilteredJobTableView(
             on_selectable_items = True,
             url=reverse_lazy('jobs:gen_report'),
             qp=urlencode({'report_type':'job_list'}),
-            permission="documents.bulk_create_links",
+            permission="assets.view_jobview",
             icon="bi-file-earmark-pdf ",
             color='outline-secondary',
         ),

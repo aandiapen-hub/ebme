@@ -810,7 +810,7 @@ def test_generate_job_report_view_renders_error(client, customer, user, jobs):
     )
     full_url = f"{url}?{query_params}"
     response = client.get(full_url)
-    assert response.status_code == 400
+    assert response.status_code == 403
 
 
 # test Add formset
