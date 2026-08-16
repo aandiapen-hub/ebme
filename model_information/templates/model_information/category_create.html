@@ -3,6 +3,7 @@
 
 {% block content %}
 <div class='container'>
+{% include 'documents/partials/temp_file_group_mini.html' %}
 <H3>Add Category</H3>
   <form method='POST' action='{% url "model_information:create_category" %}'> 
     {% csrf_token %}

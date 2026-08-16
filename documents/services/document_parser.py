@@ -32,8 +32,10 @@ def asset_data_builder(
     duplicatable_models=None,
     models_without_gtin=None,
     model_name_options=None,
+    brandid=None,
     brand_name_options=None,
     brand_ids=None,
+    categoryid=None,
     category_name_options=None,
     category_ids=None,
     part_id=None,
@@ -76,6 +78,8 @@ def asset_data_builder(
             "modelname": model_name_options or [],
             "brandname": brand_name_options or [],
             "brand_ids": brand_ids or [],
+            "categoryid": categoryid,
+            "brandid": brandid,
             "categoryname": category_name_options or [],
             "category_ids": category_ids,
             "model_id": model_id,
@@ -92,10 +96,12 @@ def asset_data_builder(
             "parts": parts_without_gtin,
         },
         "brand": {
+            "brandid": brandid,
             "brand_options": brand_name_options or [],
             "brand_ids": brand_ids,
         },
         "category": {
+            "categoryid": categoryid,
             "category_options": category_name_options or [],
             "category_ids": category_ids,
         },
@@ -395,9 +401,9 @@ def gs1_resolver(parsed_data):
     # -------------------------
     # 6. Brand
     # -------------------------
-    #
-    brand_name_options = parsed_data.get("brand_name_options", None)
+    brandid = parsed_data.get("brandid", None)
     brand_ids = []
+    brand_name_options = parsed_data.get("brand_name_options", None)
     if brand_name_options:
         brand_ids, brand_name_options = match_options(
             qs=Tblbrands.objects.all(),
@@ -409,6 +415,7 @@ def gs1_resolver(parsed_data):
     # -------------------------
     # 7. Category
     # -------------------------
+    categoryid = parsed_data.get("categoryid", None)
     category_name_options = parsed_data.get("category_name_options", None)
     category_ids = []
     if category_name_options:
@@ -463,8 +470,10 @@ def gs1_resolver(parsed_data):
         duplicatable_models=models_with_gtin,
         models_without_gtin=models_without_gtin,
         model_name_options=model_name_options,
+        brandid=brandid,
         brand_name_options=brand_name_options,
         brand_ids=brand_ids,
+        categoryid=categoryid,
         category_name_options=category_name_options,
         category_ids=category_ids,
         part_id=part_id,
@@ -626,6 +635,7 @@ def temp_group_resolver(group_id):
         data = group.extracted_json.get("merged_parsed_barcode", {}).get('values',{})
 
     resolver = RESOLVER_MAP.get(group.document_type_id, gs1_resolver)
+    print('data being resolved', data)
     if data and resolver:
         resolved_data = resolver(data)
         group.extracted_json.update({"resolved": resolved_data})

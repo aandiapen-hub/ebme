@@ -2,6 +2,7 @@ from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db.models import Q
 from django.forms import BooleanField, HiddenInput, UUIDField
 from django.urls import reverse
+from functools import cached_property
 
 from documents.services.document_parser import temp_group_resolver
 from documents.models import TempUploadGroup
@@ -40,6 +41,7 @@ class TempUploadMixin:
     def get_initial_mapper(self):
         return self.initial_mapper
 
+    @cached_property
     def get_temp_group(self):
         temp_group_id = self.get_temp_group_id()
 
@@ -126,8 +128,11 @@ class TempUploadMixin:
 
         # populate from payload
         context = self.apply_temp_payload_to_context(context=context)
-        context['temp_group'] = self.get_temp_group()
-
+        context['temp_group'] = self.get_temp_group
+        if self.get_temp_group:
+            context["cancel_url"] = reverse(
+                "documents:temp_group", kwargs={"pk": self.get_temp_group.pk}
+            )
         return context
 
     def get_success_url(self):

@@ -45,7 +45,7 @@
         {% if perms.assets.add_tblbrands %}
           <p>Add New</p>
           <a
-          href="{% url 'model_information:create_brand'%}"
+          href="{% url 'model_information:create_brand'%}?temp_group_id={{temp_group.pk}}"
           type='button'
           class="btn btn-outline-secondary btn-sm">
           <i class="bi bi-plus-lg"></i> 
@@ -65,8 +65,7 @@
     _="on change from #id_categoryid hide me if the value of #id_categoryid is not in ['', null] else show me"
       >
 
-  <h5>Category</h5>
-  <p>Existing</p>
+  <p>Existing Categories</p>
   <ul>
     {% for category in existing_categories %}
       <button class='btn btn-sm btn-outline-secondary'
@@ -91,7 +90,7 @@
   {% if perms.assets.add_tblcategories %}
     <p>Add New</p>
             <a
-            href="{% url 'model_information:create_category'%}"
+                href="{% url 'model_information:create_category'%}?temp_group_id={{temp_group.pk}}"
             class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-plus-lg"></i> Category
             </a>

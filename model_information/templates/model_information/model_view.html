@@ -24,14 +24,10 @@
                 <!--Model Edit Button-->
                 {% if perms.assets.change_tblmodel %}
 
-                  <button
-                    hx-get="{% url 'model_information:update_model' pk=object.modelid %}"
-                    hx-target="#model-detail"
-                    hx-select="#update_model"
-                    hx-swap='outerHTML'
-                    hx-trigger="click"
+                  <a
+                    href="{% url 'model_information:update_model' pk=object.modelid %}"
                     class="btn text-primary">Edit
-                  </button>
+                  </a>
                 {% endif %}
               </li>
               <li class='dropdown-item'>

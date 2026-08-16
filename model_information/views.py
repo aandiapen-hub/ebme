@@ -118,6 +118,14 @@ class BrandCreateView(
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
+
+            temp_group = super().get_temp_group
+            if temp_group:
+                extracted_json = temp_group.extracted_json
+                merged_gs1_ai = extracted_json.setdefault('merged_gs1_ai', {})
+                merged_gs1_ai['brandid'] = self.object.pk
+                temp_group.save(update_fields=['extracted_json'])
+
             self.after_save(form)
 
         return HttpResponseRedirect(self.get_success_url())
@@ -406,12 +414,22 @@ class CategoryCreateView(
     fields = "__all__"
     template_name = "model_information/category_create.html"
     permission_required = "assets.add_tblcategories"
-    success_url_app_view = "model_information:category_detail"
+    success_url_app_view = "model_information:create_model"
+
 
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
+
+            temp_group = super().get_temp_group
+            if temp_group:
+                extracted_json = temp_group.extracted_json
+                merged_gs1_ai = extracted_json.setdefault('merged_gs1_ai', {})
+                merged_gs1_ai['categoryid'] = self.object.pk
+                temp_group.save(update_fields=['extracted_json'])
+
             self.after_save(form)
+
 
         return HttpResponseRedirect(self.get_success_url())
 
