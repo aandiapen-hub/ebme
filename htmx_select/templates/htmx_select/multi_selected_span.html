@@ -1,0 +1,16 @@
+
+<span class="badge text-bg-primary rounded-pill d-flex align-items-center gap-1"
+      data-label='{{ obj }}'
+      data-value='{{ obj }}'>
+        {{ obj }}
+        <button type="button"
+                class="btn-close btn-close-white"
+                aria-label="Remove {{ obj }}"
+                _=' on click halt the event
+                  set input_div to  previous <div.hidden-input-group/>
+                  remove the first <input[label="{{obj}}"][value="{{obj}}"]/> in input_div
+                  remove closest <span/>
+                  trigger change on input_div
+                '>
+        </button>
+</span>

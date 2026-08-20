@@ -63,7 +63,8 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
             all_column_names = [c.name for c in all_columns]
             visible_columns = []
             for col_name in visible_columns_names:
-               visible_columns.append(all_columns[all_column_names.index(col_name)]) 
+                if col_name in all_column_names:
+                    visible_columns.append(all_columns[all_column_names.index(col_name)]) 
 
 
             if visible_columns:

@@ -57,14 +57,14 @@ _="on click set value of #filter_list_search_box to '' then trigger input on #fi
                                                   hx-include="#filter-form input, #filter-form select"
                                                   _="
                                                    on htmx:beforeRequest
-                                                    set divid to 'div_id_{{lookup_expr}}'
+                                                    set divid to 'div_id_{{lookup.lookup_expr}}'
                                                     set divs to id of <div/> in #div_filter_fields
                                                     if divid is in divs
                                                     halt the event's default
-                                                    set div to #div_id_{{lookup_expr}}
-                                                    go to the top of #div_id_{{lookup_expr}} -35px
-                                                    transition #div_id_{{lookup_expr}} opacity to 0.1
-                                                    transition #div_id_{{lookup_expr}} opacity to 1
+                                                    set div to #div_id_{{lookup.lookup_expr}}
+                                                    go to the top of #div_id_{{lookup.lookup_expr}} -35px
+                                                    transition *opacity of #div_id_{{lookup.lookup_expr}} to 0 
+                                                    transition *opacity of #div_id_{{lookup.lookup_expr}} to 1 
                                                   "
                                                   >
                                                   {{lookup.label}}

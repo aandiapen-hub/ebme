@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     "django_bootstrap5",
     "django_htmx",
     "django_tasks_db",
-    "django_tomselect",
+    "htmx_select",
     "jobs",
     "assets",
     "dashboard",
@@ -62,7 +62,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
-    "django_tomselect.middleware.TomSelectMiddleware",
 ]
 
 ROOT_URLCONF = "ebme.urls"
@@ -80,7 +79,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "django_tomselect.context_processors.tomselect",
             ],
         },
     },

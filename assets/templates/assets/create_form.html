@@ -34,12 +34,7 @@
     </div>
 
 
-      <form id='asset_form' hx-post="{{request.path}}"
-        hx-target="#asset_details"
-        hx-swap="innerHTML"
-        hx-trigger="submit"
-        hx-push-url='true'
-        hx-select='#asset_details'>
+      <form id='asset_form' href="{{request.path}}">
             {{ form.media }} 
             {% csrf_token %}
             {% bootstrap_form form layout='horizontal' %}

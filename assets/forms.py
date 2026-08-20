@@ -8,9 +8,12 @@ from .models import (
     Tblppmschedules,
     Tbltechnicianlist,
 )
+
+from django.urls import reverse_lazy
 from django_select2.forms import ModelSelect2Widget
 from django.core.exceptions import ValidationError
 from model_information.models import EquipmentConfiguration, Software, SoftwareModel
+from htmx_select.forms import HTMXModelSelectWidget
 
 from documents.mixins import TempUploadUpdateFormMixin
 
@@ -49,17 +52,8 @@ class AssetUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
         widgets = {
             "installationdate": DateInput(),
             "prod_date": DateInput(),
-            "modelid": ModelSelect2Widget(
-                model=Tblmodel,
-                search_fields=[
-                    "modelname__icontains",
-                    "brandid__brandname__icontains",
-                    "categoryid__categoryname__icontains",
-                ],
-                attrs={
-                    "data-placeholder": "Select Model",
-                    "data-minimum-input-length": 0,
-                },
+            "modelid": HTMXModelSelectWidget(
+                model=Tblmodel, 
             ),
             "is_test_eq": forms.CheckboxInput(),
         }

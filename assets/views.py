@@ -55,9 +55,9 @@ from utils.generic_views import FilteredTableView
 UNIVERSAL_SEARCH_FIELDS = [
     "serialnumber__icontains",
     "assetid__icontains",
-    "modelname__icontains",
-    "brandname__icontains",
-    "categoryname__icontains",
+    "modelid__modelname__icontains",
+    "brandid__brandname__icontains",
+    "categoryid__categoryname__icontains",
     "customerassetnumber__icontains",
 ]
 
@@ -74,10 +74,8 @@ class FilteredAssetTableView(
     default_columns = [
         "assetid",
         "serialnumber",
-        "brandname",
-        "modelname",
-        "categoryname",
-        "customername",
+        "modelid",
+        "brandid"
         "ppm_compliance",
     ]
     actions = [

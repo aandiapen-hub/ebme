@@ -53,4 +53,3 @@ whitenoise==6.9.0
 zxing-cpp
 pytesseract
 django-tasks-db
-django-tomselect

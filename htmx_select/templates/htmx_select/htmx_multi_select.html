@@ -1,0 +1,170 @@
+{% load static %}
+<div
+    id="{{ widget.picker_id }}"
+    class="htmx-model-select position-relative data-picker"
+    _= "on click
+        if  event.target.classList contains 'data-picker-option'
+            if event.target.classList does not contain 'active' 
+              set mydiv to event.target.parentElement
+              set original_input to first <input/> in mydiv
+              set input to original_input.cloneNode(true)
+              set @name of input to '{{widget.name}}'
+              
+              set original_visual_option to first <span/> in mydiv
+              set visual_option to original_visual_option.cloneNode(true)
+
+              put visual_option at the start of the first <div.data-picker-display/> in me
+              put input at the start of first <div.hidden-input-group/> in me
+
+              add .active to event.target
+              trigger change on me
+            else
+              set input_div to next <div.hidden-input-group/>
+              set visible_input_div to first <div.data-picker-display/> in me
+              
+              set value to event.target.dataset.value
+              set label to event.target.dataset.label
+              log 'teidt'
+              log value, label
+              remove the first <input[label='${label}'][value='${value}']/> from input_div
+              remove the first <span[data-label='${label}'][data-value='${value}']/> from visible_input_div
+              remove .active from event.target
+              trigger change on me
+        "
+    >
+    <p><p>
+<div class='hidden-input-group'>
+
+      {% if widget.selected_list %}
+        {% for item in widget.selected_list %}
+          <input type="hidden" label="{{item}}" value="{{ item }}" name="{{widget.name}}">
+
+        {% endfor %}
+      {% endif %}
+
+</div>
+
+    {# Visible control #}
+    <div class="input-group align-items-start">
+
+
+            <div class="form-control d-flex flex-wrap gap-2 data-picker-display"
+                _= 'on click trigger click on next <button.modal-open-button/>
+                    set input to first<input.form-control/> in the next <div.modal/>
+                    wait 500ms
+                    focus input'
+                    
+                style="min-height: 40px;">
+
+                {% if widget.selected_list %}
+                  {% for item in widget.selected_list %}
+                  {% include 'htmx_select/multi_selected_span.html' with obj=item %}
+                  {% endfor %}
+                {% endif %}
+            </div>
+
+
+        {% if widget.autocomplete %}
+            <button
+                hidden
+                type="button"
+                class="btn  btn-outline-secondary modal-open-button"
+                data-bs-toggle="modal"
+                data-bs-target="#{{ widget.modal_id }}"
+            >
+                <span aria-hidden="true">🔍</span>
+                <span class="visually-hidden">
+                    Search
+                </span>
+            </button>
+        {% endif %}
+
+    </div>
+
+
+    {# Optional autocomplete results #}
+    {% if widget.autocomplete %}
+        <div
+            id="{{ widget.autocomplete_id }}"
+            class="list-group position-absolute w-100 shadow-sm d-none"
+            style="z-index: 1050;"
+            data-picker-autocomplete
+        ></div>
+    {% endif %}
+
+
+    {# Modal #}
+    {% if widget.modal %}
+        <div
+            class="modal fade"
+            id="{{ widget.modal_id }}"
+            tabindex="-1"
+            aria-labelledby="{{ widget.modal_id }}_label"
+            aria-hidden="true"
+            data-picker-modal
+        >
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h5
+                            class="modal-title"
+                            id="{{ widget.modal_id }}_label"
+                        >
+                            {{ widget.placeholder }}
+                        </h5>
+
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"
+                        ></button>
+                    </div>
+          
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label
+                                for="{{ widget.modal_id }}_search"
+                                class="visually-hidden"
+                            >
+                                Search
+                            </label>
+
+                            <input
+                                type="search"
+                                id="{{ widget.modal_id }}_search"
+                                class="form-control form-control-lg"
+                                placeholder="Search..."
+                                autocomplete="off"
+                                name="q"
+                                hx-get="{{ widget.search_url }}"
+                                hx-push-url='false'
+                                hx-trigger="intersect, input changed delay:300ms"
+                                hx-target="#{{ widget.results_id }}"
+                                hx-indicator="#{{ widget.modal_id }}_spinner"
+                            >
+                            
+                        </div>
+          
+                        <img id="{{ widget.modal_id }}_spinner" class="htmx-indicator"
+                            width="24" height="24"
+                            src="{% static 'spinners/3-dots-fade.svg' %}">
+
+                        <div id="{{ widget.results_id }}">
+                            <div class="text-muted text-center py-4">
+
+                                  {% include 'htmx_select/search_result.html' %}
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+</div>

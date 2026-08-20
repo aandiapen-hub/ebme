@@ -31,7 +31,7 @@ EXPORT_LIMIT = 3000
 
 # get visible columns for a model for a user
 # Get user's preferred columns from user_profiles.table_settings
-def get_visible_columns(request, model):
+def get_visible_columns(request, model, open_column=None):
     user = request.user
     try:
         user_profile = UserProfiles.objects.get(user_id=user)
@@ -41,6 +41,7 @@ def get_visible_columns(request, model):
     except Exception:
         # fallback to all model fields
         return None
+    user_columns.append(open_column)
     return user_columns
 
 
@@ -58,20 +59,33 @@ class CustomCheckBoxColumn(CheckBoxColumn):
         }
         super().__init__(*args, **kwargs)
 
+from django_tables2.utils import OrderByTuple
 
-from django_tables2.utils import Accessor
 class CustomBaseTable(Table):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         for field in self._meta.model._meta.get_fields():
-            if isinstance(field, ForeignKey):
-                try:
-                    column = self.columns[field.name]
-                except KeyError:
-                    continue
+            if not isinstance(field, ForeignKey):
+                continue
 
-                column.accessor = Accessor(f"{field.name}.pk")
+            try:
+                column = self.columns[field.name]
+            except KeyError:
+                continue
+
+            ordering = field.remote_field.model._meta.ordering
+            if not ordering:
+                continue
+
+            column.column.order_by = OrderByTuple(
+                (
+                    f"-{field.name}__{item.lstrip('-')}"
+                    if item.startswith("-")
+                    else f"{field.name}__{item}"
+                    for item in ordering
+                )
+            )
 
 # Function to dynamically create table class
 def get_dynamic_table_class(
@@ -177,7 +191,7 @@ class FilteredTableView(
 
     def dispatch(self, request, *args, **kwargs):
         self.visible_columns = (
-            get_visible_columns(self.request, self.model) or self.default_columns
+            get_visible_columns(self.request, self.model, open_column=self.open_column) or self.default_columns
         )
 
         # --- check what type of request---#
@@ -212,7 +226,7 @@ class FilteredTableView(
         # Dynamically create table class if not provided
         table = get_dynamic_table_class(
             table_model=self.model,
-            visible_columns=self.visible_columns,
+            visible_columns=self.visible_columns.copy(),
             template_columns=self.template_columns,
             open_column=self.open_column
         )

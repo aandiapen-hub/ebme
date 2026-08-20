@@ -33,14 +33,10 @@
                               on click 
                                 if #{{item.fieldname}}__iexact exists then
                                   set myselect to #{{item.fieldname}}__iexact
-                                  
                                   if me.checked 
-                                    set option to ''
-                                    js return new Option('{{item.name}}', '{{item.pk|escapejs}}', true, true) end then put it into option
-                                    js(option) $('#{{item.fieldname}}__iexact').append(option) end
-                                      trigger change on myselect
                                   else
-                                    set options to <option/> in myselect
+                                    set options to <input/> in myselect
+                                    set spans to <span/> in myselect
                                       for option in options
                                         if value of option == my value
                                         remove option from myselect 
@@ -200,15 +196,21 @@
   </ul>
 
 <div class="modal-footer">
-    <button id='column_filter_btn' type="button" class="btn btn-primary" data-bs-dismiss="modal"
+    <button id='column_filter_btn' type="button" class="btn btn-primary apply-button" data-bs-dismiss="modal"
     _=' on click
-      add @hx-include="#pivot_filters" to #filter-form
-      wait 50ms
-      trigger submit on #filter-form
-      remove @hx-include from #filter-form
+        if #div_id_{{field.name}}__iexact exists then
+            set myselect to #div_id_{{field.name}}__iexact
+            remove <input/> from myselect
+            remove <span/> from myselect
+        end
+        add @hx-include="#pivot_filters" to #filter-form
+        wait 50ms
+        trigger submit on #filter-form
+        remove @hx-include from #filter-form
       '
       >Apply</button>
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    
 </div>
 
 

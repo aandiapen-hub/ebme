@@ -1,0 +1,42 @@
+
+
+{% if object_list %}
+
+
+    <div class="list-group">
+
+        {% for obj in object_list %}
+          <div>
+            <button
+                type="button"
+                class="list-group-item list-group-item-action data-picker-option"
+                data-label='{{ obj }}'
+                data-value='{{ obj }}'>
+                {{ obj }}
+
+            </button>
+            <div class="data-picker-option d-none">
+            
+                <!-- Template for selected display -->
+                {% if multiple %}
+                {% include 'htmx_select/multi_selected_span.html' with obj=obj %}
+                {% else %}
+                {% include 'htmx_select/single_selected_span.html' with obj=obj %}
+                {% endif %}
+
+                <!-- Template for form value -->
+                <input type="hidden" label="{{obj}}" value="{{obj}}">
+                </div>
+          <div>
+
+        {% endfor %}
+
+
+    </div>
+{% else %}
+
+    <div class="text-center text-muted py-4">
+        No results found.
+    </div>
+
+{% endif %}

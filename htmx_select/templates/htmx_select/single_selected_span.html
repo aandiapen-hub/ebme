@@ -1,0 +1,13 @@
+
+<span class="input-group-text d-flex align-items-center justify-content-between gap-1 w-100">
+        {{ obj }}
+        <button type="button"
+                class="btn-close btn-close"
+                aria-label="Remove {{ obj }}"
+                _=' on click
+                  set input_div to  previous <div.hidden-input-group/>
+                  remove the first <input[label="{{obj}}"][value="{{obj.pk}}"]/> in input_div
+                  remove closest <span/>
+                '>
+        </button>
+</span>

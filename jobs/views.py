@@ -56,9 +56,8 @@ SEARCHFILEDS = [
     "modelid__modelname__icontains",
     "serialnumber__icontains",
     "assetid__pk__icontains",
-    "brandname__icontains",
+    "brandid__brandname__icontains",
     "jobid__icontains",
-    "jobstatus__icontains",
 ]
 
 
@@ -391,13 +390,12 @@ class FilteredJobTableView(
     default_columns = [
         "assetid",
         "serialnumber",
-        "jobtypename",
-        "jobstatus",
-        "brandname",
-        "model",
+        "jobtypeid",
+        "jobstatusid",
+        "modelid",
         "startdate",
         "enddate",
-        "customer",
+        "customerid",
     ]
     actions = [
         TableAction(

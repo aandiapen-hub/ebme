@@ -1,11 +1,10 @@
-from django_filters import FilterSet
+from django_filters import FilterSet, Filter
 from functools import reduce
 
 from django.db import models
 
-from django.forms import (
-    CheckboxSelectMultiple,
-)
+
+from htmx_select.forms import HTMXModelMultiSelectWidget, HTMXMultiPickerWidget
 
 from django_filters import (
     DateFilter,
@@ -14,19 +13,24 @@ from django_filters import (
     CharFilter,
     DateFromToRangeFilter,
     TypedChoiceFilter,
+    BaseInFilter,
 )
+
 
 from django_select2.forms import (
     ModelSelect2MultipleWidget,
     Select2MultipleWidget,
 )
+
 from django_filters.widgets import RangeWidget as RangeWidget
+
 
 from django.forms.widgets import (
     TextInput,
     DateInput,
     Select,
 )
+from django.forms import Field
 from django.core.exceptions import FieldDoesNotExist
 
 LOOKUP_SYMBOL = {
@@ -54,8 +58,35 @@ NULL_CHOICES = (
 )
 
 
+
+class CharListField(Field):
+    def to_python(self, value):
+        if value in (None, ""):
+            return []
+
+        if isinstance(value, (list, tuple)):
+            return [str(v) for v in value]
+
+        return [str(value)]
+
+
+class CharListFilter(Filter):
+    field_class = CharListField
+
+    def filter(self, qs, value):
+        if not value:
+            return qs
+
+        return qs.filter(**{
+            f"{self.field_name}__in": value
+        })
+
+
 class DateRangeWidget(RangeWidget):
     suffixes = ["_gte", "_lte"]
+
+class MyInFilter(BaseInFilter, CharFilter):
+    pass
 
 
 def filter_name_not(self, queryset, name, value):
@@ -77,7 +108,7 @@ def generate_filter_for_field(model, field_name, lookup):
             lookup_expr="isnull",
             choices=NULL_CHOICES,
             coerce=lambda v: None if v in ("", None) else v == "True",
-            label=f"{field.verbose_name} is Empty",
+            label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
             widget=Select(
                 attrs={"class": "form-select", "id": f"{field_name}__{lookup}"}
             ),
@@ -94,7 +125,7 @@ def generate_filter_for_field(model, field_name, lookup):
     if field.choices:
         return MultipleChoiceFilter(
             field_name=field_name,
-            label=field.verbose_name,
+            label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
             choices=field.choices,
             widget=Select2MultipleWidget(
                 attrs={
@@ -120,7 +151,7 @@ def generate_filter_for_field(model, field_name, lookup):
                 field_path = field_name
 
             return CharFilter(
-                label=f"{field.verbose_name} Contains",
+                label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
                 field_name=field_path,
                 lookup_expr="icontains",
                 widget=TextInput(attrs={"type": "text", "class": "form-control"}),
@@ -137,38 +168,27 @@ def generate_filter_for_field(model, field_name, lookup):
             ]
 
             return ModelMultipleChoiceFilter(
-                label=f"{field.verbose_name} Lookup",
+                label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
                 field_name=field_name,
                 queryset=related_model.objects.all(),
-                widget=ModelSelect2MultipleWidget(
+                widget=HTMXModelMultiSelectWidget(
                     model=related_model,
-                    search_fields=search_fields,
-                    attrs={
-                        "data-placeholder": "Select",
-                        "data-allow-clear": "false",
-                        "data-minimum-input-length": 0,
-                        "id": f"{field_name}__{lookup}",
-                    },
                 ),
             )
 
     elif "exact" in lookup and not isinstance(field, models.DateField):
-        unique_values = (
-            model.objects.order_by().values_list(field.name, flat=True).distinct()
-        )
-        return MultipleChoiceFilter(
-            label=f"{field.verbose_name} Lookup",
+        myfilter = MyInFilter(
             field_name=field_name,
-            choices=[(v, v) for v in unique_values],
-            widget=Select2MultipleWidget(
-                attrs={
-                    "data-placeholder": "Select",
-                    "data-minimum-input-length": 0,
-                    "data-allow-clear": "false",
-                    "id": f"{field_name}__{lookup}",
-                },
-            ),
+            lookup_expr="in",
+            label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
         )
+
+        myfilter.field.widget = HTMXMultiPickerWidget(
+                model=model,
+                field=field
+            )
+        return myfilter
+
     # Date field filters
     elif isinstance(field, models.DateField):
         if "range" in lookup:
@@ -181,7 +201,7 @@ def generate_filter_for_field(model, field_name, lookup):
 
         else:
             return DateFilter(
-                label=f"{field.verbose_name} {lookup}",
+                label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
                 field_name=field_name,
                 lookup_expr=lookup,
                 widget=DateInput(attrs={"type": "date", "class": "form-control"}),
@@ -189,7 +209,7 @@ def generate_filter_for_field(model, field_name, lookup):
 
     else:
         return CharFilter(
-            label=f"{field.verbose_name} {lookup}",
+            label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
             field_name=field_name,
             lookup_expr=lookup,
             widget=TextInput(attrs={"type": "text", "class": "form-control"}),
@@ -270,7 +290,7 @@ def dynamic_filterset_generator(
 def get_filter_fields(model, visible_columns):
     fields = {}
     # Define relevant lookups per type
-    text_lookups = ["iexact", "icontains", "startswith", "istartswith", "isnull"]
+    text_lookups = ["iexact", "icontains", "istartswith", "isnull"]
     foreign_lookups = ["iexact", "icontains", "isnull"]
     numeric_lookups = ["iexact", "lt", "lte", "gt", "gte", "isnull", "ne"]
     date_lookups = ["exact", "lt", "lte", "gt", "gte", "range", "isnull"]
@@ -293,7 +313,11 @@ def get_filter_fields(model, visible_columns):
                 lookups = numeric_lookups
             elif isinstance(field, (models.DateField, models.DateTimeField)):
                 lookups = date_lookups
+
             elif isinstance(field, models.ForeignKey):
+                related_model = field.remote_field.model
+                if not hasattr(related_model, 'htmx_picker'):
+                    lookups = text_lookups
                 lookups = foreign_lookups
             else:
                 lookups = text_lookups

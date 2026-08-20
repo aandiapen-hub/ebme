@@ -27,9 +27,7 @@
                     {% endif %}
                 {% endfor %}
                     <div class="d-flex">
-                            <input type="checkbox" value='{{row.record.pk}}' name='selected' class="btn-check" id="btncheck-{{row.record.pk}}" autocomplete="off">
-                            <label class="btn btn-outline-primary btn-sm" for="btncheck-{{row.record.pk}}">Select</label>
-                            
+                            <input type="checkbox" value='{{row.record.pk}}' name='selected' class="form-check-input"  autocomplete="off">
                     </div>
 
               </div>

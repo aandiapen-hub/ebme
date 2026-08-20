@@ -11,6 +11,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.urls import reverse
 from model_information.models import EquipmentConfigurationLink, EquipmentConfiguration
 
+from htmx_select.utils import HtmxPicker
 
 class Tblassets(models.Model):
     assetid = models.BigAutoField(
@@ -124,6 +125,12 @@ class Tblassets(models.Model):
     def requires_configuration(self):
         return not self.required_config == self.current_config 
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('assetid__icontains'),
+        customer_scope='customerid',
+    )
+
 class AssetView(models.Model):
     assetid = models.CharField(db_column='AssetID', primary_key=True, verbose_name="Asset ID")
     customerassetnumber = models.CharField(
@@ -134,10 +141,10 @@ class AssetView(models.Model):
         verbose_name="Customer Asset No",
     )
     customerid = models.ForeignKey(
-        "Tblcustomer", models.PROTECT, db_column="CustomerID", verbose_name="Customer ID"
+        "Tblcustomer", models.PROTECT, db_column="CustomerID", verbose_name="Customer"
     )
     modelid = models.ForeignKey(
-        "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model ID"
+        "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model"
     )
     serialnumber = models.CharField(
         db_column="SerialNumber",
@@ -174,7 +181,7 @@ class AssetView(models.Model):
         db_column="ppmscheduleid",
         default=1,
         null=True,
-        verbose_name="PPM Schedule ID",
+        verbose_name="PPM Schedule",
     )
     softwareversion = models.CharField(blank=True, null=True, verbose_name="Software")
     locationid = models.ForeignKey(
@@ -183,7 +190,7 @@ class AssetView(models.Model):
         db_column="locationid",
         blank=True,
         null=True,
-        verbose_name="Location ID",
+        verbose_name="Location",
     )
     asset_status_id = models.ForeignKey(
         "TblAssetStatus",
@@ -191,23 +198,10 @@ class AssetView(models.Model):
         db_column="asset_status_id",
         blank=True,
         null=True,
-        verbose_name="Asset Status ID",
+        verbose_name="Asset Status",
     )
     support_level_id = models.BigIntegerField(
         blank=True, null=True, verbose_name="Support Level"
-    )
-    customername = models.CharField(
-        max_length=100, blank=True, null=True, verbose_name="Customer"
-    )
-    modelname = models.CharField(
-        db_column="ModelName",
-        max_length=100,
-        blank=True,
-        null=True,
-        verbose_name="Model",
-    )
-    brandname = models.CharField(
-        db_column="BrandName", blank=True, null=True, verbose_name="Brand"
     )
     brandid = models.ForeignKey(
         "Tblbrands",
@@ -215,7 +209,7 @@ class AssetView(models.Model):
         db_column="BrandID",
         blank=True,
         null=True,
-        verbose_name="Brand ID",
+        verbose_name="Brand",
     )
     categoryid = models.ForeignKey(
         "Tblcategories",
@@ -223,13 +217,8 @@ class AssetView(models.Model):
         db_column="categoryid",
         blank=True,
         null=True,
-        verbose_name="Category ID",
+        verbose_name="Category",
     )
-    locationname = models.CharField(blank=True, null=True, verbose_name="Location")
-    sitename = models.CharField(blank=True, null=True, verbose_name="Site")
-    categoryname = models.CharField(blank=True, null=True, verbose_name="Category")
-    schedulename = models.CharField(blank=True, null=True, verbose_name='PPM Schedule Name')
-    status_name = models.CharField(blank=True, null=True, verbose_name="Status")
     support_level_name = models.CharField(blank=True, null=True)
     ppm_compliance = models.TextField(
         blank=True, null=True, verbose_name="PPM Compliance"
@@ -245,7 +234,7 @@ class AssetView(models.Model):
         return reverse('assets:view_asset', kwargs={'pk':self.pk})
 
     def __str__(self):
-        return f"{self.brandname} - {self.modelname} - {self.serialnumber} ({self.categoryname})"
+        return repr(self.assetid)
 
     @property
     def asset(self):
@@ -256,6 +245,12 @@ class AssetView(models.Model):
         software_available = self.modelid.supported_software.exists()
         has_software = self.asset.installed_software.exists()
         return software_available and not has_software
+
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=(),
+        customer_scope='customerid',
+    )
 
 class JobView(models.Model):
     jobid = models.CharField(
@@ -274,7 +269,7 @@ class JobView(models.Model):
         db_column="JobStatusID",
         blank=True,
         null=True,
-        verbose_name="Job Status ID",
+        verbose_name="Job Status",
     )
     technicianid = models.ForeignKey(
         "Tbltechnicianlist",
@@ -282,17 +277,10 @@ class JobView(models.Model):
         db_column="TechnicianID",
         blank=True,
         null=True,
-        verbose_name="Technician ID",
+        verbose_name="Technician",
     )
     assetid = models.ForeignKey(
         Tblassets, models.PROTECT, db_column="AssetID", related_name="job_view"
-    )
-    technician_name = models.CharField(
-        db_column="Technician Name",
-        max_length=100,
-        blank=True,
-        null=True,
-        verbose_name="Technician",
     )
     partsperjob = models.TextField(
         db_column="PartsPerJob", blank=True, null=True, verbose_name="Parts Used"
@@ -301,7 +289,7 @@ class JobView(models.Model):
         db_column="TestsPerJob", blank=True, null=True, verbose_name="Checklist"
     )
     modelid = models.ForeignKey(
-        "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model ID"
+        "Tblmodel", models.PROTECT, db_column="ModelID", verbose_name="Model"
     )
     serialnumber = models.CharField(
         db_column="SerialNumber",
@@ -316,23 +304,7 @@ class JobView(models.Model):
         db_column="CustomerID",
         blank=True,
         null=True,
-        verbose_name="Customer ID",
-    )
-    model = models.CharField(
-        db_column="Model", max_length=100, blank=True, null=True, verbose_name='Model'
-    )
-    customer = models.CharField(
-        db_column="Customer", max_length=100, blank=True, null=True, verbose_name='Customer'
-    )
-    jobstatus = models.CharField(
-        db_column="JobStatus",
-        max_length=100,
-        blank=True,
-        null=True,
-        verbose_name="Status",
-    )
-    jobtypename = models.CharField(
-        max_length=50, blank=True, null=True, verbose_name="Job Type"
+        verbose_name="Customer",
     )
     total_cost = models.DecimalField(
         db_column="Total Cost",
@@ -363,9 +335,6 @@ class JobView(models.Model):
         null=True,
         verbose_name="Customer Phone",
     )
-    brandname = models.CharField(
-        db_column="BrandName", blank=True, null=True, verbose_name="Brand"
-    )
     customer_postcode = models.CharField(
         db_column="Customer Postcode",
         blank=True,
@@ -378,10 +347,10 @@ class JobView(models.Model):
         db_column="BrandID",
         blank=True,
         null=True,
-        verbose_name="Brand ID",
+        verbose_name="Brand",
     )
     jobtypeid = models.ForeignKey(
-        "Tbljobtypes", models.PROTECT, db_column="jobtypeid", verbose_name="Job Type ID"
+        "Tbljobtypes", models.PROTECT, db_column="jobtypeid", verbose_name="Job Type"
     )
     document_links = GenericRelation(
         "documents.TblDocumentLinks", related_query_name="assets"
@@ -414,7 +383,7 @@ class Tblbrands(models.Model):
     class Meta:
         managed = False
         db_table = "tblBrands"
-        ordering = ["brandid"]
+        ordering = ["brandname"]
 
     def get_absolute_url(self):
         return reverse('model_information:brand_detail', kwargs={'pk':self.pk})
@@ -422,6 +391,10 @@ class Tblbrands(models.Model):
     def __str__(self):
         return f"{self.brandname}"
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('brandname__icontains'),
+    )
 
 class Tblcheckslists(models.Model):
     testname = models.CharField(
@@ -481,6 +454,11 @@ class Tblcustomer(models.Model):
     def __str__(self):
         return self.customer_name
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('brandname__icontains'),
+        customer_scope='customerid'
+    )
 
 
 class Tbljob(models.Model):
@@ -535,6 +513,12 @@ class Tbljob(models.Model):
     def __str__(self):
         return str(self.jobid)
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('jobid__icontains'),
+        customer_scope='assetid__customerid'
+    )
+
 class Tbljobstatus(models.Model):
     jobstatusname = models.CharField(
         db_column="JobStatus",
@@ -563,6 +547,10 @@ class Tbljobstatus(models.Model):
     def __str__(self):
         return self.jobstatusname
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('jobstatusname__icontains'),
+    )
 
 class Tbljobtypes(models.Model):
     jobtypeid = models.BigIntegerField(
@@ -577,6 +565,10 @@ class Tbljobtypes(models.Model):
     def __str__(self):
         return self.jobtypename
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('jobtypename__icontains'),
+    )
 
 class Tblmodel(models.Model):
     modelname = models.CharField(
@@ -611,10 +603,19 @@ class Tblmodel(models.Model):
         managed = False
         db_table = "tblModel"
         unique_together = (("modelname", "brandid"),)
-        ordering = ["modelid"]
+        ordering = ["modelname"]
         permissions = [
             ("bulk_update_tblmodel", "Can perform bulk updates"),
         ]
+
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=(
+            'modelname__icontains',
+            'brandid__brandname__icontains',
+        ),
+        label_str = lambda obj: f"{obj.modelname} ({obj.brandid})"
+    )
 
     def get_absolute_url(self):
         return reverse('model_information:model_view', kwargs={'pk':self.pk})
@@ -669,6 +670,10 @@ class Tbltechnicianlist(models.Model):
     def __str__(self):
         return self.name
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('name__icontains'),
+    )
 
 class Tbltesteq(models.Model):
     testeqid = models.BigAutoField(
@@ -759,6 +764,10 @@ class TblAssetStatus(models.Model):
     def __str__(self):
         return self.status_name
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('status_name__icontains'),
+    )
 
 class TblMaintenanceSupplier(models.Model):
     supplier_id = models.BigAutoField(primary_key=True)
@@ -812,7 +821,7 @@ class Tblcategories(models.Model):
     class Meta:
         managed = False
         db_table = "tblcategories"
-        ordering = ["categoryid"]
+        ordering = ["categoryname"]
 
     def get_absolute_url(self):
         return reverse('model_information:category_detail', kwargs={'pk':self.pk})
@@ -820,6 +829,10 @@ class Tblcategories(models.Model):
     def __str__(self):
         return self.categoryname
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('categoryname__icontains'),
+    )
 
 class Tblcontractstatus(models.Model):
     contractstatusid = models.BigAutoField(primary_key=True)
@@ -860,6 +873,11 @@ class Tbllocations(models.Model):
     def __str__(self):
         return self.locationname
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('categoryname__icontains'),
+        customer_scope = 'customerid'
+    )
 
 class TblmaintContracts(models.Model):
     contractid = models.BigAutoField(primary_key=True)
@@ -903,6 +921,10 @@ class Tblppmschedules(models.Model):
     def __str__(self):
         return self.schedulename
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('schedulename__icontains'),
+    )
 
 class Tblsites(models.Model):
     siteid = models.BigAutoField(primary_key=True)
@@ -915,6 +937,10 @@ class Tblsites(models.Model):
     def __str__(self):
         return self.sitename
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('sitename__icontains'),
+    )
 
 class Tbltestresult(models.Model):
     resultid = models.BigIntegerField(primary_key=True)

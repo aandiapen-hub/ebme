@@ -175,12 +175,15 @@ class BrandDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
 class FilteredModelTableView(
     LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
 ):
-    model = ModelView 
+    model = Tblmodel 
     title = 'Models'
     paginate_by = 25
-    open_column = 'model_id'
+    open_column = 'modelid'
     permission_required = "assets.view_tblmodel"
-    universal_search_fields = ["model_name__icontains"]
+    universal_search_fields = [
+        "modelname__icontains",
+        "brandid__brandname__icontains" 
+    ]
 
     actions = [
         TableAction(
