@@ -54,7 +54,7 @@ class AssetUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
             "prod_date": DateInput(),
             "modelid": HTMXMultiPickerWidget(
                 model=Tblassets, 
-                field=Tblassets._meta.get_field('modelid'),
+                fieldname='modelid',
             ),
             "is_test_eq": forms.CheckboxInput(),
         }

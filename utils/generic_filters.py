@@ -172,7 +172,7 @@ def generate_filter_for_field(model, field_name, lookup):
                 queryset=related_model.objects.all(),
                 widget=HTMXMultiPickerWidget(
                     model=model,
-                    field=field,
+                    fieldname=field.name,
                     multiple=True,
                 ),
             )
@@ -186,7 +186,7 @@ def generate_filter_for_field(model, field_name, lookup):
 
         myfilter.field.widget = HTMXMultiPickerWidget(
                 model=model,
-                field=field,
+                fieldname=field.name,
                 multiple=True,
             )
         return myfilter

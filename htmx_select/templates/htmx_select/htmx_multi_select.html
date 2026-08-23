@@ -39,7 +39,6 @@
               trigger change on me
         "
     >
-    <p><p>
 <div class='hidden-input-group'>
 
       {% if widget.selected_list %}
@@ -63,14 +62,14 @@
                 style="min-height: 40px;">
 
                 {% if widget.selected_list %}
-                  {% for option in widget.selected_list %}
-                  
-                {% if widget.multiple %}
-                  {% include 'htmx_select/multi_selected_span.html' %}
-                {% else %}
-                  {% include 'htmx_select/single_selected_span.html' %}
-                {% endif %}
-                  {% endfor %}
+                      {% for option in widget.selected_list %}
+                      
+                    {% if widget.multiple %}
+                      {% include 'htmx_select/multi_selected_span.html' %}
+                    {% else %}
+                      {% include 'htmx_select/single_selected_span.html' %}
+                    {% endif %}
+                      {% endfor %}
                 {% endif %}
             </div>
 
@@ -166,11 +165,7 @@
                             src="{% static 'spinners/3-dots-fade.svg' %}">
 
                         <div id="{{ widget.results_id }}">
-                            <div class="text-muted text-center py-4">
-
-                                  {% include 'htmx_select/search_result.html' %}
-
-                            </div>
+                                {% include 'htmx_select/search_result.html' %}
                         </div>
 
                     </div>

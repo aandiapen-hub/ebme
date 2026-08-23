@@ -10,7 +10,7 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
     def __init__(
         self,
         model,
-        field,
+        fieldname,
         *,
         multiple=False,
         placeholder="Select ",
@@ -24,10 +24,14 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         self.search_url=search_url
         self.modal = modal
         self.model = model
-        self.field = field
+        self.field = self.get_field(fieldname)
         self.multiple = multiple
 
         super().__init__(attrs)
+
+    def get_field(self, fieldname):
+        print(self.model)
+        return self.model._meta.get_field(fieldname)
 
     def get_search_url(self):
         if self.search_url:

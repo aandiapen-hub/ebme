@@ -19,7 +19,7 @@ class HtmxPickerSearch(
     LoginRequiredMixin,
     ListView
 ):
-    paginate_by = 5
+    paginate_by = 20
     template_name = 'htmx_select/search_result.html'
 
     def dispatch(self, request, *args, **kwargs):
