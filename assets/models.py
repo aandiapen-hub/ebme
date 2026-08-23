@@ -372,6 +372,13 @@ class JobView(models.Model):
     def job(self):
         return Tbljob.objects.get(pk=self.pk)
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=(),
+        customer_scope='customerid',
+    )
+
+
 class Tblbrands(models.Model):
     brandid = models.BigAutoField(
         db_column="BrandID", primary_key=True, verbose_name="ID"
@@ -567,7 +574,7 @@ class Tbljobtypes(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('jobtypename__icontains'),
+        search_terms=('jobtypename__icontains',),
     )
 
 class Tblmodel(models.Model):

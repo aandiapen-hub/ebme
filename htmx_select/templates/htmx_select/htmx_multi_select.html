@@ -6,6 +6,7 @@
         if  event.target.classList contains 'data-picker-option'
             if event.target.classList does not contain 'active' 
               set mydiv to event.target.parentElement
+
               set original_input to first <input/> in mydiv
               set input to original_input.cloneNode(true)
               set @name of input to '{{widget.name}}'
@@ -13,19 +14,25 @@
               set original_visual_option to first <span/> in mydiv
               set visual_option to original_visual_option.cloneNode(true)
 
-              put visual_option at the start of the first <div.data-picker-display/> in me
-              put input at the start of first <div.hidden-input-group/> in me
+              {% if widget.multiple %}
+                put visual_option at the start of the first <div.data-picker-display/> in me
+                put input at the start of first <div.hidden-input-group/> in me
+                add .active to event.target
+              {% else %}
+                put visual_option into the first <div.data-picker-display/> in me 
+                put input into the first <div.hidden-input-group/> in me
+                set close_modal_button to first <button.btn-close/> in <div.modal/> in me
+                trigger click on close_modal_button
+              {% endif %}
+                trigger change on me
 
-              add .active to event.target
-              trigger change on me
             else
               set input_div to next <div.hidden-input-group/>
               set visible_input_div to first <div.data-picker-display/> in me
               
               set value to event.target.dataset.value
               set label to event.target.dataset.label
-              log 'teidt'
-              log value, label
+
               remove the first <input[label='${label}'][value='${value}']/> from input_div
               remove the first <span[data-label='${label}'][data-value='${value}']/> from visible_input_div
               remove .active from event.target
@@ -36,9 +43,8 @@
 <div class='hidden-input-group'>
 
       {% if widget.selected_list %}
-        {% for item in widget.selected_list %}
-          <input type="hidden" label="{{item}}" value="{{ item }}" name="{{widget.name}}">
-
+        {% for option in widget.selected_list %}
+          <input type="hidden" label="{{option.label}}" value="{{ option.value }}" name="{{widget.name}}">
         {% endfor %}
       {% endif %}
 
@@ -57,8 +63,13 @@
                 style="min-height: 40px;">
 
                 {% if widget.selected_list %}
-                  {% for item in widget.selected_list %}
-                  {% include 'htmx_select/multi_selected_span.html' with obj=item %}
+                  {% for option in widget.selected_list %}
+                  
+                {% if widget.multiple %}
+                  {% include 'htmx_select/multi_selected_span.html' %}
+                {% else %}
+                  {% include 'htmx_select/single_selected_span.html' %}
+                {% endif %}
                   {% endfor %}
                 {% endif %}
             </div>
@@ -111,7 +122,7 @@
                             class="modal-title"
                             id="{{ widget.modal_id }}_label"
                         >
-                            {{ widget.placeholder }}
+                        {{ widget.placeholder }} {{widget.fieldname}}
                         </h5>
 
                         <button
@@ -139,11 +150,13 @@
                                 placeholder="Search..."
                                 autocomplete="off"
                                 name="q"
+                                hx-include="closest .htmx-model-select"
                                 hx-get="{{ widget.search_url }}"
                                 hx-push-url='false'
-                                hx-trigger="intersect, input changed delay:300ms"
+                                hx-trigger="intersect once, input changed delay:300ms"
                                 hx-target="#{{ widget.results_id }}"
                                 hx-indicator="#{{ widget.modal_id }}_spinner"
+                                hx-vals='{"multiple": "{{widget.multiple}}", "fieldname":"{{widget.name}}"}'
                             >
                             
                         </div>

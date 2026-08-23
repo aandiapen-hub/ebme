@@ -1,153 +1,7 @@
 from django import forms
 from django.urls import reverse
 from urllib.parse import urlencode
-
-
-class HTMXModelSelectWidget(forms.TextInput):
-    template_name = "htmx_select/htmx_model_select.html"
-
-    def __init__(
-        self,
-        *,
-        search_url=None,
-        placeholder="Select...",
-        autocomplete=True,
-        modal=True,
-        attrs=None,
-        model=None,
-    ):
-        self.search_url = search_url
-        self.placeholder = placeholder
-        self.autocomplete = autocomplete
-        self.modal = modal
-        self.model = model
-
-        super().__init__(attrs)
-
-    def get_search_url(self):
-        return reverse(
-            "htmx_model_search",
-            kwargs={
-                "modelpath": (
-                    f"{self.model._meta.app_label}"
-                    f"__"
-                    f"{self.model._meta.model_name}"
-                )
-            },
-        )
-
-    def get_context(self, name, value, attrs):
-        context = super().get_context(name, value, attrs)
-        widget = context["widget"]
-
-        # The Django field ID, e.g. id_customer
-        widget_id = widget["attrs"].get("id", f"id_{name}")
-
-        widget["picker_id"] = f"{widget_id}_picker"
-        widget["modal_id"] = f"{widget_id}_modal"
-        widget["autocomplete_id"] = f"{widget_id}_autocomplete"
-        widget["results_id"] = f"{widget_id}_results"
-
-        
-        widget["search_url"] = self.search_url or self.get_search_url()
-        widget["placeholder"] = self.placeholder
-        widget["autocomplete"] = self.autocomplete
-        widget["modal"] = self.modal
-        # Find the label of the currently selected option.
-        selected = None
-        selected_list =[]
-
-        if value and self.model:
-            try:
-                selected = self.model.objects.get(pk=value)
-            except self.field.queryset.model.DoesNotExist:
-                pass
-
-        widget["selected"] = selected
-
-
-        # We don't want the normal select visible.
-        existing_class = widget["attrs"].get("class", "")
-        widget["attrs"]["class"] = f"{existing_class} d-none".strip()
-        
-
-        return context
-
-
-class HTMXModelMultiSelectWidget(forms.SelectMultiple):
-    template_name = "htmx_select/htmx_model_multi_select.html"
-
-    def __init__(
-        self,
-        *,
-        search_url=None,
-        placeholder="Select...",
-        autocomplete=True,
-        modal=True,
-        attrs=None,
-        model=None,
-    ):
-        self.search_url = search_url
-        self.placeholder = placeholder
-        self.autocomplete = autocomplete
-        self.modal = modal
-        self.model = model
-
-        super().__init__(attrs)
-
-    def get_search_url(self):
-        if self.search_url:
-            base_url = self.search_url 
-
-        else:
-            base_url = reverse(
-                "htmx_model_search",
-                kwargs={
-                    "modelpath": (
-                        f"{self.model._meta.app_label}"
-                        f"__"
-                        f"{self.model._meta.model_name}"
-                    )
-                },
-            )
-        query_params = urlencode({'multiple':True})
-        return f"{base_url}?{query_params}"
-
-    def get_context(self, name, value, attrs):
-        context = super().get_context(name, value, attrs)
-        widget = context["widget"]
-
-        # The Django field ID, e.g. id_customer
-        widget_id = widget["attrs"].get("id", f"id_{name}")
-
-        widget["picker_id"] = f"{widget_id}_picker"
-        widget["modal_id"] = f"{widget_id}_modal"
-        widget["autocomplete_id"] = f"{widget_id}_autocomplete"
-        widget["results_id"] = f"{widget_id}_results"
-
-        
-        widget["search_url"] = self.get_search_url()
-        widget["placeholder"] = self.placeholder
-        widget["autocomplete"] = self.autocomplete
-        widget["modal"] = self.modal
-
-        # Find the label of the currently selected option.
-        selected = None
-        selected_list =[]
-
-        if value and self.model:
-            try:
-                selected_list = self.model.objects.filter(pk__in=value)
-            except self.field.queryset.model.DoesNotExist:
-                pass
-
-        widget['selected_list'] = selected_list
-
-        # We don't want the normal select visible.
-        existing_class = widget["attrs"].get("class", "")
-        widget["attrs"]["class"] = f"{existing_class} d-none".strip()
-
-        return context
+from django.db.models import ForeignKey
 
 
 class HTMXMultiPickerWidget(forms.SelectMultiple):
@@ -158,7 +12,8 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         model,
         field,
         *,
-        placeholder="Select...",
+        multiple=False,
+        placeholder="Select ",
         search_url=None,
         autocomplete=True,
         modal=True,
@@ -170,6 +25,7 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         self.modal = modal
         self.model = model
         self.field = field
+        self.multiple = multiple
 
         super().__init__(attrs)
 
@@ -189,7 +45,7 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
                     'fieldname': self.field.name
                 },
             )
-        query_params = urlencode({'multiple':True})
+        query_params = urlencode({'multiple':self.multiple})
         return f"{base_url}?{query_params}"
 
     def get_context(self, name, value, attrs):
@@ -207,21 +63,62 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         widget["placeholder"] = self.placeholder
         widget["autocomplete"] = self.autocomplete
         widget["modal"] = self.modal
+        widget["multiple"] = self.multiple
+        widget["fieldname"] = self.field.verbose_name
 
-        selected_values = []
-        # Values submitted by the browser.
-        if isinstance(value, str):
-            selected_values = value.split(",")
-        else:
-            selected_values = value or []
-
-        widget["selected_list"] = selected_values
-
-        # Hide the actual Django select.
         existing_class = widget["attrs"].get("class", "")
         widget["attrs"]["class"] = (
             f"{existing_class} d-none"
         ).strip()
 
+        if not value:
+            return context
+
+        selected_values = []
+
+        # Values submitted by the browser.
+        if not isinstance(value, list):
+            value = [value]
+
+        if isinstance(self.field, ForeignKey):
+            try:
+                selected_list = self.field.remote_field.model.objects.filter(pk__in=value)
+                print(selected_list)
+            except self.field.queryset.model.DoesNotExist:
+                pass
+
+            widget["selected_list"] = [
+                    {
+                        'value': obj.pk,
+                        'label': str(obj), 
+                    }
+                    for obj in selected_list
+                ]
+
+        else:
+            if isinstance(value, str):
+                selected_values = value.split(",")
+            elif isinstance(value, list):
+                selected_values = value
+
+            widget["selected_list"] = [
+                    {
+                        'value': value,
+                        'label': str(value), 
+                    }
+                    for value in selected_values
+                ]
+
+        # Hide the actual Django select.
+
 
         return context
+
+    def value_from_datadict(self, data, files, name):
+        value = super().value_from_datadict(data, files, name)
+
+        # if not multiple then return first value from value list 
+        if not self.multiple:
+            return value[0]
+
+        return value 

@@ -4,7 +4,7 @@ from functools import reduce
 from django.db import models
 
 
-from htmx_select.forms import HTMXModelMultiSelectWidget, HTMXMultiPickerWidget
+from htmx_select.forms import HTMXMultiPickerWidget
 
 from django_filters import (
     DateFilter,
@@ -18,7 +18,6 @@ from django_filters import (
 
 
 from django_select2.forms import (
-    ModelSelect2MultipleWidget,
     Select2MultipleWidget,
 )
 
@@ -171,8 +170,10 @@ def generate_filter_for_field(model, field_name, lookup):
                 label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
                 field_name=field_name,
                 queryset=related_model.objects.all(),
-                widget=HTMXModelMultiSelectWidget(
-                    model=related_model,
+                widget=HTMXMultiPickerWidget(
+                    model=model,
+                    field=field,
+                    multiple=True,
                 ),
             )
 
@@ -185,7 +186,8 @@ def generate_filter_for_field(model, field_name, lookup):
 
         myfilter.field.widget = HTMXMultiPickerWidget(
                 model=model,
-                field=field
+                field=field,
+                multiple=True,
             )
         return myfilter
 

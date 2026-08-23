@@ -13,7 +13,7 @@ from django.urls import reverse_lazy
 from django_select2.forms import ModelSelect2Widget
 from django.core.exceptions import ValidationError
 from model_information.models import EquipmentConfiguration, Software, SoftwareModel
-from htmx_select.forms import HTMXModelSelectWidget
+from htmx_select.forms import HTMXMultiPickerWidget
 
 from documents.mixins import TempUploadUpdateFormMixin
 
@@ -52,8 +52,9 @@ class AssetUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
         widgets = {
             "installationdate": DateInput(),
             "prod_date": DateInput(),
-            "modelid": HTMXModelSelectWidget(
-                model=Tblmodel, 
+            "modelid": HTMXMultiPickerWidget(
+                model=Tblassets, 
+                field=Tblassets._meta.get_field('modelid'),
             ),
             "is_test_eq": forms.CheckboxInput(),
         }

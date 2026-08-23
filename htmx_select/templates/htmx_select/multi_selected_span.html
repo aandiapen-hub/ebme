@@ -1,14 +1,14 @@
 
 <span class="badge text-bg-primary rounded-pill d-flex align-items-center gap-1"
-      data-label='{{ obj }}'
-      data-value='{{ obj }}'>
-        {{ obj }}
+      data-label='{{ option.label }}'
+      data-value='{{ option.value }}'>
+        {{ option.label }}
         <button type="button"
                 class="btn-close btn-close-white"
-                aria-label="Remove {{ obj }}"
+                aria-label="Remove {{ option.label }}"
                 _=' on click halt the event
                   set input_div to  previous <div.hidden-input-group/>
-                  remove the first <input[label="{{obj}}"][value="{{obj}}"]/> in input_div
+                  remove the first <input[label="{{option.label}}"][value="{{option.value}}"]/> in input_div
                   remove closest <span/>
                   trigger change on input_div
                 '>

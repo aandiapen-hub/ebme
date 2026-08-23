@@ -561,6 +561,9 @@ def test_link_model_create_view_post_successful(client, user, part, assets):
     assets = assets()
     models = [asset.modelid.pk for asset in assets]
 
+    for model in models:
+        assert not TblPartModel.objects.filter(part=part.partid, model=model).exists()
+
     data = {"partid": part.partid, "models": models}
     response = client.post(url, data)
 
@@ -568,7 +571,9 @@ def test_link_model_create_view_post_successful(client, user, part, assets):
 
     new_link = TblPartModel.objects.last()
     assert new_link.part.partid == part.partid
-    assert new_link.model.modelid == models[-1]
+    for model in models:
+        assert TblPartModel.objects.filter(part=part.partid, model=model).exists()
+
 
 
 # test PartModelDeleteview

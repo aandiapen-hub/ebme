@@ -17,7 +17,7 @@
           {% for item in group.list %}
             <li class="list-group-item">
               <a class='btn btn-warning' href='{% url "jobs:jobs_list" %}?jobtypeid__iexact={{ item.jobtypeid }}&jobstatusid__iexact={{ item.jobstatusid }}'>
-              {{ item.jobstatus }}<span class="badge text-bg-secondary"> {{ item.count }}</span>
+              {{ item.jobtypeid__jobtypename }}<span class="badge text-bg-secondary"> {{ item.count }}</span>
               </a>
             </li>
           {% endfor %}

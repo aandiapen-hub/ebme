@@ -38,7 +38,7 @@
                     </div>
                 {% else %}
                 <a href='{% url "assets:assets_list" %}?categoryid__iexact={{row.record.categoryid|floatformat}}' type='button', class="text text-secondary text-decoration-none">
-                  {{ cell }}
+                  {{ row.record.categoryid__categoryname }}
                 </a>
                 {% endif %}
             </td>

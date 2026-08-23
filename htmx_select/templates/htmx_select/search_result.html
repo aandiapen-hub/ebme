@@ -1,31 +1,29 @@
-
-
 {% if object_list %}
 
 
     <div class="list-group">
 
-        {% for obj in object_list %}
+        {% for option in options %}
           <div>
             <button
                 type="button"
-                class="list-group-item list-group-item-action data-picker-option"
-                data-label='{{ obj }}'
-                data-value='{{ obj }}'>
-                {{ obj }}
+                class="list-group-item list-group-item-action data-picker-option {% if option.value|stringformat:"s"  in selected %}active{%endif%}"
+                data-label='{{ option.label }}'
+                data-value='{{ option.value }}'>
+                {{ option.label }}
 
             </button>
             <div class="data-picker-option d-none">
             
                 <!-- Template for selected display -->
                 {% if multiple %}
-                {% include 'htmx_select/multi_selected_span.html' with obj=obj %}
+                {% include 'htmx_select/multi_selected_span.html' %}
                 {% else %}
-                {% include 'htmx_select/single_selected_span.html' with obj=obj %}
+                {% include 'htmx_select/single_selected_span.html' %}
                 {% endif %}
 
                 <!-- Template for form value -->
-                <input type="hidden" label="{{obj}}" value="{{obj}}">
+                <input type="hidden" label="{{option.label}}" value="{{option.value}}">
                 </div>
           <div>
 

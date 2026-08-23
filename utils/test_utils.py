@@ -13,7 +13,7 @@ URL = reverse("jobs:jobs_list")
 GET_TEMPLATE = "filter_table.html"
 PERMISSION = 'view_jobview'
 FK_FIELD = 'modelid'
-TEXT_FIELD = 'brandname'
+TEXT_FIELD = 'serialnumber'
 DATE_FIELD = 'startdate'
 NUMERIC_FIELD = 'total_cost'
 #CHOICE_FIELD = 'status_id'
@@ -70,7 +70,8 @@ def test_filtered_table_view_add_filter_fk(client, user_setup, lookup):
     )
 
     assert response.status_code == 200
-    assert f'name="{filter_name}"' in response.content.decode()
+
+    assert f'div_id_{filter_name}' in response.content.decode()
 
 
 @pytest.mark.django_db
@@ -96,7 +97,7 @@ def test_filtered_table_view_add_filter_text(client, user_setup, lookup):
     )
 
     assert response.status_code == 200
-    assert f'name="{filter_name}"' in response.content.decode()
+    assert f'div_id_{filter_name}' in response.content.decode()
 
 
 @pytest.mark.django_db
@@ -151,7 +152,7 @@ def test_filtered_table_view_add_filter_numeric(client, user_setup, lookup):
     )
 
     assert response.status_code == 200
-    assert f'name="{filter_name}"' in response.content.decode()
+    assert f'div_id_{filter_name}' in response.content.decode()
 
 
 @pytest.mark.django_db
@@ -213,7 +214,7 @@ def test_filtered_table_view_get_summary_field(
     field = MODEL._meta.get_field(summary_field)
 
     if isinstance(field, JSONField) or isinstance(field, DateField):
-        assert 'Lookup not available for ' in content
+        assert 'not available' in content
     else:
         for value in values:
             if value is not None:

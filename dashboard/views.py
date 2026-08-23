@@ -85,14 +85,14 @@ class ModelComplianceView(BaseComplianceView):
     model = AssetView
     permission_required = 'assets.view_assetview'
     table_class = ModelComplianceTable
-    group_by_fields = ['modelname', 'modelid']
+    group_by_fields = ['modelid__modelname', 'modelid']
 
 
 class CategoryComplianceView(BaseComplianceView):
     model = AssetView
     permission_required = 'assets.view_assetview'
     table_class = CategoryComplianceTable
-    group_by_fields = ['categoryname', 'categoryid']
+    group_by_fields = ['categoryid__categoryname', 'categoryid']
 
 
 class AssetComplianceView(
@@ -140,8 +140,8 @@ class OpenJobsView(LoginRequiredMixin,
             .get_queryset()
             .filter(jobstatusid__in=[0,2,3,5])
             .values(
-                "jobtypename",
-                "jobstatus",
+                "jobtypeid__jobtypename",
+                "jobstatusid__jobstatusname",
                 "jobstatusid",
                 "jobtypeid",
             ).

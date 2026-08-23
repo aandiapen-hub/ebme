@@ -417,7 +417,7 @@ class CategoryCreateView(
     fields = "__all__"
     template_name = "model_information/category_create.html"
     permission_required = "assets.add_tblcategories"
-    success_url_app_view = "model_information:create_model"
+    success_url_app_view = "model_information:category_detail"
 
 
     def form_valid(self, form):
@@ -432,7 +432,6 @@ class CategoryCreateView(
                 temp_group.save(update_fields=['extracted_json'])
 
             self.after_save(form)
-
 
         return HttpResponseRedirect(self.get_success_url())
 

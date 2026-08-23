@@ -76,7 +76,7 @@
                       <label class="btn btn-secondary btn-sm text-start" for='{{forloop.counter}}_checkbox'>{{ item.name }} ({{item.count}})</label>
                     </div>
               {% empty %}
-                <p>Lookup not available for this column. Use advanced filter to narrow down results</i></p>
+                <p>Quick filter not available. Use Advanced Filter</i></p>
                 <button
                     class="btn" type="button"
                     data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
@@ -101,7 +101,8 @@
 
 
         {% elif 'datefield' in summary_field_data.status %}
-              <p>Lookup not available for date field {{field.verbose_name}}. Use advanced filter to narrow down results </i></p>
+            <div class='d-flex align-items-start'>
+              <p class='mb-0 pt-2'>Quick filter not available. Use other Filters</p>
               <button
                           class="btn" type="button"
                           data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
@@ -112,19 +113,22 @@
                               "> 
                           <i class="bi bi-funnel-fill"></i>
                       </button>
+            </div>
 
         {% elif "high_row_count" in summary_field_data.status %}
-        <p>{{field.verbose_name}} field has too many values. Use advanced filter to narrow down results </i></p>
+            <div class='d-flex align-items-start'>
+              <p class='mb-0 pt-2'>Quick filter not available. Use other Filters</p>
               <button
-                          class="btn" type="button"
-                          data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
-                          _="on click
-                          set the value of #filter_list_search_box to '{{field.verbose_name}}'
-                          trigger input on #filter_list_search_box 
-                          add .show to #flush-collapse_{{field.name}}
-                              "> 
-                          <i class="bi bi-funnel-fill"></i>
-                      </button>
+                    class="btn" type="button"
+                    data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
+                    _="on click
+                    set the value of #filter_list_search_box to '{{field.verbose_name}}'
+                    trigger input on #filter_list_search_box 
+                    add .show to #flush-collapse_{{field.name}}
+                        "> 
+                    <i class="bi bi-funnel-fill"></i>
+                </button>
+            </div>
         </div>
     </div>
   </div>
