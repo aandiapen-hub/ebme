@@ -19,7 +19,7 @@ class HtmxPickerSearch(
     LoginRequiredMixin,
     ListView
 ):
-    paginate_by = 20
+    paginate_by = 5
     template_name = 'htmx_select/search_result.html'
 
     def dispatch(self, request, *args, **kwargs):
@@ -116,7 +116,7 @@ class HtmxPickerSearch(
                 **{f"{self.field.name}__icontains": q}
             )
 
-        return qs[:20]
+        return qs
 
     def apply_q_filter(self,qs):
 
@@ -147,6 +147,7 @@ class HtmxPickerSearch(
         context = super().get_context_data(*args, **kwargs)
 
         fieldname =  self.request.GET.get('fieldname', None)
+        context['fieldname'] = fieldname
         if fieldname:
             context['selected'] = self.request.GET.getlist(fieldname)
 

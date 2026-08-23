@@ -25,16 +25,32 @@
                 <!-- Template for form value -->
                 <input type="hidden" label="{{option.label}}" value="{{option.value}}">
                 </div>
-          <div>
 
+          </div>
         {% endfor %}
 
+      {% if page_obj.has_next %}
+        <div
+            hx-include="closest .htmx-model-select, closes .form-control"
+            hx-get="{{ request.path }}{% querystring page=page_obj.next_page_number %}"
+            hx-push-url='false'
+            hx-trigger='intersect once'
+            hx-target="this"
+            hx-swap='outerHTML'
+            hx-vals='{"multiple": "{{multiple}}", "fieldname":"{{fieldname}}"}'
+        ></div>
+      {% else %}
+          <div class="text-center text-muted py-4">
+              No more results.
+          </div>
+      {% endif %}
 
+
+      {% else %}
+
+          <div class="text-center text-muted py-4">
+              No results found.
+          </div>
+
+      {% endif %}
     </div>
-{% else %}
-
-    <div class="text-center text-muted py-4">
-        No results found.
-    </div>
-
-{% endif %}
