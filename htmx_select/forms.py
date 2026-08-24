@@ -30,7 +30,6 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         super().__init__(attrs)
 
     def get_field(self, fieldname):
-        print(self.model)
         return self.model._meta.get_field(fieldname)
 
     def get_search_url(self):
@@ -85,11 +84,7 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
             value = [value]
 
         if isinstance(self.field, ForeignKey):
-            try:
-                selected_list = self.field.remote_field.model.objects.filter(pk__in=value)
-                print(selected_list)
-            except self.field.queryset.model.DoesNotExist:
-                pass
+            selected_list = self.field.remote_field.model.objects.filter(pk__in=value)
 
             widget["selected_list"] = [
                     {

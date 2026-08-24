@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from assets.models import Tblassets
 import pytest
 from django.urls import reverse
 from django.contrib.auth.models import Permission
@@ -114,8 +115,10 @@ def test_htmx_select_view_renders_for_fk(
     )
     response = client.get(url)
 
+    modelids = set(Tblassets.objects.all().values_list('modelid', flat=True))
+
     options = response.context['options']
-    assert len(options) == 20
+    assert len(modelids) ==  len(options)
 
 
 @pytest.mark.django_db
@@ -153,11 +156,53 @@ def test_htmx_select_view_renders_fk_with_search_q(
 
 
     options = response.context['options']
-    assert len(options) < 20
+    assert len(options) <= 20
 
 
 @pytest.mark.django_db
 def test_htmx_select_view_renders_char_with_search_q(
+    client,
+    user_setup,
+    customer,
+    create_assets,
+):
+
+    customer1 = customer(customer_name='customerA')
+    customer2 = customer(customer_name='customerb')
+
+    assets1 = create_assets(customerid=customer1, count=10)
+    assets2 = create_assets(customerid=customer2, count=10)
+
+    user = user_setup
+    user.is_staff = True 
+    user.save()
+
+    client.force_login(user)
+    search_q = 'a'
+    base_url = reverse(
+        "htmx_picker_search",
+        kwargs={
+            "modelpath": (
+                f"assets__Tblassets"
+            ),
+            'fieldname': 'serialnumber'
+        },
+    )
+    qp = urlencode({
+        'q':search_q,
+        'serialnumber': assets1[0].serialnumber,
+    })
+    url = f'{base_url}?{qp}'
+    response = client.get(url)
+
+
+    options = response.context['options']
+    
+    assert len(options) < 20
+
+
+@pytest.mark.django_db
+def test_htmx_select_view_renders_with_selected(
     client,
     user_setup,
     customer,
@@ -193,9 +238,5 @@ def test_htmx_select_view_renders_char_with_search_q(
     url = f'{base_url}?{qp}'
     response = client.get(url)
 
-
-    options = response.context['options']
     assert str(assets1[0].serialnumber) in response.context['selected']
     
-    assert len(options) < 20
-

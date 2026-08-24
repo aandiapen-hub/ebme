@@ -127,7 +127,7 @@ class Tblassets(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('assetid__icontains'),
+        search_terms=('assetid__icontains',),
         customer_scope='customerid',
     )
 
@@ -400,7 +400,7 @@ class Tblbrands(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('brandname__icontains'),
+        search_terms=('brandname__icontains',)
     )
 
 class Tblcheckslists(models.Model):
@@ -463,7 +463,7 @@ class Tblcustomer(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('brandname__icontains'),
+        search_terms=('customer_name__icontains',),
         customer_scope='customerid'
     )
 
@@ -522,7 +522,7 @@ class Tbljob(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('jobid__icontains'),
+        search_terms=('jobid__icontains',),
         customer_scope='assetid__customerid'
     )
 
@@ -556,7 +556,7 @@ class Tbljobstatus(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('jobstatusname__icontains'),
+        search_terms=('jobstatusname__icontains',),
     )
 
 class Tbljobtypes(models.Model):
@@ -679,7 +679,7 @@ class Tbltechnicianlist(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('name__icontains'),
+        search_terms=('name__icontains',),
     )
 
 class Tbltesteq(models.Model):
@@ -773,7 +773,7 @@ class TblAssetStatus(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('status_name__icontains'),
+        search_terms=('status_name__icontains',),
     )
 
 class TblMaintenanceSupplier(models.Model):
@@ -838,7 +838,7 @@ class Tblcategories(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('categoryname__icontains'),
+        search_terms=('categoryname__icontains',),
     )
 
 class Tblcontractstatus(models.Model):
@@ -882,7 +882,7 @@ class Tbllocations(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('categoryname__icontains'),
+        search_terms=('categoryname__icontains',),
         customer_scope = 'customerid'
     )
 
@@ -930,7 +930,7 @@ class Tblppmschedules(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('schedulename__icontains'),
+        search_terms=('schedulename__icontains',),
     )
 
 class Tblsites(models.Model):
@@ -946,7 +946,7 @@ class Tblsites(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=('sitename__icontains'),
+        search_terms=('sitename__icontains',),
     )
 
 class Tbltestresult(models.Model):
