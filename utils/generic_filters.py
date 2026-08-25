@@ -16,13 +16,7 @@ from django_filters import (
     BaseInFilter,
 )
 
-
-from django_select2.forms import (
-    Select2MultipleWidget,
-)
-
 from django_filters.widgets import RangeWidget as RangeWidget
-
 
 from django.forms.widgets import (
     TextInput,
@@ -126,12 +120,12 @@ def generate_filter_for_field(model, field_name, lookup):
             field_name=field_name,
             label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
             choices=field.choices,
-            widget=Select2MultipleWidget(
-                attrs={
-                    "class": "form-control",
-                    "id": f"{field_name}__{lookup}",
-                }
+            widget=HTMXMultiPickerWidget(
+                    model=model,
+                    fieldname=field.name,
+                    multiple=True,
             ),
+
         )
 
     # ForeignKey filters

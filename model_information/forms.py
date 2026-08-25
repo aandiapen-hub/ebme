@@ -1,8 +1,8 @@
 from django import forms
-from assets.models import Tblbrands, Tblcategories, Tbllocations, Tblmodel, Tblsites
-from django_select2.forms import ModelSelect2Widget
+from assets.models import Tblbrands, Tblmodel
 
 from documents.mixins import TempUploadUpdateFormMixin
+from htmx_select.forms import HTMXMultiPickerWidget
 from model_information.models import EquipmentConfigurationScope
 
 
@@ -12,27 +12,13 @@ class ModelCreateForm(forms.ModelForm):
         fields = "__all__"
 
         widgets = {
-            "brandid": ModelSelect2Widget(
-                model=Tblbrands,
-                search_fields=["brandname__icontains"],
-                attrs={
-                    "data-placeholder": "Select Brand",
-                    "data-minimum-input-length": 0,
-                    "data-allow-clear": "true",
-                },
+            "brandid": HTMXMultiPickerWidget(
+                model=Tblmodel,
+                fieldname='brandid'
             ),
-            "categoryid": ModelSelect2Widget(
-                model=Tblcategories,
-                search_fields=[
-                    "categoryname__icontains",
-                    "categorydescription__icontains",
-                    "gmdnname__icontains",
-                ],
-                attrs={
-                    "data-placeholder": "Select Category",
-                    "data-minimum-input-length": 0,
-                    "data-allow-clear": "true",
-                },
+            "categoryid": HTMXMultiPickerWidget(
+                model=Tblmodel,
+                fieldname='categoryid'
             ),
         }
 
@@ -47,27 +33,13 @@ class ModelUpdateForm(TempUploadUpdateFormMixin,forms.ModelForm):
         fields = "__all__"
 
         widgets = {
-            "brandid": ModelSelect2Widget(
-                model=Tblbrands,
-                search_fields=["brandname__icontains"],
-                attrs={
-                    "data-placeholder": "Select Brand",
-                    "data-minimum-input-length": 0,
-                    "data-allow-clear": "true",
-                },
+            "brandid": HTMXMultiPickerWidget(
+                model=Tblmodel,
+                fieldname='brandid'
             ),
-            "categoryid": ModelSelect2Widget(
-                model=Tblcategories,
-                search_fields=[
-                    "categoryname__icontains",
-                    "categorydescription__icontains",
-                    "gmdnname__icontains",
-                ],
-                attrs={
-                    "data-placeholder": "Select Category",
-                    "data-minimum-input-length": 0,
-                    "data-allow-clear": "true",
-                },
+        "categoryid": HTMXMultiPickerWidget(
+                model=Tblmodel,
+                fieldname='categoryid'
             ),
         }
 
@@ -88,25 +60,13 @@ class ModelBulkUpdateForm(forms.ModelForm):
         fields = ("brandid", "categoryid")
 
         widgets = {
-            "brandid": ModelSelect2Widget(
-                model=Tblbrands,
-                search_fields=["brandname__icontains"],
-                attrs={
-                    "data-placeholder": "Select Brand",
-                    "data-minimum-input-length": 0,
-                },
+            "brandid": HTMXMultiPickerWidget(
+                model=Tblmodel,
+                fieldname='brandid'
             ),
-            "categoryid": ModelSelect2Widget(
-                model=Tblcategories,
-                search_fields=[
-                    "categoryname__icontains",
-                    "categorydescription__icontains",
-                    "gmdnname__icontains",
-                ],
-                attrs={
-                    "data-placeholder": "Select Category",
-                    "data-minimum-input-length": 0,
-                },
+            "categoryid": HTMXMultiPickerWidget(
+                model=Tblmodel,
+                fieldname='categoryid'
             ),
         }
 
@@ -122,22 +82,13 @@ class ConfigurationScopeCreateForm(forms.ModelForm):
         fields = '__all__'
 
         widgets = {
-            'site': ModelSelect2Widget(
-                model=Tblsites,
-                search_fields=["sitename__icontains"],
-                attrs={
-                    "data-placeholder": "Select Site",
-                    "data-minimum-input-length": 0,
-                },
+            'site': HTMXMultiPickerWidget(
+                model=EquipmentConfigurationScope,
+                fieldname='site'
             ),
-            'location': ModelSelect2Widget(
-                model=Tbllocations,
-                search_fields=["locationname__icontains"],
-                dependent_fields={'site': 'siteid'},
-                attrs={
-                    "data-placeholder": "Select location",
-                    "data-minimum-input-length": 0,
-                },
+            'location': HTMXMultiPickerWidget(
+                model=EquipmentConfigurationScope,
+                fieldname='location'
             ),
 
         }

@@ -9,6 +9,7 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.urls import reverse
 
+from htmx_select.utils import HtmxPicker
 
 # Create your models here.
 from django.core.files.storage import FileSystemStorage
@@ -75,6 +76,10 @@ class TblDocuments(models.Model):
         managed = False
         db_table = "tbl_aws_documents"
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('document_name__icontains',),
+    )
 
 # temp media files folder
 temp_storage = FileSystemStorage(

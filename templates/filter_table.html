@@ -216,17 +216,4 @@
     </div>
 </div>
 
-<!--script to trigger change events from select2 fields-->
-<script>
-  $(document).on('select2:select select2:unselect', '#filter-form select', function () {
-    htmx.trigger('#filter-form', 'change');
-  });
-</script>
-
-<script>
-  $(document).on('select2:select select2:unselect', '#filter-form select', function () {
-    htmx.trigger(this, 'change');
-  });
-</script>
-
 {% endblock %}

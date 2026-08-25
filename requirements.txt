@@ -12,7 +12,6 @@ django-bootstrap5==25.1
 django-filter==25.1
 django-htmx==1.23.0
 django-redis==5.4.0
-django-select2==8.4.0
 django-tables2==2.7.5
 factory_boy==3.3.3
 Faker==37.3.0

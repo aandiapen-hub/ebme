@@ -1,4 +1,3 @@
-from django_select2.forms import ModelSelect2Widget
 from documents.mixins import TempUploadUpdateFormMixin
 from django_bootstrap5.widgets import RadioSelectButtonGroup
 
@@ -13,6 +12,7 @@ from assets.models import (
     Tblpartsused,
     Tblcheckslists,
 )
+from htmx_select.forms import HTMXMultiPickerWidget
 from parts.models import Tblpartslist
 
 from utils.dynamic_formset import CustomFormsetForm
@@ -103,17 +103,9 @@ class JobCreateForm(forms.ModelForm):
         )
 
         widgets = {
-            "assetid": ModelSelect2Widget(
-                model=Tblassets,
-                search_fields=[
-                    "assetid__icontains",
-                    "customerassetnumber__icontains",
-                    "serialnumber__icontains",
-                ],
-                attrs={
-                    "data-placeholder": "Select Asset",
-                    "data-minimum-input-lengtht": 0,
-                },
+            "assetid": HTMXMultiPickerWidget(
+                model=Tbljob,
+                fieldname='assetid'
             ),
             "jobenddate": DateInput(),
             "jobstartdate": DateInput(),

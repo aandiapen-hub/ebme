@@ -36,7 +36,6 @@ urlpatterns = [
     path("dashboards/", include("dashboard.urls")),
     path("parts/", include("parts.urls")),
     path("capital_project/", include("cap_project.urls")),
-    path('select2/', include('django_select2.urls')),
     path("procurement/", include('procurement.urls')),
     # htmx search url
     path('htmx_search/<str:modelpath>/<str:fieldname>/', HtmxPickerSearch.as_view(), name='htmx_picker_search'),

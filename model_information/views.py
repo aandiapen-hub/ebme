@@ -9,7 +9,6 @@ from django.db.models.deletion import ProtectedError
 # import models
 from assets.models import Tblbrands, Tblmodel, Tblcategories, Tblcheckslists
 from .models import (
-    ModelView,
     Software,
     SoftwareModel,
     EquipmentConfiguration,

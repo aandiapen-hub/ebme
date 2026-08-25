@@ -6,8 +6,8 @@ from django.db.models import(
     IntegerField,
     DecimalField,
     FloatField,
+    ForeignKey,
 )
-from django.db.models import ForeignKey
 
 from django.views.generic import ListView
 from django.apps import apps
@@ -25,6 +25,7 @@ class HtmxPickerSearch(
     def dispatch(self, request, *args, **kwargs):
         self.field = self.get_field()
         self.model = self.set_model()
+
         return super().dispatch(request, *args, **kwargs)
 
     @cached_property
@@ -36,10 +37,7 @@ class HtmxPickerSearch(
         except (ValueError, LookupError):
             raise Http404
 
-        picker = getattr(model, "htmx_picker", None)
 
-        if not picker or not getattr(picker, "enabled", False):
-            raise Http404
 
         return model
 
@@ -53,12 +51,23 @@ class HtmxPickerSearch(
     def is_related_field(self):
         return isinstance(self.field, ForeignKey)
 
+    @cached_property
+    def is_primary_key(self):
+        return getattr(self.field, 'primary_key', False)
+
     def set_model(self):
         if not self.is_related_field:
-            return self.get_model
+            model = self.get_model
 
         else:
-            return self.field.remote_field.model
+            model = self.field.remote_field.model
+
+        picker = getattr(model, "htmx_picker", None)
+
+        if not picker or not getattr(picker, "enabled", False):
+            raise Http404
+
+        return model
 
     @cached_property
     def get_config(self):
@@ -118,6 +127,19 @@ class HtmxPickerSearch(
 
         return qs
 
+    def get_choices(self):
+
+        qs = self.field.choices
+        print('choices', qs)
+
+        q = self.request.GET.get("q", "").strip()
+
+        if q:
+            qs = [choice for choice in qs if str(q) in choice[1].lower()]
+
+
+        return qs
+
     def apply_q_filter(self,qs):
 
         q = self.request.GET.get('q', None)
@@ -135,8 +157,11 @@ class HtmxPickerSearch(
         qs = super().get_queryset()
         qs = self.apply_customer_scope(qs)
 
-        if self.is_related_field:
+        if self.is_related_field or self.is_primary_key:
             qs = self.apply_q_filter(qs)
+
+        elif self.field.choices:
+            qs = self.get_choices()
 
         else:
             qs =self.get_distinct_values(qs)
@@ -153,11 +178,19 @@ class HtmxPickerSearch(
 
         context['multiple'] = self.request.GET.get('multiple', '').lower() == 'true'
 
-        if self.is_related_field:
+        if self.is_related_field or self.is_primary_key:
             context['options'] = [
                 {
                     'value': obj.pk,
                     'label': self.get_option_label(obj)
+                }
+                for obj in context['object_list'] 
+            ]
+        if self.field.choices:
+            context['options'] = [
+                {
+                    'value': obj[0],
+                    'label': obj[1] 
                 }
                 for obj in context['object_list'] 
             ]

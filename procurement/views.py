@@ -73,9 +73,9 @@ class PoTableView(LoginRequiredMixin, PermissionRequiredMixin, FilteredTableView
     actions = [
         TableAction(
             name="Add",
-            type='bulk_htmx',
-            on_selectable_items = True, 
-            url=reverse_lazy("documents:bulk_link_to_jobs"),
+            type='link',
+            on_selectable_items=False,
+            url=reverse_lazy("procurement:po_create"),
             permission="procurement.add_tblpurchaseorder",
             icon="bi-plus",
             color='outline-secondary',

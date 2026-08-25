@@ -1,5 +1,4 @@
 from django import forms
-from django.db.models import CommaSeparatedIntegerField
 from .models import (
     Tblassets,
     Tblmodel,
@@ -8,9 +7,8 @@ from .models import (
     Tblppmschedules,
     Tbltechnicianlist,
 )
+from model_information.models import EquipmentConfigurationLink, EquipmentSoftware
 
-from django.urls import reverse_lazy
-from django_select2.forms import ModelSelect2Widget
 from django.core.exceptions import ValidationError
 from model_information.models import EquipmentConfiguration, Software, SoftwareModel
 from htmx_select.forms import HTMXMultiPickerWidget
@@ -106,17 +104,9 @@ class AssetBulkUpdateForm(forms.Form):
     modelid = forms.ModelChoiceField(
         queryset=Tblmodel.objects.all(),
         required=False,
-        widget=ModelSelect2Widget(
-            model=Tblmodel,
-            search_fields=[
-                "modelname__icontains",
-                "brandid__brandname__icontains",
-                "categoryid__categoryname__icontains",
-            ],
-            attrs={
-                "data-placeholder": "Select Model",
-                "data-minimum-input-length": 0,
-            },
+        widget=HTMXMultiPickerWidget(
+                model=Tblassets, 
+                fieldname='modelid',
         ),
     )
     softwareversion = forms.CharField(required=False, label="Software Version")
@@ -161,28 +151,19 @@ class SetEquipmentSoftwareForm(forms.Form):
     software = forms.ModelChoiceField(
         queryset=Software.objects.all(),
         required=True,
-        widget=ModelSelect2Widget(
-            model=Software,
-            search_fields=["brand__icontains", "name__icontains"],
-            attrs={
-                "data-minimum-input-length": 0,
-                "data-placeholder": "Select an option",
-                "data-close-on-select": "false",
-            },
+        widget=HTMXMultiPickerWidget(
+            model=EquipmentSoftware, 
+            fieldname='software',
         ),
+
     )
 
     equipment = forms.ModelChoiceField(
         queryset=Tblassets.objects.all(),
         required=True,
-        widget=ModelSelect2Widget(
-            model=Tblassets,
-            search_fields=["serialnumber__icontains"],
-            attrs={
-                "data-minimum-input-length": 0,
-                "data-placeholder": "Select an option",
-                "data-close-on-select": "false",
-            },
+        widget= HTMXMultiPickerWidget(
+                model=EquipmentSoftware, 
+                fieldname='equipment',
         ),
     )
 
@@ -210,28 +191,18 @@ class SetEquipmentConfigurationForm(forms.Form):
     configuration = forms.ModelChoiceField(
         queryset=EquipmentConfiguration.objects.all(),
         required=True,
-        widget=ModelSelect2Widget(
-            model=EquipmentConfiguration,
-            search_fields=["brand__icontains", "name__icontains"],
-            attrs={
-                "data-minimum-input-length": 0,
-                "data-placeholder": "Select an option",
-                "data-close-on-select": "false",
-            },
+        widget=HTMXMultiPickerWidget(
+                model=EquipmentConfigurationLink, 
+                fieldname='configuration',
         ),
     )
 
     equipment = forms.ModelChoiceField(
         queryset=Tblassets.objects.all(),
         required=True,
-        widget=ModelSelect2Widget(
-            model=Tblassets,
-            search_fields=["serialnumber__icontains"],
-            attrs={
-                "data-minimum-input-length": 0,
-                "data-placeholder": "Select an option",
-                "data-close-on-select": "false",
-            },
+        widget=HTMXMultiPickerWidget(
+                model=EquipmentConfigurationLink, 
+                fieldname='equipment',
         ),
     )
 

@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.contrib.contenttypes.fields import GenericRelation
 from django.urls import reverse
+from htmx_select.utils import HtmxPicker
 
 
 # Create your models here.
@@ -241,6 +242,10 @@ class TblSuppliers(models.Model):
     def __str__(self):
         return f"{self.supplier_name}"
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=('supplier_name__icontains',),
+    )
 
 class TblDeliveries(models.Model):
     delivery_id = models.BigAutoField(primary_key=True)

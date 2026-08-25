@@ -1,6 +1,5 @@
 from django import forms
-from django.contrib.contenttypes.models import ContentType
-from procurement.reports import purchase_order
+from htmx_select.forms import HTMXMultiPickerWidget
 
 from .models import (
     TblDocuments,
@@ -9,10 +8,6 @@ from .models import (
     DocumentTypes,
     TempUploadGroup,
     PROCESSABLE_DOCUMENTS,
-)
-from django_select2.forms import (
-    ModelSelect2Widget,
-    ModelSelect2MultipleWidget,
 )
 from documents.services.documents import create_document_from_file
 
@@ -113,25 +108,15 @@ class DocumentLinkUpdateForm(forms.ModelForm):
             "customer",
         )
         widgets = {
-            "documentid": ModelSelect2Widget(
-                model=TblDocuments,
-                search_fields=["document_name__icontains"],
-                attrs={
-                    "data-dropdown-parent": "#modals-here",
-                    "data-placeholder": "Select Document",
-                    "data-minimum-input-length": 0,
-                },
+            "documentid": HTMXMultiPickerWidget(
+                model=TblDocumentLinks, 
+                fieldname='documentid',
             ),
-            "content_type": ModelSelect2Widget(
-                model=ContentType,
-                search_fields=["app_label__icontains"],
-                attrs={
-                    "data-dropdown-parent": "#modals-here",
-                    "data-placeholder": "Select Content Type",
-                    "data-minimum-input-length": 0,
-                },
+            "content_type":HTMXMultiPickerWidget(
+                model=TblDocumentLinks, 
+                fieldname='content_type',
             ),
-        }
+         }
 
 
 class BulkLinkDocument(forms.Form):
@@ -193,15 +178,16 @@ class AssetDataUpdate(forms.Form):
     GTIN = forms.CharField(required=False)
     SERIAL = forms.CharField(required=False)
     ASSET_NO = forms.CharField(required=False)
-    PROD_DATE: forms.CharField(required=False)
+    PROD_DATE = forms.CharField(required=False)
     model_description = forms.CharField(required=False)
     brand_id = forms.ModelMultipleChoiceField(
         queryset=Tblbrands.objects.all(),
         required=False,
         label='Brand',
-        widget=ModelSelect2MultipleWidget(
+        widget=HTMXMultiPickerWidget(
             model=Tblbrands,
-            search_fields=['brandname__icontains'],
+            fieldname='brandid',
+            multiple=True
         )
     )
 

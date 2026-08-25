@@ -1,4 +1,5 @@
 from django import forms
+from htmx_select.forms import HTMXMultiPickerWidget
 from .models import (
     TblInvoices,
     TblPurchaseOrder,
@@ -11,7 +12,6 @@ from parts.models import Tblpartslist
 from django.forms import BaseInlineFormSet
 
 from utils.dynamic_formset import CustomFormsetForm
-from django_select2.forms import ModelSelect2Widget
 from django.forms import inlineformset_factory
 
 
@@ -49,15 +49,9 @@ class PoCreateForm(forms.ModelForm):
         fields = ["supplier", "date_raised", "ship_to_add", "order_status"]
 
         widgets = {
-            "supplier": ModelSelect2Widget(
-                model=TblSuppliers,
-                search_fields=[
-                    "supplier_name__icontains",
-                ],
-                attrs={
-                    "data-placeholder": "Select Supplier",
-                    "data-minimum-input-length": 3,
-                },
+            "supplier": HTMXMultiPickerWidget(
+                model=TblPurchaseOrder,
+                fieldname='supplier'
             ),
         }
 
@@ -98,9 +92,6 @@ class DeliveryLineForm(forms.ModelForm):
             # Optional: fallback queryset if no PO provided
             self.fields["item"].queryset = Tblpartslist.objects.all()
 
-        for name, field in self.fields.items():
-            if not isinstance(field.widget, ModelSelect2Widget):
-                field.widget.attrs.update({"class": "form-control"})
 
 
 class DeliveryLineBaseFormSet(BaseInlineFormSet):

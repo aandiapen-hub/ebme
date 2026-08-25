@@ -1,10 +1,10 @@
-from django_select2.forms import ModelSelect2Widget, ModelSelect2MultipleWidget
+from htmx_select.forms import HTMXMultiPickerWidget
 
 from django import forms
 
 from assets.models import Tblmodel
 
-from .models import Tblpartslist, Tblpartsprice
+from .models import TblPartModel, Tblpartslist, Tblpartsprice
 
 class AddPartPrice(forms.ModelForm):
     
@@ -41,14 +41,10 @@ class PartsBulkUpdateForm(forms.ModelForm):
 class CreatePartModelLinkForm(forms.Form):
     models = forms.ModelMultipleChoiceField(
         queryset=Tblmodel.objects.all(),
-        widget=ModelSelect2MultipleWidget(
-            model=Tblmodel,
-            search_fields=['modelname__icontains',
-                           'brandid__brandname__icontains',
-                           'categoryid__categoryname__icontains'],
-            attrs={'data-placeholder': 'Select a Model', 'style': 'width: 50%;',
-                   "data-minimum-input-length": 0,
-                   "data-close-on-select": "false"}
+        widget=HTMXMultiPickerWidget(
+            model=TblPartModel,
+            fieldname='model',
+            multiple=True,
         )
     )
     partid = forms.IntegerField(widget=forms.HiddenInput)

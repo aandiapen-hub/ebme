@@ -83,13 +83,39 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         if not isinstance(value, list):
             value = [value]
 
-        if isinstance(self.field, ForeignKey):
+        if isinstance(self.field, ForeignKey) :
             selected_list = self.field.remote_field.model.objects.filter(pk__in=value)
 
             widget["selected_list"] = [
                     {
                         'value': obj.pk,
                         'label': str(obj), 
+                    }
+                    for obj in selected_list
+                ]
+
+        elif getattr(self.field, 'primary_key', False):
+            selected_list = self.field.model.objects.filter(pk__in=value)
+
+            widget["selected_list"] = [
+                    {
+                        'value': obj.pk,
+                        'label': str(obj), 
+                    }
+                    for obj in selected_list
+                ]
+
+        elif self.field.choices:
+            selected_list = [
+                (choice_value, choice_label)
+                for choice_value, choice_label in self.field.choices
+                if str(choice_value) in value
+            ]
+
+            widget["selected_list"] = [
+                    {
+                        'value': obj[0],
+                        'label': obj[1], 
                     }
                     for obj in selected_list
                 ]

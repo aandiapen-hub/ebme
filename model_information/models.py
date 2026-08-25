@@ -1,43 +1,9 @@
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
+from htmx_select.utils import HtmxPicker
 
 
-class ModelView(models.Model):
-    model_id = models.IntegerField(primary_key=True, db_column="ModelID")
-    brand_id = models.IntegerField(null=True, blank=True, db_column="BrandID")
-    category_id = models.IntegerField(null=True, blank=True, db_column="categoryid")
-
-    model_name = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-        db_column="modelname",
-    )
-
-    brand_name = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-        db_column="brandname",
-    )
-
-    category_name = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-        db_column="categoryname",
-    )
-
-    class Meta:
-        managed = False
-        db_table = "model_view"
-
-    def get_absolute_url(self):
-        return reverse('model_information:model_view', kwargs={'pk':self.pk})
-
-# Create your models here.
-#
 class SoftwareType(models.Model):
 
     id = models.AutoField(
@@ -113,6 +79,14 @@ class Software(models.Model):
             "version",
         )
         db_table = 'software'
+
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=(
+            'name__icontains',
+            'brandid__brandname__icontains'
+        ),
+    )
 
     def __str__(self):
         return f"{self.name} {self.version}"
@@ -205,6 +179,7 @@ class EquipmentSoftware(models.Model):
 
     def __str__(self):
         return f"{self.software} -> {self.equipment}"
+
 
 class EquipmentConfigurationStatus(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -311,8 +286,14 @@ class EquipmentConfiguration(models.Model):
         return reverse('model_information:configuration_detail', kwargs={'pk':self.pk})
 
     def __str__(self):
-        return self.name
+        return f"{self.name}-{self.version}"
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=(
+            'name__icontains',
+        ),
+    )
 
 class EquipmentConfigurationModel(models.Model):
     """

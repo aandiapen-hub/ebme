@@ -35,7 +35,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_tables2",
-    "django_select2",
     "django_filters",
     "django_bootstrap5",
     "django_htmx",
@@ -153,15 +152,7 @@ CACHES = {
         "LOCATION": "redis://redis:6379/1",
         "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     },
-    "select2": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://redis:6379/2",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        },
-    },
 }
-SELECT2_CACHE_BACKEND = "select2"
 
 AUTH_USER_MODEL = "users.CustomUser"
 
