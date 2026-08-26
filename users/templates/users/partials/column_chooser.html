@@ -47,6 +47,7 @@
                     wait 50ms
                     set window.dragItem to closest <li/> 
                     set window.isDragging to true
+                    add .active to the closest <li/>
                 end
               end
 
@@ -70,6 +71,7 @@
                   set window.pressItem to null
                   set window.dragItem to null
                   set window.isDragging to false
+                  remove .active from the closest <li/>
               end
 
 

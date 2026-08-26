@@ -6,7 +6,7 @@ from django.db.models import(
     IntegerField,
     DecimalField,
     FloatField,
-    ForeignKey,
+    CharField
 )
 
 from django.views.generic import ListView
@@ -24,7 +24,9 @@ class HtmxPickerSearch(
 
     def dispatch(self, request, *args, **kwargs):
         self.field = self.get_field()
-        self.model = self.set_model()
+        self.picker_mode = self.get_picker_mode()
+        self.model = self.get_options_data_source()
+
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -37,8 +39,6 @@ class HtmxPickerSearch(
         except (ValueError, LookupError):
             raise Http404
 
-
-
         return model
 
     def get_field(self):
@@ -47,16 +47,24 @@ class HtmxPickerSearch(
 
         return model._meta.get_field(fieldname)
 
-    @cached_property
-    def is_related_field(self):
-        return isinstance(self.field, ForeignKey)
+    def get_picker_mode(self):
+        if self.field.primary_key:
+            return "model"
 
-    @cached_property
-    def is_primary_key(self):
-        return getattr(self.field, 'primary_key', False)
+        if self.field.remote_field:
+            return "foreign_key"
 
-    def set_model(self):
-        if not self.is_related_field:
+        if self.field.choices:
+            return "choices"
+
+        if isinstance(self.field, CharField):
+            return "values"
+
+        raise Http404
+
+
+    def get_options_data_source(self):
+        if self.picker_mode != 'foreign_key':
             model = self.get_model
 
         else:
@@ -157,14 +165,17 @@ class HtmxPickerSearch(
         qs = super().get_queryset()
         qs = self.apply_customer_scope(qs)
 
-        if self.is_related_field or self.is_primary_key:
+        if self.picker_mode in ['foreign_key', 'model']:
             qs = self.apply_q_filter(qs)
 
-        elif self.field.choices:
+        elif self.picker_mode == 'choices':
             qs = self.get_choices()
 
-        else:
+        elif self.picker_mode == 'values':
             qs =self.get_distinct_values(qs)
+
+        else:
+            raise Http404
 
         return qs
 
@@ -178,7 +189,7 @@ class HtmxPickerSearch(
 
         context['multiple'] = self.request.GET.get('multiple', '').lower() == 'true'
 
-        if self.is_related_field or self.is_primary_key:
+        if self.picker_mode in ['foreign_key', 'model']:
             context['options'] = [
                 {
                     'value': obj.pk,
@@ -186,7 +197,7 @@ class HtmxPickerSearch(
                 }
                 for obj in context['object_list'] 
             ]
-        if self.field.choices:
+        elif self.picker_mode == 'choices':
             context['options'] = [
                 {
                     'value': obj[0],
@@ -194,7 +205,8 @@ class HtmxPickerSearch(
                 }
                 for obj in context['object_list'] 
             ]
-        else:
+
+        elif self.picker_mode == 'values':
             context['options'] = [
                 {
                     'value': value,

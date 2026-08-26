@@ -1,7 +1,7 @@
 from django import forms
 from django.urls import reverse
 from urllib.parse import urlencode
-from django.db.models import ForeignKey
+from django.db.models import ForeignKey, CharField
 
 
 class HTMXMultiPickerWidget(forms.SelectMultiple):
@@ -26,11 +26,27 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         self.model = model
         self.field = self.get_field(fieldname)
         self.multiple = multiple
+        self.widget_mode = self.get_widget_mode()
 
         super().__init__(attrs)
 
     def get_field(self, fieldname):
         return self.model._meta.get_field(fieldname)
+
+    def get_widget_mode(self):
+        if self.field.primary_key:
+            return "model"
+
+        if self.field.remote_field:
+            return "foreign_key"
+
+        if self.field.choices:
+            return "choices"
+
+        if isinstance(self.field, CharField):
+            return "values"
+
+        return None
 
     def get_search_url(self):
         if self.search_url:
@@ -83,7 +99,7 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         if not isinstance(value, list):
             value = [value]
 
-        if isinstance(self.field, ForeignKey) :
+        if self.widget_mode == 'foreign_key':
             selected_list = self.field.remote_field.model.objects.filter(pk__in=value)
 
             widget["selected_list"] = [
@@ -94,7 +110,7 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
                     for obj in selected_list
                 ]
 
-        elif getattr(self.field, 'primary_key', False):
+        elif self.widget_mode == 'model':
             selected_list = self.field.model.objects.filter(pk__in=value)
 
             widget["selected_list"] = [
@@ -105,7 +121,7 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
                     for obj in selected_list
                 ]
 
-        elif self.field.choices:
+        elif self.widget_mode == 'choices':
             selected_list = [
                 (choice_value, choice_label)
                 for choice_value, choice_label in self.field.choices
@@ -120,7 +136,7 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
                     for obj in selected_list
                 ]
 
-        else:
+        elif self.widget_mode == 'values':
             if isinstance(value, str):
                 selected_values = value.split(",")
             elif isinstance(value, list):
@@ -143,7 +159,7 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         value = super().value_from_datadict(data, files, name)
 
         # if not multiple then return first value from value list 
-        if not self.multiple:
+        if not self.multiple and len(value)>0:
             return value[0]
 
         return value 
