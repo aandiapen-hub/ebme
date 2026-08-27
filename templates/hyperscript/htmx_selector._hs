@@ -1,0 +1,75 @@
+
+<script
+    type="text/hyperscript">
+def setOption(picker, name, label, value)
+      set hidden_input_div to first <div.hidden-input-group/> in picker
+      set visible_input_div to first <div.data-picker-display/> in picker
+
+      make a <input/> called input
+      set its type to 'hidden'
+      set its name to name
+      set its @label to label
+      set its @value to value
+      put it into hidden_input_div
+
+      make a <span/> called span
+      add .input-group-text to it
+      add .d-flex to it
+      add .align-items-center to it
+      add .justify-content-between to it
+      add .gap-1 to it
+      add .w-100 to it
+      set its @data-label to label
+      set its @data-value to value
+      put label into it
+
+      make a <button/> called button
+      set its type to 'button'
+      add .btn-close to it
+      set its @data-label to label
+      set its @data-value to value
+      set its @aria-label to 'Remove ' + label
+
+      put it at the end of span
+      put span into visible_input_div
+
+      
+  end
+def addOption(picker, name, label, value)
+      set hidden_input_div to first <div.hidden-input-group/> in picker
+      set visible_input_div to first <div.data-picker-display/> in picker
+
+      make a <input/> called input
+      set its type to 'hidden'
+      set its name to name
+      set its @label to label
+      set its @value to value
+      put it at the start of hidden_input_div
+
+      make a <span/> called span
+      add .badge to it
+      add .text-bg-light to it
+      add .rounded-pill to it
+      add .d-flex to it
+      add .align-items-center to it
+      add .gap-1 to it
+
+      set its @data-label to label
+      set its @data-value to value
+      put label into it
+
+      make a <button/> called button
+      set its type to 'button'
+      add .btn-close to it
+      add .btn-remove to it
+      set its @data-label to label
+      set its @data-value to value
+
+      set its @aria-label to 'Remove ' + label
+
+      put it at the end of span
+      put span at the start of visible_input_div
+
+      
+  end
+</script>

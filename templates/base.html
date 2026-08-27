@@ -18,6 +18,7 @@
     <link rel="icon" href="{% static 'company_info/favicon.ico' %}">
     <script src="{% static 'js/hyperscript.js' %}"></script>
 
+
 </head>
 
 
@@ -61,6 +62,9 @@ _="on show_message from body
     remove toast
     ">
 </div>
+
+<!-- htmx selector funtions -->
+{% include "hyperscript/htmx_selector._hs" %}
 
 </body>
 </html>

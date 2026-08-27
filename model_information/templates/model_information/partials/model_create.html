@@ -17,25 +17,20 @@
 
 {% partialdef brand %}
   <div
-    _="on change from #id_brandid hide me if the value of #id_brandid is not in ['', null] else show me"
     >
           <p>Existing Brands</p>
           <ul>
             {% for brand in existing_brands %}
               <button class='btn btn-sm btn-outline-secondary'
                 type='button'
-                _='on click
-                  set name to "{{brand.brandname}}"
-                  set pk to "{{brand.pk}}"
-                  set value of #id_brandid to "" 
-                
-                  js(name, pk)
-                    $("#id_brandid").empty().trigger("change");
-                    var newOption = new Option(name, pk, false, false);
-                    $("#id_brandid").append(newOption).trigger("change");
-                    $("#id_brandid").trigger("select2:select");
-                  end
-                    '>
+                _="on click
+                    call setOption(
+                                #id_brandid_picker,
+                                'brandid',
+                                '{{ brand.brandname }}',
+                                '{{ brand.pk }}'
+                            )
+                    ">
                 {{brand}}
               </button>
             {% endfor %}
@@ -62,26 +57,13 @@
 
 {% partialdef category %}
 <div
-    _="on change from #id_categoryid hide me if the value of #id_categoryid is not in ['', null] else show me"
       >
 
   <p>Existing Categories</p>
   <ul>
     {% for category in existing_categories %}
       <button class='btn btn-sm btn-outline-secondary'
-        type='button'
-        _='on click
-          set name to "{{category.categoryname}}"
-          set pk to "{{category.pk}}"
-          set value of #id_categoryid to "" 
-        
-          js(name, pk)
-            $("#id_categoryid").empty().trigger("change");
-            var newOption = new Option(name, pk, false, false);
-            $("#id_categoryid").append(newOption).trigger("change");
-            $("#id_categoryid").trigger("select2:select");
-          end
-            '>
+        type='button'>
         {{category}}
       </button>
     {% endfor %}
@@ -152,15 +134,6 @@
 
         </div>
 </div>
-
-
-<!--script to trigger change events from select2 fields-->
-
-<script>
-  $(document).on('select2:select select2:unselect', '#model_create_form select', function () {
-    this.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-</script>
 
 
 

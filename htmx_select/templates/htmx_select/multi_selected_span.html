@@ -5,6 +5,8 @@
         {{ option.label }}
         <button type="button"
                 class="btn-close btn-close-dark"
+                data-label='{{ option.label }}'
+                data-value='{{ option.value }}'
                 aria-label="Remove {{ option.label }}"
                 _=' on click halt the event
                   set input_div to  previous <div.hidden-input-group/>

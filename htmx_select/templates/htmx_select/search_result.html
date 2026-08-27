@@ -13,18 +13,6 @@
                 {{ option.label }}
 
             </button>
-            <div class="data-picker-option d-none">
-            
-                <!-- Template for selected display -->
-                {% if multiple %}
-                {% include 'htmx_select/multi_selected_span.html' %}
-                {% else %}
-                {% include 'htmx_select/single_selected_span.html' %}
-                {% endif %}
-
-                <!-- Template for form value -->
-                <input type="hidden" label="{{option.label}}" value="{{option.value}}">
-            </div>
 
           </div>
         {% endfor %}
