@@ -294,6 +294,11 @@ def get_key_information(data):
             'GTIN': gtin 
             })
 
+    customerassetnumber = data.get('asset',{}).get('customerassetnumber')
+    if gtin: 
+        output.update({
+            'Cust Asset No': customerassetnumber 
+            })
     return output
 
 class AssetDataContext(
