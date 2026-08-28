@@ -122,7 +122,9 @@ async function scanFrame(el) {
     try {
 
         const results = await readBarcodes(image,{
-            formats:["DataMatrix","Code128"]
+            formats:["DataMatrix","Code128"],
+            textMode: "Plain",
+            tryHarder: true,
         });
 
         console.log(results.length)
