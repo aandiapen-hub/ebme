@@ -8,12 +8,7 @@
 {% load static %}
 {% load custom_tags %}
 
-
-
-<!-- define table partial -->
-{% partialdef table-partial %}
-{% include "partials/summary_data.html" %}
-{% include "partials/form_filter_content.html" %}
+{% partialdef result-container %} 
 
       <div id='result_table_div' data-row-count={{table.rows|length}} class="d-none d-md-block">
         {% render_table table%}
@@ -24,9 +19,18 @@
         {% render_table table 'tables/cards_with_filter.html' %}
       </div>
 
+  {% endpartialdef %}
+
+<!-- define table partial -->
+{% partialdef table-partial %}
+{% include "partials/summary_data.html" %}
+{% include "partials/form_filter_content.html" %}
 
 
-  {% endpartialdef table-partial %}
+{% partial result-container %}
+
+
+{% endpartialdef table-partial %}
 
 {% block content %}
 
@@ -50,7 +54,7 @@
       
       <form id='filter-form' hx-get="{{request.path}}" hx-target="#result-container" 
             hx-trigger="submit from:#filter-form"
-            hx-swap="innerHTML" hx-push-url='true' hx-indicator='#spinner' name="search"
+            hx-swap="innerHTML" hx-push-url='true' hx-indicator='.htmx-indicator' name="search"
               _="on change
                     remove @hidden from #filter_form_submit_button">
               {% include "partials/form_filter_content.html" %}
@@ -58,15 +62,12 @@
     </div>
 
     <div class='col-12'>
-          <div class="d-flex flex-row gap-1">
+          <div class="d-flex align-items-start gap-1">
             <!-- column chooser modal (modal and modal open button)-->
             {% include "users/partials/column_chooser_button.html" with column_chooser_model=model_name success_url=request.url %}
             <!-- column chooser modal (modal and modal open button)-->
             {% include "partials/add_filter_modal.html" %}
 
-            <img id="spinner" class="htmx-indicator"
-                width="24" height="24"
-                src="{% static 'spinners/3-dots-fade.svg' %}">
             <!-- count of results -->
             {% include "partials/summary_data.html" %}
         </div>
@@ -99,16 +100,21 @@
           end
         end'>
 
-        <div id='result-container'>
-          <div id='result_table_div' data-row-count={{table.rows|length}} class="d-none d-md-block">
-            {% render_table table%}
-          </div>
 
-          <!-- Mobile -->
-          <div class="d-md-none">
-            {% render_table table 'tables/cards_with_filter.html' %}
-          </div>
-        <div>
+<div class='position-relative'>
+
+      <div id="loading-indicator"
+          class="htmx-indicator position-absolute top-0 start-0 w-100 h-100
+                  d-flex align-items-start justify-content-center bg-white bg-opacity-50 z-3"
+          style="pointer-events:none;">
+        <img id="spinner" width="48" height="48" src="{% static 'spinners/3-dots-fade.svg' %}" alt="Loading">
+      </div>
+
+      <div id="result-container">
+        {% partial result-container %}
+      </div>
+
+</div>
       </form>
     </article>
 

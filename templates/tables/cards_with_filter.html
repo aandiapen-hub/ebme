@@ -43,7 +43,7 @@
                         data-bs-toggle="modal"
                         class="btn btn-link btn-sm p-0 text-decoration-none"
                         data-bs-target="#summaryModal"
-                        hx-indicator='#spinner'
+                        hx-indicator='.htmx-indicator'
                         hx-target='#div_field_summary_data'
                         hx-swap='innerHTML'>
                             {{ column.header }} <i class="bi bi-three-dots-vertical"></i>
@@ -73,8 +73,8 @@
         <div hx-get="{% querystring table.prefixed_page_field=table.page.previous_page_number %}"
              hx-trigger="click"
              hx-target="#result-container"
-             hx-swap="outerHTML"
-            hx-indicator='#spinner'
+             hx-swap="innerHTML"
+              hx-indicator='.htmx-indicator'
              class="btn page-link">
             <span aria-hidden="true">&laquo;</span>
             {% trans 'previous' %}
@@ -88,8 +88,8 @@
                  {% if p != '...' %}hx-get="{% querystring table.prefixed_page_field=p %}"{% endif %}
                  hx-trigger="click"
                  hx-target="#result-container"
-                 hx-swap="outerHTML"
-                  hx-indicator='#spinner'>
+                 hx-swap="innerHTML"
+              hx-indicator='.htmx-indicator'>
                 {{ p }}
             </div>
         </li>
@@ -100,8 +100,8 @@
         <div hx-get="{% querystring table.prefixed_page_field=table.page.next_page_number %}"
              hx-trigger="click"
              hx-target="#result-container"
-             hx-swap="outerHTML"
-             hx-indicator="#spinner"
+             hx-swap="innerHTML"
+              hx-indicator='.htmx-indicator'
              class="btn page-link">
             {% trans 'next' %}
             <span aria-hidden="true">&raquo;</span>

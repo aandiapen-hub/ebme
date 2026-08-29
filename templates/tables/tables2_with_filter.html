@@ -16,7 +16,7 @@
           hx-get="{% if request.GET %}{{ request.get_full_path }}&summary_field={{ column.name }}{% else %}{{ request.get_full_path }}?summary_field={{ column.name }}{% endif %}" 
           data-bs-toggle="modal"
           data-bs-target="#summaryModal"
-          hx-indicator='#spinner'
+          hx-indicator='.htmx-indicator'
           hx-target='#div_field_summary_data'
           hx-swap='innerHTML'
       {% endif %}
@@ -79,7 +79,7 @@
              hx-trigger="click"
              hx-target="#result-container"
              hx-swap="innerHTML"
-            hx-indicator='#spinner'
+              hx-indicator='.htmx-indicator'
              class="btn page-link">
             <span aria-hidden="true">&laquo;</span>
             {% trans 'previous' %}
@@ -94,7 +94,7 @@
                  hx-trigger="click"
                  hx-target="#result-container"
                  hx-swap="innerHTML"
-                  hx-indicator='#spinner'>
+                  hx-indicator='.htmx-indicator'>
                 {{ p }}
             </div>
         </li>
@@ -106,7 +106,7 @@
              hx-trigger="click"
              hx-target="#result-container"
              hx-swap="innerHTML"
-             hx-indicator="#spinner"
+              hx-indicator='.htmx-indicator'
              class="btn page-link">
             {% trans 'next' %}
             <span aria-hidden="true">&raquo;</span>
