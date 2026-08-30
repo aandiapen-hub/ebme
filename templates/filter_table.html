@@ -51,10 +51,10 @@
         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
          Quick Filters 
         </button>
-        <ul class="dropdown-menu">
+        <ul class="dropdown-menu ">
           {% for quick_filter in quick_filters %}
               <li>
-                <a href="{{ quick_filter.url }}" class="btn btn-sm">
+                <a href="{{ quick_filter.url }}" class="dropdown-item">
                 {{ quick_filter.name }}
                 </a>
               </li>

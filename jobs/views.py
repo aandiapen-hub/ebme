@@ -1,4 +1,5 @@
 import datetime
+
 import json
 from django.utils import timezone
 from django.urls import reverse
@@ -411,6 +412,12 @@ class FilteredJobTableView(
         'completed_today': {
             'name':'Completed Today',
             'lookups': {"enddate": timezone.localdate()},
+         },
+        'completed_last_7_days': {
+            'name':'Completed in last 7 days',
+            "lookups": {
+                "enddate__gte": timezone.localdate() - datetime.timedelta(days=7),
+            }
          },
     }
 
