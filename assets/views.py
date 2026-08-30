@@ -1,4 +1,5 @@
 from django.contrib import messages
+from urllib.parse import urlencode
 from functools import cached_property
 
 from django.shortcuts import redirect
@@ -31,7 +32,6 @@ from .models import (
     Tbltechnicianlist,
 )
 
-from django.forms import BooleanField, ModelChoiceField
 
 from documents.services.process_document import quick_barcode_processor
 from .forms import (
@@ -50,7 +50,7 @@ from .mixins import CustomerAssetPermissionMixin
 
 from documents.models import TempUploadGroup, DocumentTypes
 
-from utils.generic_views import FilteredTableView
+from utils.generic_views import FilteredTableView, RoutingViewMixin
 
 UNIVERSAL_SEARCH_FIELDS = [
     "serialnumber__icontains",
@@ -106,8 +106,34 @@ class FilteredAssetTableView(
             icon="bi-file-earmark-plus",
             color='outline-secondary'
         ),
+        TableAction(
+            name="View All Jobs",
+            type='htmx',
+            on_selectable_items = True,
+            url=reverse_lazy("assets:asset_to_job"),
+            permission="assets.view_jobview",
+            icon="",
+            color='outline-secondary'
+        ),
+        TableAction(
+            name="View most recent PPM",
+            type='htmx',
+            on_selectable_items = True,
+            qp = urlencode({'additional_filter_options':'filter_latest_ppm'}),
+            url=reverse_lazy("assets:asset_to_job"),
+            permission="assets.view_jobview",
+            icon="",
+            color='outline-secondary'
+        ),
     ]
 
+class AssetToJobView(
+    LoginRequiredMixin, PermissionRequiredMixin, RoutingViewMixin):
+    permission_required = "assets.view_assetview"
+    origin_model = AssetView
+    universal_search_fields = UNIVERSAL_SEARCH_FIELDS
+    filter_fieldname = 'assetid'
+    redirect_url = reverse_lazy('jobs:jobs_list')
 
 class AssetDetailView(
     LoginRequiredMixin,
@@ -576,3 +602,5 @@ class ReplicateAsset(LoginRequiredMixin, PermissionRequiredMixin, FormView):
                 return context
 
         return context
+
+

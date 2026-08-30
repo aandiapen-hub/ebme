@@ -63,7 +63,15 @@
   <ul>
     {% for category in existing_categories %}
       <button class='btn btn-sm btn-outline-secondary'
-        type='button'>
+        type='button'
+        _="on click
+            call setOption(
+                        #id_categoryid_picker,
+                        'categoryid',
+                        '{{ category.categoryname }}',
+                        '{{ category.pk }}'
+                    )
+        ">
         {{category}}
       </button>
     {% endfor %}
@@ -129,12 +137,8 @@
                         </form>
                 </div>
                 <div class='col'>
-                
-
 
         </div>
 </div>
-
-
 
 {% endblock content %}

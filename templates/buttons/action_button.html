@@ -1,10 +1,10 @@
 
 {% if action.type == 'bulk_htmx' %}
 <a
-      hx-get="{{action.url}}?{{ request.GET.urlencode }}"
-      hx-include='#row_select_form'
+      hx-get="{{action.url}}"
+      hx-include='#row_select_form, #filter-form'
       hx-target='#bulk_update_content'
-      hx-indicator='#bulk_update_spinner'
+      hx-indicator='.htmx-indicator'
       hx-swap='innerHTML'
       class="dropdown-item btn btn-sm btn-{{action.color}}"
       type="button"
@@ -25,7 +25,7 @@
 
     <button 
       class="dropdown-item btn btn-sm btn-{{action.color}}"
-      hx-get="{{action.url}}?{{ request.GET.urlencode }}&{{action.qp}}"
+      hx-get="{{action.url}}?{{action.qp}}"
       hx-include='#filter-form, #row_select_form'
       type='button'
       hx-trigger='click'>

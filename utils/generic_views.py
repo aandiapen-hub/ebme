@@ -4,9 +4,17 @@ from django.db import IntegrityError
 from django.contrib import messages
 from django.shortcuts import render
 from django.views.generic.edit import FormMixin
+from django.views.generic import View
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin, CheckBoxColumn, TemplateColumn, Table, Column
-from django.db.models import Count, ForeignKey, DateField, JSONField
+from django.db.models import(
+    ForeignKey,
+    DateField,
+    JSONField,
+    Subquery,
+)
+
+from urllib.parse import urlencode
 from users.models import UserProfiles
 from utils.generic_filters import (
     dynamic_filterset_generator,
@@ -21,7 +29,8 @@ from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django import forms
-
+from django.apps import apps
+from django.http import QueryDict
 from dataclasses import dataclass
 from typing import Literal
 import re
@@ -172,7 +181,6 @@ class TableViewActionsContentMixins:
 
 
 # 3. Generic filtered table view
-@method_decorator(never_cache, name="dispatch")
 class FilteredTableView(
     TableViewActionsContentMixins,
     SingleTableMixin,
@@ -186,8 +194,10 @@ class FilteredTableView(
     template_columns = None  # override in subclass - optional
     template_name = "filter_table.html"  # override in subclass - Mandatory
     universal_search_fields = None  # override in subclass - Mandatory
-    default_columns = []
-    actions = {}  # overridein subclass if bulk actions are available
+    default_columns = None
+    actions = None  # overridein subclass if bulk actions are available
+    quick_filters = None # list of django filters made up of lookup combinations. e.g {'quick_filter': ['pk__in'=[1,2], field2 = 'value2']}
+    additional_session_filters = None # Set of filter function names. the filter functions needs to be defined on the child class
 
     def dispatch(self, request, *args, **kwargs):
         self.visible_columns = (
@@ -195,10 +205,16 @@ class FilteredTableView(
         )
 
         # --- check what type of request---#
-        # request options are  summary data, new filter or  actual filter result data
+        # request options are  summary data, new filter, remove session filter or  actual filter result data
+        # if remove session filter
+        if self.request.GET.get("reset_session_filter"):
+            print('reset found')
+            self.request.session.pop(self.request.path, None)
+
         # if summary data requested, process and return list of summary field data values
         self.summary_field = request.GET.get("summary_field")
         if self.summary_field:
+
             return self.get_summary_field_data()
 
         # if new filter is requested to, return the requested filter widget
@@ -274,9 +290,6 @@ class FilteredTableView(
             summary_field_data = {"status": "high_row_count", "data": None}
             return self._render_field_summary(summary_field_data, field)
 
-        values_qs = dict(
-            table_data.values_list(field.name).annotate(count=Count(field.name))
-        )
         items = {}
         values_qs = Counter(table_data.values_list(field.name, flat=True))
         items = {}
@@ -424,17 +437,66 @@ class FilteredTableView(
             return ["filter_table.html#table-partial"]
         return [self.template_name]
 
+    def apply_additional_session_filter(self, qs, session_filter, filter_qd):
+
+        addional_filter_name = filter_qd.get('additional_filter_options', None)
+        if addional_filter_name:
+            print('additional filte name found')
+            filter = getattr(self, addional_filter_name, None)
+            if filter:
+                print('additional filter found')
+                return filter(qs)
+        return qs
+
     def get_table_data(self):
         self.filterset = self.get_filterset(self.get_filterset_class())
 
         queryset = self.filterset.qs
+
+        session_filter = self.request.session.get(self.request.path, {})
+
+        if session_filter:
+            filter_params = session_filter.get("filter_params")
+            filter_qd = QueryDict(mutable=True)
+            if filter_params:
+                for key, values in filter_params:
+                    for v in values:
+                        filter_qd.update({key: v})
+
+            queryset = apply_session_filter(queryset, session_filter, filter_qd)
+            queryset = self.apply_additional_session_filter(queryset, session_filter, filter_qd)
+
+        self.session_filter_active = bool(session_filter)
+
         return queryset
+
+    @property
+    def filter_active(self):
+        return any(
+            self.request.GET.get(name) not in ("", None)
+            for name in self.filterset.filters
+        )
+
+    def add_quick_filters_to_ctx(self, context):
+        if self.quick_filters:
+            context["quick_filters"] = [
+                {
+                    **quick_filter,
+                    "url": f"{self.request.path}?{urlencode(quick_filter['lookups'])}",
+                }
+                for quick_filter in self.quick_filters.values()
+            ]
+        return context
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        self.add_quick_filters_to_ctx(context)
+
         context["model_name"] = self.model._meta.label
         context["filter_fields"] = get_filter_fields(self.model, self.visible_columns)
         context["title"] = self.title
+        context['session_filter'] = self.session_filter_active
+        context['filters_active'] = self.filter_active
 
         return context
 
@@ -569,6 +631,35 @@ class BulkUpdateView(FilteredTableView, FormMixin):
         return self.form_invalid(form)
 
 
+def apply_session_filter(queryset, session_filter, filter_qd):
+    origin_model = apps.get_model(session_filter.get("origin_model"))
+    filterset_class = dynamic_filterset_generator(
+        origin_model,
+        universal_search_fields=session_filter.get("universal_search"),
+        active_filters=session_filter.get("active_filters"),
+    )
+    filter_params = session_filter.get("filter_params")
+    field_name = session_filter.get("field_name")
+
+    if filter_qd:
+        filterset = filterset_class(
+            data=filter_qd if filter_qd else None,
+            queryset=origin_model.objects.all(),
+        )
+    data = filterset.qs
+
+    # filter by selected checkbox
+    selected_ids = next((x[1] for x in filter_params if "selected" in x[0]), None)
+    if selected_ids:
+        data = data.filter(pk__in=selected_ids)
+
+    # Pass the cleaned GET data to the FilterSet
+    # get the list of the current model's PK from the original model's filtered data
+    field_filter = f"{field_name}__in"
+    qs = queryset.filter(**{field_filter: Subquery(data.values(field_name))})
+
+    return qs
+
 
 # define table actions
 ActionType = Literal["link", "bulk_htmx"]
@@ -583,3 +674,43 @@ class TableAction:
     icon: str | None = None
     color: str | None = None
 
+
+
+class RoutingViewMixin(View):
+    origin_model = None
+    universal_search_fields = None
+    filter_fieldname = None
+    redirect_url = None
+    
+
+    def get(self, request, *args, **kwargs):
+
+        excluded = {
+            "new_active_filter",
+            "page",
+            "csrfmiddlewaretoken",
+            "universal_search",
+            "sort",
+            "app_view_name",
+            "model_name",
+        }
+
+        request.session[str(self.redirect_url)] = {
+            "origin_model": (
+                f"{self.origin_model._meta.app_label}."
+                f"{self.origin_model._meta.model_name}"
+            ),
+            "filter_params": list(request.GET.lists()),
+            "universal_search": self.universal_search_fields,
+            "active_filters": [
+                key
+                for key in request.GET
+                if key not in excluded
+            ],
+            "field_name": self.filter_fieldname,
+        }
+
+        response = HttpResponse(status=200)
+        response["HX-Redirect"] = self.redirect_url
+
+        return response

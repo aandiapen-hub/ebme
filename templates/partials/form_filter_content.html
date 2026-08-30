@@ -49,6 +49,26 @@
     <div class='col'>
         <button hidden id='filter_form_submit_button' class='btn btn-warning'  type='submit'>Apply filters</button>
     </div>
+
+    <div class='col'>
+      {% if session_filter %}
+      <span class="badge rounded-pill text-bg-warning">
+        Results restricted with other Filters
+        <button class='btn-close'
+                hx-get="{{get_absolute_url}}{% querystring reset_session_filter='true' %}"
+        hx-include='#filter-form, #row_select_form'
+        type='button'
+        hx-trigger='click'> </button>
+      </span>
+      {% endif %}
+
+      {% if filters_active %}
+      <span class="badge rounded-pill text-bg-secondary">
+        Clear all 
+        <a class='btn-close' href="{{request.path}}" type='button'></a>
+      </span>
+      {% endif %}
+  </div>
   </div>
 </div>
 

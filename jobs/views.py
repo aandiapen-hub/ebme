@@ -1,5 +1,6 @@
 import datetime
 import json
+from django.utils import timezone
 from django.urls import reverse
 from django.db.models import Q
 from urllib.parse import urlencode
@@ -9,6 +10,12 @@ from utils.dynamic_formset import (
     FormsetOptionsListView,
     FormsetMixin,
 )
+from django.db.models import(
+    Max,
+    OuterRef,
+    Subquery,
+)
+
 
 # import permissions
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -397,6 +404,25 @@ class FilteredJobTableView(
         "enddate",
         "customerid",
     ]
+    additional_filters = (
+        "filter_latest_ppm",
+    )
+    quick_filters = {
+        'completed_today': {
+            'name':'Completed Today',
+            'lookups': {"enddate": timezone.localdate()},
+         },
+    }
+
+    def filter_latest_ppm(self, qs):
+        qs = qs.filter(
+            jobtypeid__jobtypename__icontains="PPM"
+        )
+        latest = qs.filter(assetid=OuterRef("assetid")).order_by("-enddate").values("enddate")[:1]
+        return qs.filter(
+            enddate=Subquery(latest)
+        )
+
     actions = [
         TableAction(
             name="New",
@@ -446,4 +472,5 @@ class FilteredJobTableView(
             color='outline-secondary',
         ),
     ]
+
 

@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     AssetCreateView,
     FilteredAssetTableView,
+    AssetToJobView,
     AssetDetailView,
     AssetUpdateView,
     AssetDeleteView,
@@ -21,6 +22,7 @@ urlpatterns = [
     path("asset/<int:pk>/update",AssetUpdateView.as_view(),name='update_asset'),
     path("delete_asset/<int:pk>",AssetDeleteView.as_view(),name="delete_asset"),
     path("assets/",FilteredAssetTableView.as_view(),name='assets_list'),
+    path("assets/to_jobs/",AssetToJobView.as_view(),name='asset_to_job'),
     path("bulk_update/",AssetBulkUpdateView.as_view(),name='bulk_update_assets'),
     path("set_equipment_software/",SetEquipmentSoftware.as_view(),name='set_equipment_software'),
     path("remove_equipment_software/<int:pk>/",RemoveEquipmentSoftware.as_view(),name='remove_equipment_software'),
