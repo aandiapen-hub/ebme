@@ -2,7 +2,7 @@
 {% load static %}
 {% load django_bootstrap5 %}
 
-<div id="filter-column"  hx-swap-oob='innerHTML' >
+<div id="filter-column" class='mb-1'  hx-swap-oob='innerHTML' >
   <div id='div_filter_fields' class='d-flex flex-wrap'>
     {{ filter.form.media }}
     {% bootstrap_messages %}
@@ -48,9 +48,7 @@
   <div class='row mt-1'>
     <div class='col'>
         <button hidden id='filter_form_submit_button' class='btn btn-warning'  type='submit'>Apply filters</button>
-    </div>
 
-    <div class='col'>
       {% if session_filter %}
       <span class="badge rounded-pill text-bg-warning">
         Results restricted with other Filters
@@ -63,13 +61,10 @@
       {% endif %}
 
       {% if filters_active %}
-      <span class="badge rounded-pill text-bg-secondary">
-        Clear all 
-        <a class='btn-close' href="{{request.path}}" type='button'></a>
-      </span>
+        <a class='btn btn-outline-secondary btn-sm ' href="{{request.path}}" type='button'>Clear Filters</a>
       {% endif %}
   </div>
-  </div>
+</div>
 </div>
 
 

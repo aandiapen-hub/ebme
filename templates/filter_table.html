@@ -80,16 +80,15 @@
             </form>
     </div>
 
-    <div class='col-12'>
-          <div class="d-flex align-items-start gap-1">
-            <!-- column chooser modal (modal and modal open button)-->
-            {% include "users/partials/column_chooser_button.html" with column_chooser_model=model_name success_url=request.url %}
-            <!-- column chooser modal (modal and modal open button)-->
-            {% include "partials/add_filter_modal.html" %}
-
+    <div class='col-12 d-flex gap-1 flex-wrap justify-content-between'>
+            <div class='d-flex flex-nowrap gap-1'>
+              <!-- column chooser modal (modal and modal open button)-->
+              {% include "users/partials/column_chooser_button.html" with column_chooser_model=model_name success_url=request.url %}
+              <!-- column chooser modal (modal and modal open button)-->
+              {% include "partials/add_filter_modal.html" %}
+            </div>
             <!-- count of results -->
             {% include "partials/summary_data.html" %}
-        </div>
     </div>
   </div>
   <section id="result-section" class="row">
