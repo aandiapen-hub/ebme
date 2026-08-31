@@ -70,8 +70,6 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
             if visible_columns:
                 context['visible_columns'] = visible_columns
                 available_columns = [f for f in all_columns if f not in visible_columns]
-            else:
-                available_columns = all_columns
 
         context["available_columns"] = available_columns or all_columns
 

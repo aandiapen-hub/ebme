@@ -158,7 +158,8 @@ def get_dynamic_table_class(
                 + (["actions"] if template_columns.get("actions", []) else [])
             )
         else:
-            fields = ['selected', open_column] + visible_columns
+            fields = ['selected'] + [open_column] if open_column else [] 
+            fields += visible_columns
 
     # Dynamically create the table class
     DynamicTable = type(
@@ -210,7 +211,6 @@ class FilteredTableView(
         # request options are  summary data, new filter, remove session filter or  actual filter result data
         # if remove session filter
         if self.request.GET.get("reset_session_filter"):
-            print('reset found')
             self.request.session.pop(self.request.path, None)
 
         # if summary data requested, process and return list of summary field data values
@@ -443,10 +443,8 @@ class FilteredTableView(
 
         addional_filter_name = filter_qd.get('additional_filter_options', None)
         if addional_filter_name:
-            print('additional filte name found')
             filter = getattr(self, addional_filter_name, None)
             if filter:
-                print('additional filter found')
                 return filter(qs)
         return qs
 

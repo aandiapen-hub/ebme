@@ -365,10 +365,12 @@ def gs1_resolver(parsed_data):
     asset = find_asset_by_serial_and_model(serial, known_model)
 
     if asset:
+        print(asset.prod_date, prod_date, '******')
         if asset.prod_date and prod_date:
+            print('is this running********8?')
             prod_date_missing = asset.prod_date.strftime("%y%m%d")  != prod_date
         else:
-            prod_date_missing = True
+            prod_date_missing = False
         
         jobs = list(asset.jobs.values_list("pk", flat=True))
         return asset_data_builder(
@@ -638,7 +640,6 @@ def temp_group_resolver(group_id):
         data = group.extracted_json.get("merged_parsed_barcode", {}).get('values',{})
 
     resolver = RESOLVER_MAP.get(group.document_type_id, gs1_resolver)
-    print('data being resolved', data)
     if data and resolver:
         resolved_data = resolver(data)
         group.extracted_json.update({"resolved": resolved_data})

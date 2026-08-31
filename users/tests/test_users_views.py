@@ -1,3 +1,4 @@
+from typing import Sized
 from urllib.parse import urlencode
 import pytest
 from django.urls import reverse
@@ -102,7 +103,6 @@ def test_column_chooser_view_renders(client, django_user_model, user_setup):
     query_params = urlencode({"appmodel": "assets.AssetView"})
     url = f"{base_url}?{query_params}"
     response = client.get(url)
-
     assert response.status_code == 200
     assert "users/partials/column_chooser.html" in [t.name for t in response.templates]
 

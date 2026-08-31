@@ -188,13 +188,12 @@ class EquipmentConfigurationScopeFactory(
         EquipmentConfigurationFactory
     )
 
-    site = factory.SubFactory(
-        SiteFactory
-    )
-
     location = factory.SubFactory(
         LocationFactory
     )
+
+    site = factory.SelfAttribute( "location.siteid" )
+
 
 class SiteConfigurationScopeFactory(
     EquipmentConfigurationScopeFactory

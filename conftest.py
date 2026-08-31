@@ -13,6 +13,7 @@ from model_information.tests.factories import (
     SoftwareModelFactory,
     EquipmentSoftwareFactory,
     EquipmentConfigurationModelFactory,
+
 )
 from jobs.tests.factories import JobTechnicianFactory, JobStatusFactory, JobTypeFactory
 from parts.tests.factories import PartFactory
@@ -22,6 +23,7 @@ from procurement.tests.factories import SupplierFactory
 from parts.tests.factories import TblPartModelFactory, TblPartsPriceFactory
 from jobs.tests.factories import ChecklistsFactory
 
+from model_information.tests.factories import LocationConfigurationScopeFactory
 
 @pytest.fixture(scope='session')
 def django_db_modify_db_settings():
@@ -162,3 +164,10 @@ def jobstatus():
 @pytest.fixture
 def jobtype():
     return JobTypeFactory
+
+
+@pytest.fixture
+def location_configuration_scope_factory():
+    return LocationConfigurationScopeFactory
+
+

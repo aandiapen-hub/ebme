@@ -277,7 +277,6 @@ class AssetCreateView(
     def form_valid(self, form):
         create_acceptance = self.request.POST.get("create_acceptance_job", None)
         technician_id = self.request.POST.get("technicianid", None)
-        print('this is running')
 
         with transaction.atomic():
             self.object = form.save()
@@ -387,7 +386,7 @@ class RemoveEquipmentConfiguration(
         return reverse("assets:view_asset", kwargs={"pk": equipment_id})
 
 
-class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):
+class AssetBulkUpdateView(LoginRequiredMixin, CustomerAssetPermissionMixin, BulkUpdateView):
     model = AssetView
     permission_required = "assets.change_tblassets"
     template_name = "assets/bulk_update.html"

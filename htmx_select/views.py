@@ -138,7 +138,6 @@ class HtmxPickerSearch(
     def get_choices(self):
 
         qs = self.field.choices
-        print('choices', qs)
 
         q = self.request.GET.get("q", "").strip()
 

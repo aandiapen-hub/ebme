@@ -413,7 +413,6 @@ class TempFilesDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteVie
         self.object = self.get_object()
         if request.user == self.object.group.user:
             self.object.delete()
-            print("object deleted")
 
         # HTMX request → empty response
         if request.htmx:
@@ -775,27 +774,6 @@ class QuickScanner(LoginRequiredMixin, FormView):
             query_params = urlencode({"universal_search": self.object})
             return f"{url}?{query_params}"
 
-
-class AddFormsetFromScanner(FormView):
-    form_class = TempFileUploadForm
-    template_name = "documents/quick_scanner.html"
-    temp_group = None
-
-    def form_valid(self, form):
-        file = self.request.FILES.get("files")
-        scanned_code = self.request.POST.get("scanned_code", None)
-        try:
-            self.object = save_temp_document(
-                user=self.request.user, file=file, scanned_code=scanned_code
-            )
-
-        except ValidationError as e:
-            if e.message_dict["search"]:
-                # when a non gs1 code is quick searched
-                self.object = e.message_dict["search"][0]
-
-        response = HttpResponseRedirect(self.get_success_url())
-        return response
 
 
 class BulkLinkDocument(BulkUpdateView):

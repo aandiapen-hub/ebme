@@ -165,6 +165,45 @@ def test_asset_create_view_success_post(
     assert created_asset.serialnumber == "12332"
 
 @pytest.mark.django_db
+def test_asset_create_view_success_post_create_accetance_job_error(
+    client,
+    user_setup,
+    model,
+    customer,
+    asset_status,
+    jobstatus,
+    jobtype
+):
+    # Create user and force login
+    user = user_setup
+
+    permission = Permission.objects.get(codename="add_tblassets")
+    user.user_permissions.add(permission)
+
+    client.force_login(user)
+
+    # Set up required related objects
+    model_instance = model()
+    customer_instance = customer()
+    asset_status = asset_status()
+    # Prepare form data
+    form_data = {
+        "modelid": model_instance.modelid,
+        "customerid": customer_instance.customerid,
+        "serialnumber": 12332,
+        "asset_status_id": asset_status.pk,
+        "ppmscheduleid": "",
+        "create_acceptance_job": True,
+    }
+
+    new_status = jobstatus(jobstatusname='in progress')
+    new_job_type = jobtype(jobtypename='acceptance')
+
+    url = reverse("assets:create_asset")
+    response = client.post(url, data=form_data)
+    assert response.context['form'].errors
+
+@pytest.mark.django_db
 def test_asset_create_view_success_post_create_accetance_job(
     client,
     user_setup,
@@ -371,6 +410,37 @@ def test_set_equipment_configuration_view_renders(client, user, asset):
 
     assert response.status_code == 200
     assertTemplateUsed(response, "assets/set_equipment_configuration.html")
+
+
+@pytest.mark.django_db
+def test_set_equipment_configuration_view_renders_with_initial(
+        client,
+        user,
+        asset,
+        location_configuration_scope_factory,
+        equipment_configuration_model_factory,
+):
+
+    user = user()
+    user.customerid = None
+    permission = Permission.objects.get(codename="add_equipmentconfigurationlink")
+    user.user_permissions.add(permission)
+    user.save()
+
+    client.force_login(user)
+
+    scope = location_configuration_scope_factory()
+    config_link = equipment_configuration_model_factory(configuration=scope.configuration)
+
+    asset = asset(locationid = scope.location, modelid = config_link.model )
+
+    base_url = reverse("assets:set_equipment_configuration")
+    query_params = urlencode({'equipmentid':asset.pk})
+    url = f"{base_url}?{query_params}"
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert response.context['form']['configuration'].value() == scope.configuration.pk
 
 
 @pytest.mark.django_db
@@ -696,3 +766,65 @@ def test_filtered_asset_table_view_renders(client, user_setup, asset):
     # test htmx get
     response = client.get(url, HTTP_HX_REQUEST="true")
     assert response.status_code == 200
+
+
+
+@pytest.mark.django_db
+def test_asset_bulk_update_view_renders(client, user_setup, create_assets):
+    user = user_setup
+
+    permission = Permission.objects.get(codename="change_tblassets")
+    user.user_permissions.add(permission)
+
+    assets = create_assets(count=10)
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+
+    url = reverse("assets:bulk_update_assets")
+
+    # test html get
+    response = client.get(url)
+    assert response.status_code == 200
+    assertTemplateUsed(response, "assets/bulk_update.html")
+
+@pytest.mark.django_db
+def test_asset_bulk_update_view_post_errors(client, user_setup, create_assets):
+    user = user_setup
+
+    permission = Permission.objects.get(codename="change_tblassets")
+    user.user_permissions.add(permission)
+
+    assets = create_assets(count=10)
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+
+    url = reverse("assets:bulk_update_assets")
+
+    # test html get
+    response = client.post(url)
+    assert response.context['form'].errors
+
+@pytest.mark.django_db
+def test_asset_bulk_update_view_post(client, user_setup, create_assets):
+    user = user_setup
+
+    permission = Permission.objects.get(codename="change_tblassets")
+    user.user_permissions.add(permission)
+
+    assets = create_assets(count=10)
+    assert Tblassets.objects.filter(is_test_eq=True).count() < 10
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+
+    url = reverse("assets:bulk_update_assets")
+    data = {
+        'is_test_eq': True 
+    }
+
+    # test html get
+    response = client.post(url, data=data)
+
+    assert Tblassets.objects.filter(is_test_eq=True).count() == 10

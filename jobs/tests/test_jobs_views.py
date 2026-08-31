@@ -923,9 +923,70 @@ def test_generate_check_list_view_renders(client, user, asset, checklists):
     client.force_login(user)
     
     url = reverse("jobs:check_list", kwargs={'formset_type':'checklist'})
-    query_params = urlencode({'formset_type': 'checklist'})
+    query_params = urlencode({'formset_type': 'checklist', 'modelid':asset.modelid.pk})
     full_url = f"{url}?{query_params}"
     response = client.get(full_url)
 
     assert response.status_code == 200
     assert response.context['object_list'].count() == 10
+
+
+# test job bulk update view
+@pytest.mark.django_db
+def test_job_bulk_update_view_renders(client, user_setup, jobs):
+    user = user_setup
+
+    permission = Permission.objects.get(codename="change_tbljob")
+    user.user_permissions.add(permission)
+
+    jobs = jobs(count=10)
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+
+    url = reverse("jobs:bulk_update_jobs")
+
+    # test html get
+    response = client.get(url)
+    assert response.status_code == 200
+    assertTemplateUsed(response, "jobs/bulk_update_jobs.html")
+
+@pytest.mark.django_db
+def test_job_bulk_update_view_post_errors(client, user_setup, jobs):
+    user = user_setup
+
+    permission = Permission.objects.get(codename="change_tbljob")
+    user.user_permissions.add(permission)
+
+    jobs = jobs(count=10)
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+
+    url = reverse("jobs:bulk_update_jobs")
+
+    # test html get
+    response = client.post(url)
+    assert response.context['form'].errors
+
+@pytest.mark.django_db
+def test_job_bulk_update_view_post(client, user_setup, jobs):
+    user = user_setup
+
+    permission = Permission.objects.get(codename="change_tblassets")
+    user.user_permissions.add(permission)
+
+    jobs = jobs(count=10)
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+
+    url = reverse("jobs:bulk_update_jobs")
+    data = {
+        'workdone': 'test work done' 
+    }
+
+    # test html get
+    response = client.post(url, data=data)
+
+    assert Tbljob.objects.filter(workdone='test work done').count() == 10
