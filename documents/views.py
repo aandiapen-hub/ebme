@@ -471,12 +471,11 @@ class GetTaskResult(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         task_result_id = self.object.task_result_id
         if task_result_id:
             task_result = default_task_backend.get_result(self.object.task_result_id)
-            print('task result', task_result)
-            if getattr(task_result, "status", None) in ["SUCCESSFUL", "FAILED", None]:
-                context["task_result"] = task_result
-                response = self.render_to_response(context)
-                response["HX-Reswap"] = "outerHTML"
-                response["HX-Trigger"] = json.dumps({"data_resolved": True})
+        if getattr(task_result, "status", None) in ["SUCCESSFUL", "FAILED", None]:
+            context["task_result"] = task_result
+            response = self.render_to_response(context)
+            response["HX-Reswap"] = "outerHTML"
+            response["HX-Trigger"] = json.dumps({"data_resolved": True})
 
         return response
 
