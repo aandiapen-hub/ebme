@@ -169,17 +169,12 @@ class AssetUpdateView(
 
 
     def form_valid(self, form):
-        
-        try:
-            with transaction.atomic():
-                # save document related records from TempUploadMixin
-                self.object = form.save()
-                self.after_save(form)
-            return HttpResponseRedirect(self.get_success_url())
+        with transaction.atomic():
+            # save document related records from TempUploadMixin
+            self.object = form.save()
+            self.after_save(form)
+        return HttpResponseRedirect(self.get_success_url())
 
-        except Exception as e:
-            form.add_error(None, f"Error while saving: {e}")
-            return super().form_invalid(form)
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -260,7 +255,7 @@ class AssetCreateView(
                 elif value is not None:
                     form_data[field] = value
 
-        form = self.form_class(form_data)
+        form = self.form_class(data=form_data, acceptance=True)
         form.is_valid()
         self.object = None
 
@@ -282,6 +277,7 @@ class AssetCreateView(
     def form_valid(self, form):
         create_acceptance = self.request.POST.get("create_acceptance_job", None)
         technician_id = self.request.POST.get("technicianid", None)
+        print('this is running')
 
         with transaction.atomic():
             self.object = form.save()
@@ -298,10 +294,11 @@ class AssetCreateView(
                     ).first(),
                     technicianid=Tbltechnicianlist.objects.get(pk=technician_id),
                 )
-                response = HttpResponse()
-                response["HX-Redirect"] = reverse(
-                    "jobs:job_update", kwargs={"pk": acceptance_job.pk}
+
+                response = HttpResponseRedirect(
+                    reverse("jobs:job_update", kwargs={"pk": acceptance_job.pk})
                 )
+
                 return response
 
             return HttpResponseRedirect(self.get_success_url())
@@ -403,13 +400,7 @@ class AssetBulkUpdateView(BulkUpdateView, CustomerAssetPermissionMixin):
 
 def asset_already_exists(resolved_data, **kwargs):
     return bool(
-        resolved_data.get("resolved", {}).get("asset", {}).get("asset_id", None)
-    )
-
-
-def has_serial_number(resolved_data, **kwargs):
-    return bool(
-        resolved_data.get("resolved", {}).get("asset", {}).get("serialnumber", None)
+        resolved_data.get("asset", {}).get("asset_id", None)
     )
 
 
@@ -565,14 +556,9 @@ class ReplicateAsset(LoginRequiredMixin, PermissionRequiredMixin, FormView):
         acceptance_job = self.object.jobs.filter(jobtypeid=0).first()
         copy_acceptance = self.request.POST.get("create_acceptance_job", None)
 
-        serial_no = self.get_serialnumber()
-
-        customerassetnumber = self.get_customerassetnumber()
         self.object.pk = None
-        self.object.serialnumber = serial_no
-
-        if customerassetnumber:
-            self.object.customerassetnumber = customerassetnumber
+        self.object.serialnumber = self.get_serialnumber()
+        self.object.customerassetnumber = self.get_customerassetnumber()
 
         with transaction.atomic():
             self.object.save()
@@ -582,6 +568,7 @@ class ReplicateAsset(LoginRequiredMixin, PermissionRequiredMixin, FormView):
                 acceptance_job.save()
 
             self.get_group.delete()
+
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -601,6 +588,5 @@ class ReplicateAsset(LoginRequiredMixin, PermissionRequiredMixin, FormView):
                 context.update(config["context"])
                 return context
 
-        return context
 
 

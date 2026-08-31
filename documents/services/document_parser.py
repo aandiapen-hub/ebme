@@ -365,7 +365,10 @@ def gs1_resolver(parsed_data):
     asset = find_asset_by_serial_and_model(serial, known_model)
 
     if asset:
-        prod_date_missing = asset.prod_date.strftime("%y%m%d")  != prod_date
+        if asset.prod_date:
+            prod_date_missing = asset.prod_date.strftime("%y%m%d")  != prod_date
+        else:
+            prod_date_missing = True
         
         jobs = list(asset.jobs.values_list("pk", flat=True))
         return asset_data_builder(

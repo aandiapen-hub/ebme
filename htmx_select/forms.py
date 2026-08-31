@@ -159,7 +159,8 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         value = super().value_from_datadict(data, files, name)
 
         # if not multiple then return first value from value list 
-        if not self.multiple and len(value)>0:
-            return value[0]
+        if value:
+            if not self.multiple and len(value)>0:
+                return value[0]
 
         return value 

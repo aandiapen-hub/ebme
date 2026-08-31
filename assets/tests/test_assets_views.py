@@ -2,8 +2,10 @@ import pytest
 from django.contrib.auth.models import Permission
 from pytest_django.asserts import assertTemplateUsed
 from django.urls import reverse
+from urllib.parse import urlencode
 from assets.models import (
     Tblassets,
+    Tbljob,
 )
 from model_information.models import (
     EquipmentConfigurationLink,
@@ -103,6 +105,31 @@ def test_asset_create_view_renders(
     response = client.get(url)
     assert response.status_code == 200
 
+@pytest.mark.django_db
+def test_asset_create_view_renders_with_barcode(
+    client,
+    user_setup,
+    asset_status,
+):
+    # Create user and force login
+    user = user_setup
+
+    permission = Permission.objects.get(codename="add_tblassets")
+    user.user_permissions.add(permission)
+
+    client.force_login(user)
+
+    # Set up required related objects
+    asset_status = asset_status()
+    # Prepare form data
+    base_url = reverse("assets:create_asset")
+    query_params = urlencode({'barcode':'01008854034972331126021921S10009739'})
+    url = f"{base_url}?{query_params}"
+    response = client.get(url, HTTP_HX_REQUEST='true')
+
+    form = response.context['form']
+    assert form['serialnumber'].value() == 'S10009739'
+    assert response.status_code == 200
 
 @pytest.mark.django_db
 def test_asset_create_view_success_post(
@@ -137,6 +164,48 @@ def test_asset_create_view_success_post(
     created_asset = Tblassets.objects.last()
     assert created_asset.serialnumber == "12332"
 
+@pytest.mark.django_db
+def test_asset_create_view_success_post_create_accetance_job(
+    client,
+    user_setup,
+    model,
+    customer,
+    asset_status,
+    technician,
+    jobstatus,
+    jobtype
+):
+    # Create user and force login
+    user = user_setup
+
+    permission = Permission.objects.get(codename="add_tblassets")
+    user.user_permissions.add(permission)
+
+    client.force_login(user)
+
+    # Set up required related objects
+    model_instance = model()
+    customer_instance = customer()
+    asset_status = asset_status()
+    # Prepare form data
+    form_data = {
+        "modelid": model_instance.modelid,
+        "customerid": customer_instance.customerid,
+        "serialnumber": 12332,
+        "asset_status_id": asset_status.pk,
+        "ppmscheduleid": "",
+        "create_acceptance_job": True,
+        "technicianid": technician().pk
+    }
+
+    new_status = jobstatus(jobstatusname='in progress')
+    new_job_type = jobtype(jobtypename='acceptance')
+
+    url = reverse("assets:create_asset")
+    response = client.post(url, data=form_data)
+    created_asset = Tblassets.objects.last()
+    assert Tbljob.objects.filter(assetid=created_asset.pk)
+
 
 # test set equipment software view
 @pytest.mark.django_db
@@ -156,7 +225,7 @@ def test_set_equipment_sofware_view_permission_denied(client, user):
 
 
 @pytest.mark.django_db
-def test_set_equipment_sofware_view_renders(client, user):
+def test_set_equipment_sofware_view_renders(client, user, asset):
 
     user = user()
     user.customerid = None
@@ -166,7 +235,9 @@ def test_set_equipment_sofware_view_renders(client, user):
 
     client.force_login(user)
 
-    url = reverse("assets:set_equipment_software")
+    base_url = reverse("assets:set_equipment_software")
+    query_params = urlencode({'equipmentid':asset().pk})
+    url = f"{base_url}?{query_params}"
 
     response = client.get(url)
 
@@ -283,7 +354,7 @@ def test_set_equipment_configuration_view_permission_denied(client, user):
 
 
 @pytest.mark.django_db
-def test_set_equipment_configuration_view_renders(client, user):
+def test_set_equipment_configuration_view_renders(client, user, asset):
 
     user = user()
     user.customerid = None
@@ -293,8 +364,9 @@ def test_set_equipment_configuration_view_renders(client, user):
 
     client.force_login(user)
 
-    url = reverse("assets:set_equipment_configuration")
-
+    base_url = reverse("assets:set_equipment_configuration")
+    query_params = urlencode({'equipmentid':asset().pk})
+    url = f"{base_url}?{query_params}"
     response = client.get(url)
 
     assert response.status_code == 200
@@ -441,6 +513,30 @@ def test_asset_update_view_renders(client, user_setup, asset):
     assert response.status_code == 200
     assertTemplateUsed(response, "assets/update_form.html")
 
+@pytest.mark.django_db
+def test_asset_update_view_invali(client, user_setup, asset):
+    asset = asset()
+    user = user_setup
+
+    client.force_login(user)
+
+    user.customerid = asset.customerid
+    user.save()
+    permission = Permission.objects.get(codename="change_tblassets")
+    user.user_permissions.add(permission)
+
+    url = reverse("assets:update_asset", kwargs={"pk": asset.assetid})
+    response = client.post(
+        url,
+        data={
+            "serialnumber": "updated_serialnumber",
+            "customerid": asset.customerid.customerid,  # Include the primary key of the customer
+            "modelid": '',
+            "asset_status_id": asset.asset_status_id.pk,
+        },
+    )
+
+    assert response.context['form'].errors
 
 @pytest.mark.django_db
 def test_asset_update_view_valid_data_updates_object(client, user_setup, asset):

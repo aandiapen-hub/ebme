@@ -1,6 +1,8 @@
 from io import BytesIO
 from assets.models import Tblassets
 from django.shortcuts import get_object_or_404, redirect
+
+from django.db import transaction
 import json
 import uuid
 from django.apps import apps
@@ -197,17 +199,13 @@ class DocumentUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
         document_name = form.cleaned_data.get("document_name")
         document_description = form.cleaned_data.get("document_description")
 
-        try:
-            create_document_from_file(
-                document=document,
-                uploaded_file=uploaded_file,
-                document_type_id=document_type_id,
-                document_name=document_name,
-                document_description=document_description,
-            )
-        except ValidationError as e:
-            form.add_error(None, e)
-            return self.form_invalid(form)
+        create_document_from_file(
+            document=document,
+            uploaded_file=uploaded_file,
+            document_type_id=document_type_id,
+            document_name=document_name,
+            document_description=document_description,
+        )
 
         if self.request.htmx:
             return HttpResponse(status=204)
@@ -225,15 +223,24 @@ class DocumentUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView
 
 class DocumentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = TblDocuments
-    template_name = "documents/document_update.html"
+    template_name = "documents/document_delete.html"
     permission_required = "documents.delete_tbldocuments"
     success_url = reverse_lazy("documents:table_documents")
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-        context["cancel_url"] = reverse("documents:table_documents")
+        context["cancel_url"] = reverse(
+            "documents:view_document",
+            kwargs={'pk':self.object.pk}
+        )
 
         return context
+
+    def form_valid(self, form):
+        links = self.object.links.all()
+        with transaction.atomic():
+            links.delete()
+            return super().form_valid(form)
 
 
 class DocumentLinksTableView(
@@ -453,6 +460,7 @@ class GetTaskResult(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = TempUploadGroup
     context_object_name = "group"
     permission_required = "documents.view_tempuploadgroup"
+    template_name = "documents/partials/task_progress.html"
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -463,16 +471,15 @@ class GetTaskResult(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         task_result_id = self.object.task_result_id
         if task_result_id:
             task_result = default_task_backend.get_result(self.object.task_result_id)
-        if getattr(task_result, "status", None) in ["SUCCESSFUL", "FAILED", None]:
-            context["task_result"] = task_result
-            response = self.render_to_response(context)
-            response["HX-Reswap"] = "outerHTML"
-            response["HX-Trigger"] = json.dumps({"data_resolved": True})
+            print('task result', task_result)
+            if getattr(task_result, "status", None) in ["SUCCESSFUL", "FAILED", None]:
+                context["task_result"] = task_result
+                response = self.render_to_response(context)
+                response["HX-Reswap"] = "outerHTML"
+                response["HX-Trigger"] = json.dumps({"data_resolved": True})
 
         return response
 
-    def get_template_names(self):
-        return ["documents/partials/task_progress.html"]
 
 
 class TempUploadGroupCreateView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
@@ -492,7 +499,7 @@ class TempUploadGroupCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
             response["HX-Redirect"] = self.get_success_url()
             return response
 
-        return super.form_valid(form)
+        return super().form_valid(form)
 
 
 class TemporaryUploadCreateView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
@@ -666,7 +673,7 @@ class TempUploadGroupDeleteView(
     LoginRequiredMixin, PermissionRequiredMixin, DeleteView
 ):
     model = TempUploadGroup
-    permission_required = "documents.add_tbl_temporaryupload"
+    permission_required = "documents.delete_tempuploadgroup"
     template_name = "documents/temp_group_delete.html"
     success_url = reverse_lazy("documents:user_temp_files")
 

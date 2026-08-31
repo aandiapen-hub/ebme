@@ -34,7 +34,7 @@
     </div>
 
 
-      <form id='asset_form' href="{{request.path}}">
+      <form id='asset_form' method='post' action="{{request.path}}">
             {{ form.media }} 
             {% csrf_token %}
             {% bootstrap_form form layout='horizontal' %}

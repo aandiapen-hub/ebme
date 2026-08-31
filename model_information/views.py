@@ -240,6 +240,7 @@ class ModelCreateView(
     initial_mapper = "create_model"
     success_url_app_view = "model_information:model_view"
 
+
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
@@ -253,6 +254,10 @@ class ModelCreateView(
             context["cancel_url"] = reverse("model_information:modellist")
 
         return context
+
+    def form_invalid(self, form):
+        print('thisis running*****', form.errors)
+        return super().form_invalid(form)
 
 class ModelCopyView(
     LoginRequiredMixin,

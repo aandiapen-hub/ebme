@@ -49,7 +49,8 @@ def get_visible_columns(request, model, open_column=None):
         )
     except Exception:
         # fallback to all model fields
-        return None
+        return [field.name for field in model._meta.get_fields() if field.concrete and not field.auto_created]
+
     user_columns.append(open_column)
     return user_columns
 
@@ -173,9 +174,10 @@ class TableViewActionsContentMixins:
         context = super().get_context_data(**kwargs)
 
         actions = []
-        for action in self.actions:
-            if self.request.user.has_perm(action.permission):
-                actions.append(action)
+        if self.actions:
+            for action in self.actions:
+                if self.request.user.has_perm(action.permission):
+                    actions.append(action)
         context["actions"] = actions
         return context
 

@@ -14,6 +14,7 @@ from model_information.tests.factories import (
     EquipmentSoftwareFactory,
     EquipmentConfigurationModelFactory,
 )
+from jobs.tests.factories import JobTechnicianFactory, JobStatusFactory, JobTypeFactory
 from parts.tests.factories import PartFactory
 from users.tests.factories import UserFactory
 from jobs.tests.factories import JobFactory
@@ -148,3 +149,16 @@ def create_assets():
         return AssetFactory.create_batch(count, **kwargs)
 
     return _create_assets
+
+
+@pytest.fixture
+def technician():
+    return JobTechnicianFactory
+
+@pytest.fixture
+def jobstatus():
+    return JobStatusFactory
+
+@pytest.fixture
+def jobtype():
+    return JobTypeFactory

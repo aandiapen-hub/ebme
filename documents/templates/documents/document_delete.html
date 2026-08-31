@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+
+<div class='container'>
+  <p>Are you sure you want to delete document {{object}} and its links?
+
+  <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% bootstrap_form form layout='horizontal' %}
+
+      {% include 'partials/form_buttons.html' %}
+  </form>
+  <h4>Existing Links</h4>
+    <ul>
+    {% for link in object.links.all %}
+    <li>{{link}} </li>
+  {% empty %}
+    <p>No links</p>
+  {% endfor %}
+    <ul>
+</div>
+{% endblock content %}

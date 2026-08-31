@@ -1,27 +1,12 @@
 import pytest
 from jobs.tests.factories import(
     JobFactory,
-    JobTechnicianFactory,
     TestsCarriedOutFactory,
     ChecklistsFactory,
     TestResultFactory,
-    JobTypeFactory,
-    JobStatusFactory
 )
 from assets.tests.factories import AssetFactory
 
-
-@pytest.fixture
-def jobtype():
-    return JobTypeFactory
-
-@pytest.fixture
-def jobstatus():
-    return JobStatusFactory
-
-@pytest.fixture
-def technician():
-    return JobTechnicianFactory
 
 @pytest.fixture
 def test_eq():

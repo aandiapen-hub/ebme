@@ -87,15 +87,16 @@ def create_document_from_file(
         file_hash = hashlib.sha256(content).hexdigest()
 
     # resize if content is an image
-    if "image/" in mime_type:
-        img = resizeimg(content)
+    if mime_type:
+        if "image/" in mime_type:
+            img = resizeimg(content)
 
-        img = ImageOps.exif_transpose(img)
-        buffer = BytesIO()
-        content.save(buffer, format="JPEG", quality=85, optimize=True)
-        # Get the resized image bytes
-        content = buffer.getvalue()
-        file_hash = hashlib.sha256(content).hexdigest()
+            img = ImageOps.exif_transpose(img)
+            buffer = BytesIO()
+            content.save(buffer, format="JPEG", quality=85, optimize=True)
+            # Get the resized image bytes
+            content = buffer.getvalue()
+            file_hash = hashlib.sha256(content).hexdigest()
 
     # --------------------------------------
     # check if document already exists in DB

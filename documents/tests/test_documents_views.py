@@ -1,3 +1,5 @@
+import time
+
 from assets.models import Tblassets
 from django.contrib.auth.models import Permission
 from urllib.parse import urlencode
@@ -10,6 +12,7 @@ from documents.models import (
     TblDocuments,
     TemporaryUpload,
     DocumentTypes,
+    TempUploadGroup,
 )
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -143,13 +146,12 @@ def test_document_create_view_post_duplicated_document(
 
     assert link1_document == link2_document
 
-
 # test DocumentDeleteView
 @pytest.mark.django_db
 def test_document_delete_view_requires_login(client, document_link):
     document_link = document_link()
-    document_link_id = document_link.pk
-    url = reverse("documents:delete_document_link", kwargs={"pk": document_link_id})
+    document_id = document_link.documentid.pk
+    url = reverse("documents:delete_document", kwargs={"pk": document_id})
 
     response = client.get(url)
     assert response.status_code == 302
@@ -162,6 +164,85 @@ def test_document_delete_view_requires_permission(client, user_setup, document_l
     client.force_login(user)
 
     document_link = document_link()
+    document_id = document_link.documentid.pk
+    url = reverse("documents:delete_document", kwargs={"pk": document_id})
+
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_document_delete_view_renders(client, user_setup, document_link, customer):
+    document_link = document_link()
+    document_id = document_link.documentid.pk
+    url = reverse("documents:delete_document", kwargs={"pk": document_id})
+    customer = customer()
+
+    document_link.customer_id = customer.pk
+    document_link.save()
+
+    user = user_setup
+    permission = Permission.objects.get(codename="delete_tbldocuments")
+    user.user_permissions.add(permission)
+    user.customerid = customer
+    user.save()
+
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 200
+    assertTemplateUsed(response, "documents/document_delete.html")
+
+
+@pytest.mark.django_db
+def test_document_delete_view_post_successfully(
+    client, user_setup, document_link, customer
+):
+
+    document_link = document_link()
+    document_id = document_link.documentid.pk
+    url = reverse("documents:delete_document", kwargs={"pk": document_id})
+    customer = customer()
+
+    document_link.customer_id = customer.pk
+    document_link.save()
+
+    user = user_setup
+    permission = Permission.objects.get(codename="delete_tbldocuments")
+    user.user_permissions.add(permission)
+    user.customerid = customer
+    user.save()
+    client.force_login(user)
+
+    response = client.post(url)
+    assert response.status_code == 302
+    assert not TblDocuments.objects.filter(
+        pk=document_id
+    ).exists()
+    assert not TblDocumentLinks.objects.filter(
+        document_link_id=document_link.pk
+    ).exists()
+
+
+
+# test DocumentLinkDeleteView
+@pytest.mark.django_db
+def test_document_link_delete_view_requires_login(client, document_link):
+    document_link = document_link()
+    document_link_id = document_link.pk
+    url = reverse("documents:delete_document_link", kwargs={"pk": document_link_id})
+
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_document_link_delete_view_requires_permission(client, user_setup, document_link):
+    user = user_setup
+    client.force_login(user)
+
+    document_link = document_link()
     document_link_id = document_link.pk
     url = reverse("documents:delete_document_link", kwargs={"pk": document_link_id})
 
@@ -170,7 +251,7 @@ def test_document_delete_view_requires_permission(client, user_setup, document_l
 
 
 @pytest.mark.django_db
-def test_document_delete_view_renders(client, user_setup, document_link, customer):
+def test_document_link_delete_view_renders(client, user_setup, document_link, customer):
     document_link = document_link()
     document_link_id = document_link.pk
     url = reverse("documents:delete_document_link", kwargs={"pk": document_link_id})
@@ -193,7 +274,7 @@ def test_document_delete_view_renders(client, user_setup, document_link, custome
 
 
 @pytest.mark.django_db
-def test_document_delete_view_post_successfully(
+def test_document_link_delete_view_post_successfully(
     client, user_setup, document_link, customer
 ):
 
@@ -220,7 +301,7 @@ def test_document_delete_view_post_successfully(
 
 
 @pytest.mark.django_db
-def test_document_delete_view_post_successfully_htmx(
+def test_document_link_delete_view_post_successfully_htmx(
     client, user_setup, document_link, customer
 ):
     document_link = document_link()
@@ -886,8 +967,102 @@ def test_temp_file_delete_view_posts_htmx(client, temp_document):
     assert not TemporaryUpload.objects.filter(pk=temp_document.pk).exists()
 
 
+@pytest.mark.django_db
+def test_temp_file_delete_view_posts_htmx_with_redirect(client, temp_document):
+    temp_document = temp_document()
+    user1 = temp_document.group.user
+
+    permission = Permission.objects.get(codename="delete_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.save()
+
+    client.force_login(user1)
+
+    base_url = reverse("documents:delete_temp_file", kwargs={"pk": temp_document.pk})
+    query_params = urlencode({'redirect_after_delete':'true'})
+    url = f"{base_url}?{query_params}"
+    response = client.post(url, HTTP_HX_REQUEST="true")
+    assert response.status_code == 200
+    assert not TemporaryUpload.objects.filter(pk=temp_document.pk).exists()
+
+
+# test TempGroupCreateView
+@pytest.mark.django_db
+def test_temp_group_create_view_requires_login(user_setup, client):
+    url = reverse("documents:temp_group_create")
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_temp_group_create_view_requires_permission(client, user):
+    user = user()
+    client.force_login(user)
+
+    url = reverse("documents:temp_group_create")
+    response = client.get(url,)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_temp_group_create_view_renders(client, user):
+    user = user()
+    client.force_login(user)
+
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user.user_permissions.add(permission)
+    user.save()
+
+    url = reverse("documents:temp_group_create")
+    response = client.get(url, HTTP_HX_REQUEST="true")
+    assert response.status_code == 200
+    assertTemplateUsed(response, "documents/temp_group_create.html")
+
+
+@pytest.mark.django_db
+def test_temp_group_create_view_post(
+    client, test_file, user
+):
+
+    user1 = user()
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.is_staff = True
+    user1.save()
+
+    client.force_login(user1)
+
+    test_file = test_file("delivery_note.jpeg")
+    data = {"files": [test_file]}
+
+    url = reverse("documents:temp_group_create")
+    response = client.post(url, data, format="multipart")
+    assert response.status_code == 302
+    assert TempUploadGroup.objects.last()
+
+@pytest.mark.django_db
+def test_temp_group_create_view_post_htmx(
+    client, test_file, user
+):
+
+    user1 = user()
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.is_staff = True
+    user1.save()
+
+    client.force_login(user1)
+
+    test_file = test_file("delivery_note.jpeg")
+    data = {"files": [test_file]}
+
+    url = reverse("documents:temp_group_create")
+    response = client.post(url, data, format="multipart", HTTP_HX_REQUEST='true')
+    assert response.status_code == 200
+    assert TempUploadGroup.objects.last()
+
 # test TemporaryUploadCreateView
-# Test TempFilesDeleteView
 @pytest.mark.django_db
 def test_temporary_upload_create_view_requires_login(user_setup, client):
     url = reverse("documents:create_temp_file")
@@ -1017,6 +1192,56 @@ def test_temporary_upload_create_view_post_htmx(client, test_file, temp_document
     assert response.status_code == 200
     assertTemplateUsed(response, "documents/partials/temp_file.html")
 
+@pytest.mark.django_db
+def test_temporary_upload_create_view_post_htmx_from_listview(client, test_file, temp_group, user):
+    user1 = user()
+    group = temp_group(user=user1)
+
+    assert group.temp_uploads.count() == 0
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.is_staff = True
+    user1.save()
+
+    client.force_login(user1)
+
+    test_file = test_file("delivery_note.jpeg")
+    data = {"files": [test_file]}
+
+    base_url = reverse("documents:create_temp_file")
+    query_params = urlencode({"group": group.pk})
+    url = f"{base_url}?{query_params}"
+    response = client.post(
+        url, data,
+        format="multipart",
+        HTTP_HX_REQUEST="true",
+        HTTP_HX_CURRENT_URL="/user_temp_files/",
+    )
+    assert response.status_code == 200
+    assert TempUploadGroup.objects.count() == 1
+
+@pytest.mark.django_db
+def test_temporary_upload_create_view_post_htmx_barcode_only(client, test_file, temp_document, user):
+
+    temp_document = temp_document()
+    user1 = temp_document.group.user
+
+    permission = Permission.objects.get(codename="add_temporaryupload")
+    user1.user_permissions.add(permission)
+    user1.is_staff = True
+    user1.save()
+
+    client.force_login(user1)
+
+    test_file = test_file("delivery_note.jpeg")
+    data = {'scanned_code': '01008854034972331126021921S10009739'}
+
+    base_url = reverse("documents:create_temp_file")
+    query_params = urlencode({"group": temp_document.group.pk})
+    url = f"{base_url}?{query_params}"
+    response = client.post(url, data, format="multipart", HTTP_HX_REQUEST="true")
+    assert response.status_code == 200
+    assertTemplateUsed(response, "documents/partials/temp_file_barcode_only.html")
 
 @pytest.mark.django_db
 def test_temporary_upload_create_view_post__new_group_htmx(
@@ -1184,6 +1409,37 @@ def test_document_update_view_renders(client, user, document):
     assert response.status_code == 200
     assertTemplateUsed(response, "documents/document_update.html")
 
+@pytest.mark.django_db
+def test_document_update_view_post_error(client, user, document_link, customer):
+    document_link = document_link()
+    last_document = document_link.documentid
+    user = user()
+
+    permission = Permission.objects.get(codename="change_tbldocuments")
+    user.user_permissions.add(permission)
+
+    customer = customer()
+    document_link.customerid = customer.pk
+    user.customerid = customer
+    user.save()
+    client.force_login(user)
+
+    url = reverse(
+        "documents:update_document", kwargs={"pk": document_link.documentid.pk}
+    )
+
+    test_file = SimpleUploadedFile(
+        "test.txt", b"Test content_XXX1232XX", content_type="text/plain"
+    )
+    form = {
+        "document_name": "test_document",
+        "document_description": "test_document_description",
+        "document_bytea": test_file,
+        "document_type_id": 12, # incorrect document type
+    }
+
+    response = client.post(url, data=form, format="multipart")
+    assert response.context['form'].errors
 
 @pytest.mark.django_db
 def test_document_update_view_post(client, user, document_link, customer):
@@ -1282,7 +1538,7 @@ def test_document_update_view_post_invalid_form(
     assert response.status_code == 200
 
 
-# test DocumentUpdateView
+# test TempgroupView 
 @pytest.mark.django_db
 def test_temporary_group_view_requires_login(client, temp_document):
     document = temp_document()
@@ -1319,6 +1575,75 @@ def test_temp_group_view_renders(client, temp_group, temp_document, user):
     assert response.status_code == 200
     assert response.context["group"] is not None
 
+@pytest.mark.django_db
+def test_temp_group_view_renders_mini(client, temp_group, temp_document, user):
+    user = user()
+    permission = Permission.objects.get(codename="view_tempuploadgroup")
+    user.user_permissions.add(permission)
+
+    group1 = temp_group(user=user)
+    document = temp_document("equipment_gs1.jpg", group=group1)
+    base_url = reverse("documents:temp_group", kwargs={"pk": document.group.pk})
+    query_params = urlencode({'mini':'true'})
+    url = f"{base_url}?{query_params}"
+
+    client.force_login(user)
+    response = client.get(url, HTTP_HX_REQUEST='true')
+    assert response.status_code == 200
+    assert response.context["group"] is not None
+
+
+# test TempgroupDeleteView 
+@pytest.mark.django_db
+def test_temporary_group_view_requires_login(client, temp_document):
+    document = temp_document()
+    url = reverse("documents:temp_group_delete", kwargs={"pk": document.group.pk})
+
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_temp_group_view_requires_permission(client, temp_document, user):
+    document = temp_document()
+    url = reverse("documents:temp_group_delete", kwargs={"pk": document.group.pk})
+    user = user()
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_temp_group_view_renders(client, temp_group, temp_document, user):
+    user = user()
+    permission = Permission.objects.get(codename="delete_tempuploadgroup")
+    user.user_permissions.add(permission)
+
+    group1 = temp_group(user=user)
+    document = temp_document("equipment_gs1.jpg", group=group1)
+    url = reverse("documents:temp_group_delete", kwargs={"pk": document.group.pk})
+
+    client.force_login(user)
+    response = client.get(url)
+    assert response.status_code == 200
+    assertTemplateUsed(response,"documents/temp_group_delete.html" )
+
+@pytest.mark.django_db
+def test_temp_group_view_post(client, temp_group, temp_document, user):
+    user = user()
+    permission = Permission.objects.get(codename="delete_tempuploadgroup")
+    user.user_permissions.add(permission)
+
+    group1 = temp_group(user=user)
+    document = temp_document("equipment_gs1.jpg", group=group1)
+    url = reverse("documents:temp_group_delete", kwargs={"pk": document.group.pk})
+
+    client.force_login(user)
+    response = client.post(url)
+    assert response.status_code == 302 
+    assert not TempUploadGroup.objects.filter(pk=group1.pk).exists()
 
 # test extract information from group
 @pytest.mark.django_db
@@ -1357,6 +1682,41 @@ def test_temp_group_extract_text_posts(client, temp_document, user):
         "documents:temp_group", kwargs={"pk": document.group.pk}
     )
 
+# test get task from group
+@pytest.mark.django_db
+def test_get_task_result_requires_login(client, temp_document):
+    document = temp_document()
+    url = reverse("documents:task_progress", kwargs={"pk": document.group.pk})
+
+    response = client.get(url)
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_get_task_result_requires_permission(client, temp_document, user):
+    document = temp_document()
+    url = reverse("documents:task_progress", kwargs={"pk": document.group.pk})
+    user = user()
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_get_task_result_renders(client, temp_document, user ):
+    document = temp_document()
+
+    url = reverse("documents:task_progress", kwargs={"pk": document.group.pk})
+    user = user()
+    permission = Permission.objects.get(codename="view_tempuploadgroup")
+    user.user_permissions.add(permission)
+    client.force_login(user)
+
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.context['task_result']
 
 MOCK_ASSET_DATA = {
     "GTIN": "00885403497233",
@@ -2151,7 +2511,7 @@ def test_replicate_asset_view_renders_with_group(
 
 
 @pytest.mark.django_db
-def test_replicate_asset_view_posts(client, user_setup, asset, temp_document, model):
+def test_replicate_asset_view_posts(client,asset, user_setup, job, temp_document, model, jobtype):
     model = model(gtin="00885403497233")
     user = user_setup
     user.is_staff = True
@@ -2166,11 +2526,48 @@ def test_replicate_asset_view_posts(client, user_setup, asset, temp_document, mo
 
     quick_group_processor(test_doc)
     asset = asset(modelid=model)
+    job = job(assetid=asset, jobtypeid=jobtype(jobtypeid=0))
 
     url = reverse(
         "assets:replicate_asset", kwargs={"group_id": test_doc.group.pk, "pk": asset.pk}
     )
-    data = {"group_id": test_doc.group.pk, "template_asset": asset.pk}
+    data = {
+        "group_id": test_doc.group.pk,
+        "template_asset": asset.pk,
+        "create_acceptance_job": 'true'
+    }
     response = client.post(url, data=data)
     assert response.status_code == 302
     assert Tblassets.objects.last().serialnumber == "S00455524"
+
+
+@pytest.mark.django_db
+def test_replicate_asset_view_posts_with_error(client,asset, user_setup, job, temp_document, model, jobtype):
+    model = model(gtin="00885403497233")
+    user = user_setup
+    user.is_staff = True
+    permission = Permission.objects.get(codename="add_tblassets")
+    user.user_permissions.add(permission)
+    user.save()
+    client.force_login(user)
+
+    test_doc = temp_document("equipment_gs2.jpg")
+
+    from documents.services.process_document import quick_group_processor
+
+    asset2 = asset(modelid=model, serialnumber='S00455524')
+    quick_group_processor(test_doc)
+
+    asset1 = asset(modelid=model)
+    job = job(assetid=asset1, jobtypeid=jobtype(jobtypeid=0))
+
+    url = reverse(
+        "assets:replicate_asset", kwargs={"group_id": test_doc.group.pk, "pk": asset1.pk}
+    )
+    data = {
+        "group_id": test_doc.group.pk,
+        "template_asset": asset1.pk,
+        "create_acceptance_job": 'true'
+    }
+    response = client.post(url, data=data)
+    assert response.context['form'].errors

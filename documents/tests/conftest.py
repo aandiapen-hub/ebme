@@ -192,7 +192,7 @@ def temp_barcode_only():
 def immediate_task_backend(settings):
     settings.TASKS = {
         "default": {
-                    "BACKEND": "django.tasks.backends.immediate.ImmediateBackend",
+                    "BACKEND": "django.tasks.backends.dummy.DummyBackend",
         }
     }
 
