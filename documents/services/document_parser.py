@@ -365,7 +365,7 @@ def gs1_resolver(parsed_data):
     asset = find_asset_by_serial_and_model(serial, known_model)
 
     if asset:
-        if asset.prod_date:
+        if asset.prod_date and prod_date:
             prod_date_missing = asset.prod_date.strftime("%y%m%d")  != prod_date
         else:
             prod_date_missing = True
