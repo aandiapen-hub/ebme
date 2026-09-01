@@ -1,3 +1,5 @@
+from reportlab.pdfbase.pdfmetrics import test
+
 from model_information.services import configuration
 import pytest
 from django.contrib.auth.models import Permission
@@ -1178,6 +1180,23 @@ def test_exitint_model_list_view_renders(client, user, mocker):
     assertTemplateUsed(response, "model_information/partials/existing_model_list.html")
 
 
+@pytest.mark.django_db
+def test_exitint_model_list_view_renders_missing_model(client, user, mocker):
+    user = user()
+    client.force_login(user)
+    mocker.patch(
+        "django.contrib.auth.mixins.PermissionRequiredMixin.has_permission",
+        return_value=True,
+    )
+
+    url = reverse("model_information:existing_modellist")
+    query_params = urlencode({})
+    response = client.get(f"{url}?{query_params}")
+
+    # test html
+    assert response.status_code == 200
+    assert not response.context['models']
+
 
 @pytest.mark.django_db
 def test_software_filter_view_permission_denied(client, user_setup):
@@ -2242,3 +2261,96 @@ def test_configuration_scope_delete_view_posts(
 
     assert response.status_code == 302
     assert not EquipmentConfigurationScope.objects.filter(pk=sm.pk).exists()
+
+
+@pytest.mark.django_db
+def test_model_copy_view_requires_login(client, model):
+    model = model()
+    url = reverse("model_information:copy_model", kwargs={"pk": model.modelid})
+    response = client.get(url)
+    assert response.status_code == 302  # Redirect to login
+    assert "/login" in response.url.lower()  # Ensure it's going to the login page
+
+
+@pytest.mark.django_db
+def test_model_copy_view_requires_permission(client, user, model):
+    model = model()
+    url = reverse("model_information:copy_model", kwargs={"pk": model.modelid})
+    user = user()
+
+    client.force_login(user)
+    response = client.get(url)
+    assert response.status_code == 403  # Redirect to login
+
+
+@pytest.mark.django_db
+def test_model_copyp_view_renders(client, user, model):
+    model = model()
+    url = reverse("model_information:copy_model", kwargs={"pk": model.modelid})
+    user = user()
+
+    permission = Permission.objects.get(codename="add_tblmodel")
+    user.user_permissions.add(permission)
+
+    client.force_login(user)
+    response = client.get(url)
+    assert response.status_code == 200
+    assertTemplateUsed(response, "model_information/model_copy.html")
+
+
+@pytest.mark.django_db
+def test_model_copy_view_posts_unsuccessfully(client, user, model, asset):
+    asset = asset()
+    model = asset.modelid
+    url = reverse("model_information:copy_model", kwargs={"pk": model.modelid})
+    user = user()
+    permission = Permission.objects.get(codename="add_tblmodel")
+    user.user_permissions.add(permission)
+
+    client.force_login(user)
+
+    response = client.post(url)
+    assert response.context["form"].errors
+
+@pytest.mark.django_db
+def test_model_copy_view_posts_successfully_error(client, user, model):
+    model = model()
+    user = user()
+    url = reverse("model_information:copy_model", kwargs={"pk": model.modelid})
+    permission = Permission.objects.get(codename="add_tblmodel")
+    user.user_permissions.add(permission)
+    test_gtin = 'testgtin34349'
+    data = {
+        'model_id': model.pk,
+        'gtin':''
+    }
+
+    client.force_login(user)
+
+    assert not Tblmodel.objects.filter(gtin=test_gtin).exists()
+    response = client.post(url, data=data)
+    assert response.status_code == 200
+    assert response.context['form'].errors
+
+
+@pytest.mark.django_db
+def test_model_copy_view_posts_successfully(client, user, model):
+    model = model()
+    user = user()
+    url = reverse("model_information:copy_model", kwargs={"pk": model.modelid})
+    permission = Permission.objects.get(codename="add_tblmodel")
+    user.user_permissions.add(permission)
+    test_gtin = 'testgtin34349'
+    data = {
+        'model_id': model.pk,
+        'gtin': test_gtin 
+    }
+
+    client.force_login(user)
+
+    assert not Tblmodel.objects.filter(gtin=test_gtin).exists()
+    response = client.post(url, data=data)
+    assert response.status_code == 302
+
+    assert Tblmodel.objects.filter(gtin=test_gtin).exists()
+

@@ -767,7 +767,79 @@ def test_filtered_asset_table_view_renders(client, user_setup, asset):
     response = client.get(url, HTTP_HX_REQUEST="true")
     assert response.status_code == 200
 
+# test asset to job filter 
+@pytest.mark.django_db
+def test_asset_to_job_view_login(
+    client,
+):
+    url = reverse("assets:asset_to_job")
+    response = client.get(url)
+    assert response.status_code == 302  # Redirect to login
+    assert "/login" in response.url.lower()  # Ensure it's going to the login page
 
+
+@pytest.mark.django_db
+def test_asset_to_job_view_permission_denied(client, user_setup):
+    user = user_setup
+    client.force_login(user)
+    url = reverse("assets:asset_to_job")
+    response = client.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_asset_to_job_view_renders(client, user, jobs):
+    user = user()
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+
+    permission = Permission.objects.get(codename="view_assetview")
+    permission2 = Permission.objects.get(codename="view_jobview")
+    user.user_permissions.add(permission)
+    user.user_permissions.add(permission2)
+
+    jobs = jobs(count=10)
+
+    base_url = reverse("assets:asset_to_job")
+    query_params = urlencode({'additional_filter_options':'filter_latest_ppm'})
+    url = f"{base_url}?{query_params}"
+
+    response = client.get(url, HTTP_HX_REQUEST="true")
+    assert response.status_code == 200
+    session_filter = response.wsgi_request.session["/jobs/jobs/"]
+    assert  session_filter
+
+    response = client.get(response['HX-Redirect'])
+    assert 0 < len(response.context["table"].rows) < 10
+
+@pytest.mark.django_db
+def test_asset_to_job_view_renders_with_selected_ids(client, user, jobs):
+    user = user()
+    user.is_staff = True
+    user.save()
+    client.force_login(user)
+
+    permission = Permission.objects.get(codename="view_assetview")
+    permission2 = Permission.objects.get(codename="view_jobview")
+    user.user_permissions.add(permission)
+    user.user_permissions.add(permission2)
+
+    jobs = jobs(count=10)
+    asset0 = jobs[0].assetid.pk
+    asset0_job_count = Tbljob.objects.filter(assetid=asset0).count()
+
+    base_url = reverse("assets:asset_to_job")
+    query_params = urlencode({'selected_ids': asset0})
+    url = f"{base_url}?{query_params}"
+
+    response = client.get(url, HTTP_HX_REQUEST="true")
+    assert response.status_code == 200
+    session_filter = response.wsgi_request.session["/jobs/jobs/"]
+    assert  session_filter
+
+    response = client.get(response['HX-Redirect'])
+    assert len(response.context["table"].rows) == asset0_job_count
 
 @pytest.mark.django_db
 def test_asset_bulk_update_view_renders(client, user_setup, create_assets):

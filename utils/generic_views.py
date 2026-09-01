@@ -711,6 +711,7 @@ class RoutingViewMixin(View):
         }
 
         response = HttpResponse(status=200)
+        
         response["HX-Redirect"] = self.redirect_url
 
         return response

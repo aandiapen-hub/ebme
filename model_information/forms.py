@@ -23,8 +23,8 @@ class ModelCreateForm(forms.ModelForm):
         }
 
 class ModelCopyForm(forms.Form):
-    model_id = forms.CharField(widget=forms.HiddenInput())
-    gtin = forms.CharField(max_length=14)
+    model_id = forms.CharField(widget=forms.HiddenInput(), required=True)
+    gtin = forms.CharField(max_length=14, required=True)
 
 
 class ModelUpdateForm(TempUploadUpdateFormMixin,forms.ModelForm):

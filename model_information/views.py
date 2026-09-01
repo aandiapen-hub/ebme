@@ -113,20 +113,12 @@ class BrandCreateView(
     template_name = "model_information/brand_create.html"
     permission_required = "assets.add_tblbrands"
     success_url_app_view = "model_information:brand_detail"
+    merged_gs1_ai_field = 'brandid'
 
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
-
-            temp_group = super().get_temp_group
-            if temp_group:
-                extracted_json = temp_group.extracted_json
-                merged_gs1_ai = extracted_json.setdefault('merged_gs1_ai', {})
-                merged_gs1_ai['brandid'] = self.object.pk
-                temp_group.save(update_fields=['extracted_json'])
-
             self.after_save(form)
-
         return HttpResponseRedirect(self.get_success_url())
 
     def get_context_data(self, *args, **kwargs):
@@ -255,10 +247,6 @@ class ModelCreateView(
 
         return context
 
-    def form_invalid(self, form):
-        print('thisis running*****', form.errors)
-        return super().form_invalid(form)
-
 class ModelCopyView(
     LoginRequiredMixin,
     PermissionRequiredMixin,
@@ -276,9 +264,6 @@ class ModelCopyView(
         model_id = self.request.POST.get('model_id', None)
         gtin = self.request.POST.get('gtin', None)
         model = Tblmodel.objects.filter(pk=model_id).first()
-        if not gtin or not model:
-            form.add(None, 'Copying not possbile, model or gtin missing')
-            return self.form_invalid(form)
 
         model.pk = None
         model.gtin = gtin
@@ -422,19 +407,12 @@ class CategoryCreateView(
     template_name = "model_information/category_create.html"
     permission_required = "assets.add_tblcategories"
     success_url_app_view = "model_information:category_detail"
+    merged_gs1_ai_field = 'categoryid'
 
 
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
-
-            temp_group = super().get_temp_group
-            if temp_group:
-                extracted_json = temp_group.extracted_json
-                merged_gs1_ai = extracted_json.setdefault('merged_gs1_ai', {})
-                merged_gs1_ai['categoryid'] = self.object.pk
-                temp_group.save(update_fields=['extracted_json'])
-
             self.after_save(form)
 
         return HttpResponseRedirect(self.get_success_url())

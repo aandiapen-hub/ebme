@@ -14,6 +14,8 @@ from documents.services.payloads import (
 from django.utils.dateparse import parse_date, parse_datetime
 from datetime import datetime, date
 
+from documents.services.process_document import merge_gs1_ai_data
+
 class DocumentLinkPermissionMixin(PermissionRequiredMixin):
 
     def get_queryset(self):
@@ -31,6 +33,7 @@ class DocumentLinkPermissionMixin(PermissionRequiredMixin):
 
 class TempUploadMixin:
     initial_mapper = None
+    merged_gs1_ai_field = None
 
     def get_temp_group_id(self):
         return (
@@ -44,14 +47,13 @@ class TempUploadMixin:
     @cached_property
     def get_temp_group(self):
         temp_group_id = self.get_temp_group_id()
-
         if not temp_group_id:
             return None
 
-        return TempUploadGroup.objects.filter(
+        group = TempUploadGroup.objects.filter(
             pk=temp_group_id
         ).first()
-
+        return group 
     def apply_temp_payload_to_initial(self, initial):
         return apply_payload_to_initial(
             self.get_temp_group_id(),
@@ -142,10 +144,21 @@ class TempUploadMixin:
         else:
             return reverse(self.success_url_app_view, kwargs={'pk': self.object.pk})
 
+    def update_extracted_json_post_save(self):
+        # update the extracted information of temp group with newly created record
+        if self.merged_gs1_ai_field:
+            temp_group = self.get_temp_group
+            extracted_json = temp_group.extracted_json
+            merged_gs1_ai = extracted_json.setdefault('merged_gs1_ai', {})
+            merged_gs1_ai[self.merged_gs1_ai_field] = self.object.pk
+            temp_group.save(update_fields=['extracted_json'])
+
     def after_save(self, form):
         self.save_temp_files(form, self.object)
+
         temp_id = self.get_temp_group_id()
         if temp_id:
+            self.update_extracted_json_post_save()
             temp_group_resolver(temp_id)
 
 
