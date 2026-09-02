@@ -1,4 +1,5 @@
 from dataclasses import field
+from datetime import datetime
 from functools import cached_property
 from django.http import Http404
 from django.db.models import(
@@ -6,7 +7,8 @@ from django.db.models import(
     IntegerField,
     DecimalField,
     FloatField,
-    CharField
+    CharField,
+    DateField
 )
 
 from django.views.generic import ListView
@@ -59,6 +61,9 @@ class HtmxPickerSearch(
 
         if isinstance(self.field, CharField):
             return "values"
+
+        if isinstance(self.field, DateField):
+            return "date"
 
         raise Http404
 
@@ -173,10 +178,14 @@ class HtmxPickerSearch(
         elif self.picker_mode == 'values':
             qs =self.get_distinct_values(qs)
 
+        elif self.picker_mode == 'date':
+            qs =self.get_distinct_values(qs)
+
         else:
             raise Http404
-
+        
         return qs
+
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
@@ -213,6 +222,16 @@ class HtmxPickerSearch(
                 }
                 for value in context['object_list'] 
             ]
+
+        elif self.picker_mode == 'date':
+            context['options'] = [
+                {
+                    'value': datetime.strftime(value, '%Y-%m-%d'),
+                    'label': datetime.strftime(value, '%Y-%m-%d'), 
+                }
+                for value in context['object_list'] if value
+            ]
+
 
         return context
 

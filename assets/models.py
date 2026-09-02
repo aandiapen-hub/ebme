@@ -362,7 +362,7 @@ class JobView(models.Model):
         ordering = ("jobid",)
 
     def __str__(self):
-        return f"{self.jobid} - {self.model} - {self.serialnumber} - {self.jobstatus} - {self.customer} "
+        return f"{self.jobid} - {self.modelid} - {self.serialnumber} - {self.jobstatusid} - {self.customerid} "
 
     def get_absolute_url(self):
             # Maps to an existing URL route pattern named 'article_detail'

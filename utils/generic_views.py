@@ -293,7 +293,18 @@ class FilteredTableView(
             }
 
             return self._render_field_summary(summary_field_data, field)
-        # summariese all other type of data
+
+        if isinstance(field, ForeignKey):
+            config = field.related_model._meta.ordering
+            if config:
+                order_fieldname = config[0]
+                order_by_field = f"{field.name}__{order_fieldname}"
+            else:
+                order_by_field = f"{field.name}"
+        elif isinstance(field, DateField):
+            order_by_field = f"-{field.name}"
+        else:
+            order_by_field = field.name
         table_data = self.get_table_data()
 
         items = {}
@@ -301,8 +312,10 @@ class FilteredTableView(
             table_data
             .values(field.name)
             .annotate(count=Count("pk"))
-            .order_by(f"-{field.name}")
+            .order_by(order_by_field)
         )
+        
+
         
         #filter summary data by search term
         search_term = self.request.GET.get('search_summary_data','').strip()
@@ -333,9 +346,6 @@ class FilteredTableView(
 
 
         values = list(page.object_list)
-
-        print(page)
-        print('request', self.request.GET)
 
         selected_values = self.request.GET.getlist(
             f"{field.name}__iexact"
@@ -410,6 +420,7 @@ class FilteredTableView(
                 {
                     "pk": datetime.strftime(row[field.name], '%Y-%m-%d'),
                     "name": datetime.strftime(row[field.name], '%Y-%m-%d'),
+                    "order_by": row[field.name],
                     "count": row["count"],
                     "order": page_offset + index,
                     "fieldname": field.name,
@@ -432,16 +443,14 @@ class FilteredTableView(
 
         # summariese all other type of data
 
-        # sort results aphabetically if they exist
         summary_field_data = {
             "status": "list",
-            "data": sorted(items, key=lambda x: x["name"] or ''),
+            "data": items,
             "page": page,
             "page_number_name": "summary_page",
             "search_term":search_term
         }
 
-        result_only = self.request.GET.get('result_only')
         return self._render_field_summary(summary_field_data, field, result_only)
 
     def _render_field_summary(self, summary_field_data, field, result_only):
