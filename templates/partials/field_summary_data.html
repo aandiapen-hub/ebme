@@ -92,14 +92,20 @@
         <input 
           id='search_summary_data'
           name='search_summary_data'
-           placeholder='Search values'
-            hx-get=".{% querystring result_only='true' %}" 
-            hx-trigger='keyup changed delay:500ms,'
-            hx-swap='innerHTML'
-            hx-target='#unselected_values'
-            value='{{summary_field_data.search_term}}'
-        />
-      </div>
+          placeholder='Search values'
+          hx-get=".{% querystring result_only='true' %}" 
+          hx-trigger='keyup changed delay:500ms,'
+          hx-swap='innerHTML'
+          hx-push-url='false'
+          hx-target='#unselected_values'
+          value='{{summary_field_data.search_term}}'
+          _=" on keydown[keyCode == 13]
+          halt the event
+          end
+          on input 
+          show <div>div/> in [#selected_values]
+          when its dataset.value.toLowerCase() contains my value.toLowerCase() end
+          "/></div>
 
       <div class='row'>
         <div class='col-6 border'>
@@ -117,39 +123,8 @@
           </div>
         </div>
 
-
-        {% elif 'datefield' in summary_field_data.status %}
-            <div class='d-flex align-items-start'>
-              <p class='mb-0 pt-2'>Quick filter not available. Use other Filters</p>
-              <button
-                          class="btn" type="button"
-                          data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
-                          _="on click
-                          set the value of #filter_list_search_box to '{{field.verbose_name}}'
-                          trigger input on #filter_list_search_box 
-                          add .show to #flush-collapse_{{field.name}}
-                              "> 
-                          <i class="bi bi-funnel-fill"></i>
-                      </button>
-            </div>
-
-        {% elif "high_row_count" in summary_field_data.status %}
-            <div class='d-flex align-items-start'>
-              <p class='mb-0 pt-2'>Quick filter not available. Use other Filters</p>
-              <button
-                    class="btn" type="button"
-                    data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
-                    _="on click
-                    set the value of #filter_list_search_box to '{{field.verbose_name}}'
-                    trigger input on #filter_list_search_box 
-                    add .show to #flush-collapse_{{field.name}}
-                        "> 
-                    <i class="bi bi-funnel-fill"></i>
-                </button>
-            </div>
         </div>
     </div>
-  </div>
 
 {% endif %}
 {% endpartialdef %}
@@ -225,7 +200,7 @@
             remove <input/> from myselect
             remove <span/> from myselect
         end
-        add @hx-include="#pivot_filters" to #filter-form
+        add @hx-include="#pivot_filters input.btn-check" to #filter-form
         wait 50ms
         trigger submit on #filter-form
         remove @hx-include from #filter-form
@@ -234,6 +209,5 @@
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
     
 </div>
-
 
 

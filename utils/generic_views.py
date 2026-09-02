@@ -334,7 +334,7 @@ class FilteredTableView(
                     }
                 )
 
-        paginator = Paginator(summary_qs, 10)
+        paginator = Paginator(summary_qs, 20)
 
 
         page_number = self.request.GET.get(
@@ -363,7 +363,14 @@ class FilteredTableView(
                 if value not in existing_values
             ]
 
-            selected_values_qs = summary_qs.filter(
+            unfiltered_data = (
+                self.model
+                .objects 
+                .values(field.name)
+                .annotate(count=Count("pk"))
+                .order_by(order_by_field)
+            )
+            selected_values_qs = unfiltered_data.filter(
                 **{f"{field.name}__in": missing_selected}
             ) if missing_selected else summary_qs.none()
 
@@ -442,7 +449,6 @@ class FilteredTableView(
             ]
 
         # summariese all other type of data
-
         summary_field_data = {
             "status": "list",
             "data": items,

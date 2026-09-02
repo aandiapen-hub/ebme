@@ -73,7 +73,8 @@
       
       <form id='filter-form' hx-get="{{request.path}}" hx-target="#result-container" 
             hx-trigger="submit from:#filter-form"
-            hx-swap="innerHTML" hx-push-url='true' hx-indicator='.htmx-indicator' name="search"
+            hx-swap="innerHTML" hx-push-url='true' hx-indicator='.htmx-indicator' name="search" 
+
               _="on change
                     remove @hidden from #filter_form_submit_button">
               {% include "partials/form_filter_content.html" %}

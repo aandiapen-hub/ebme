@@ -13,7 +13,7 @@
   {% for column in table.columns %}
     <th class="{% if request.GET|get:column.name %}table-primary{% endif %}"
       {% if column.orderable %}  
-          hx-get="{% if request.GET %}{{ request.get_full_path }}&summary_field={{ column.name }}&search_summary_data={% else %}{{ request.get_full_path }}?summary_field={{ column.name }}&search_summary_data={% endif %}" 
+          hx-get="{% if request.GET %}{{ request.get_full_path }}&summary_field={{ column.name }}{% else %}{{ request.get_full_path }}?summary_field={{ column.name }}{% endif %}" 
           data-bs-toggle="modal"
           data-bs-target="#summaryModal"
           hx-indicator='.htmx-indicator'
