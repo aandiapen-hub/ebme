@@ -81,6 +81,8 @@ class DateRangeWidget(RangeWidget):
 class MyInFilter(BaseInFilter, CharFilter):
     pass
 
+class MyDateInFilter(BaseInFilter, DateFilter):
+    pass
 
 def filter_name_not(self, queryset, name, value):
     if not value:
@@ -152,14 +154,6 @@ def generate_filter_for_field(model, field_name, lookup):
         # lookup search on foreighkey
         else:
             # get fields in model that contains name or description
-            search_fields = [
-                f"{field.name}__icontains"
-                for field in model_fields
-                if "name" in field.name.lower()
-                or "description" in field.name.lower()
-                or "_id" in field.name
-            ]
-
             return ModelMultipleChoiceFilter(
                 label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
                 field_name=field_name,
@@ -173,7 +167,7 @@ def generate_filter_for_field(model, field_name, lookup):
 
     elif "exact" in lookup and not isinstance(field, models.DateField):
         myfilter = MyInFilter(
-            field_name=field_name,
+            field_name=field.name,
             lookup_expr="in",
             label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
         )
@@ -195,6 +189,18 @@ def generate_filter_for_field(model, field_name, lookup):
                 ),
             )
 
+        if "exact" in lookup:
+            myfilter = MyDateInFilter(
+                field_name=field.name,
+                lookup_expr="in",
+                label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}")
+            
+            myfilter.field.widget=HTMXMultiPickerWidget(
+                    model=model,
+                    fieldname=field.name,
+                    multiple=True,
+                )
+            return myfilter 
         else:
             return DateFilter(
                 label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",

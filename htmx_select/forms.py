@@ -1,7 +1,10 @@
+from django_filters import DateFilter
+import datetime
+
 from django import forms
 from django.urls import reverse
 from urllib.parse import urlencode
-from django.db.models import ForeignKey, CharField
+from django.db.models import ForeignKey, CharField, DateField
 
 
 class HTMXMultiPickerWidget(forms.SelectMultiple):
@@ -42,6 +45,9 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
 
         if self.field.choices:
             return "choices"
+
+        if isinstance(self.field, DateField):
+            return 'date_field'
 
         if isinstance(self.field, CharField):
             return "values"
@@ -134,6 +140,20 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
                         'label': obj[1], 
                     }
                     for obj in selected_list
+                ]
+
+        elif self.widget_mode == 'date_field':
+            if isinstance(value, str):
+                selected_values = value.split(",")
+            elif isinstance(value, list):
+                selected_values = value
+
+            widget["selected_list"] = [
+                    {
+                        'value': value,
+                        'label': str(value), 
+                    }
+                    for value in selected_values
                 ]
 
         elif self.widget_mode == 'values':

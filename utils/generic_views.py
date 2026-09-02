@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Literal
+import re
 from django.urls import reverse
 from django_htmx.http import HttpResponseClientRedirect
 from django.db import IntegrityError
@@ -12,8 +15,10 @@ from django.db.models import(
     DateField,
     JSONField,
     Subquery,
+    Q,
 )
-
+from django.db.models import Count
+from django.core.paginator import Paginator
 from urllib.parse import urlencode
 from users.models import UserProfiles
 from utils.generic_filters import (
@@ -32,8 +37,6 @@ from django import forms
 from django.apps import apps
 from django.http import QueryDict
 from dataclasses import dataclass
-from typing import Literal
-import re
 
 EXPORT_LIMIT = 3000
 
@@ -277,8 +280,13 @@ class FilteredTableView(
         # get requested summary field from model
         field = self.model._meta.get_field(self.summary_field)
 
+        # return full template or partial of only the results
+        result_only = self.request.GET.get('result_only')
+
+
+
         # summary data not available for date fields
-        if isinstance(field, JSONField) or isinstance(field, DateField):
+        if isinstance(field, JSONField):
             summary_field_data = {
                 "status": "datefield",
                 "data": None,
@@ -287,62 +295,139 @@ class FilteredTableView(
             return self._render_field_summary(summary_field_data, field)
         # summariese all other type of data
         table_data = self.get_table_data()
-        count = table_data.values(field.name).distinct().count()
-        if count > 1000:
-            summary_field_data = {"status": "high_row_count", "data": None}
-            return self._render_field_summary(summary_field_data, field)
 
         items = {}
-        values_qs = Counter(table_data.values_list(field.name, flat=True))
-        items = {}
-        if len(values_qs) > 1000:
-            summary_field_data = {"status": "high_row_count", "data": None}
+        summary_qs = (
+            table_data
+            .values(field.name)
+            .annotate(count=Count("pk"))
+            .order_by(f"-{field.name}")
+        )
+        
+        #filter summary data by search term
+        search_term = self.request.GET.get('search_summary_data','').strip()
+        if search_term:
+            if isinstance(field, ForeignKey):
+                search_terms = field.related_model.htmx_picker.search_terms
 
-            return self._render_field_summary(summary_field_data, field)
+                q_object = Q()
+                for term in search_terms:
+                    q_object |= Q(**{f"{field.name}__{term}": search_term})
+                summary_qs = summary_qs.filter(q_object)
+            else:
+                summary_qs = summary_qs.filter(
+                    **{
+                        f"{field.name}__icontains": search_term
+                    }
+                )
+
+        paginator = Paginator(summary_qs, 10)
+
+
+        page_number = self.request.GET.get(
+            "summary_page",
+            1,
+        )
+
+        page = paginator.get_page(page_number)
+
+
+        values = list(page.object_list)
+
+        print(page)
+        print('request', self.request.GET)
+
+        selected_values = self.request.GET.getlist(
+            f"{field.name}__iexact"
+        )
+
+        if page.number == 1:
+
+            existing_values = {
+                str(row[field.name])
+                for row in values
+            }
+
+            missing_selected = [
+                value for value in selected_values
+                if value not in existing_values
+            ]
+
+            selected_values_qs = summary_qs.filter(
+                **{f"{field.name}__in": missing_selected}
+            ) if missing_selected else summary_qs.none()
+
+            #add selected values to page values
+            values += list(selected_values_qs)
+
+        if result_only:
+            values = [
+                row for row in values
+                if row[field.name] not in selected_values
+            ]
+
+        page_offset = (page.number - 1) * paginator.per_page
 
         if field.choices:
             # map value -> label
             value_to_label = dict(field.choices)
-
             items = [
                 {
-                    "pk": value,
-                    "name": self.clean_name(value_to_label.get(value)),
-                    "count": count,
+                    "pk": row[field.name],
+                    "name": self.clean_name(value_to_label.get(row[field.name])),
+                    "count": row["count"],
+                    "order": page_offset + index,
                     "fieldname": field.name,
-                    "checked": str(value)
-                    in self.request.GET.getlist(f"{field.name}__iexact", []),
+                    "checked": str(row[field.name]) in selected_values,
                 }
-                for value, count in values_qs.items()
+                for index, row in enumerate(values, start=1)
             ]
         elif isinstance(field, ForeignKey):
-            related_model = field.remote_field.model
-            related_objs = related_model.objects.filter(pk__in=values_qs.keys())
-            id_to_name = {a.pk: str(a) for a in related_objs}
+            related_ids = [row[field.name] for row in values]
 
+            related_objs = field.remote_field.model.objects.filter(
+                pk__in=related_ids
+            )
+
+            id_to_name = {
+                obj.pk: str(obj)
+                for obj in related_objs
+            }
             items = [
                 {
-                    "pk": pk,
-                    "name": self.clean_name(id_to_name.get(pk)),
-                    "count": count,
+                    "pk": row[field.name],
+                    "name": self.clean_name(id_to_name.get(row[field.name])),
+                    "count": row["count"],
+                    "order": page_offset + index,
                     "fieldname": field.name,
-                    "checked": str(pk)
-                    in self.request.GET.getlist(f"{field.name}__iexact", None),
+                    "checked": str(row[field.name]) in selected_values,
                 }
-                for pk, count in values_qs.items()
+                for index, row in enumerate(values, start=1)
             ]
 
+        elif isinstance(field, DateField):
+            items = [
+                {
+                    "pk": datetime.strftime(row[field.name], '%Y-%m-%d'),
+                    "name": datetime.strftime(row[field.name], '%Y-%m-%d'),
+                    "count": row["count"],
+                    "order": page_offset + index,
+                    "fieldname": field.name,
+                    "checked": str(row[field.name]) in selected_values,
+                }
+                for index, row in enumerate(values, start=1) if row[field.name]
+            ]
         else:
             items = [
                 {
-                    "pk": pk,
-                    "name": self.clean_name(pk),
-                    "count": count,
+                    "pk": row[field.name],
+                    "name": self.clean_name(row[field.name]),
+                    "count": row["count"],
+                    "order": page_offset + index,
                     "fieldname": field.name,
-                    "checked": str(pk)
-                    in self.request.GET.getlist(f"{field.name}__iexact", None),
+                    "checked": str(row[field.name]) in selected_values,
                 }
-                for pk, count in values_qs.items()
+                for index, row in enumerate(values, start=1)
             ]
 
         # summariese all other type of data
@@ -351,10 +436,15 @@ class FilteredTableView(
         summary_field_data = {
             "status": "list",
             "data": sorted(items, key=lambda x: x["name"] or ''),
+            "page": page,
+            "page_number_name": "summary_page",
+            "search_term":search_term
         }
-        return self._render_field_summary(summary_field_data, field)
 
-    def _render_field_summary(self, summary_field_data, field):
+        result_only = self.request.GET.get('result_only')
+        return self._render_field_summary(summary_field_data, field, result_only)
+
+    def _render_field_summary(self, summary_field_data, field, result_only):
         query = self.request.GET.copy()
         for k in list(query.keys()):
             if "summary_field" in k:
@@ -363,6 +453,8 @@ class FilteredTableView(
         context_data["querystring"] = query.urlencode()
         context_data["summary_field_data"] = summary_field_data
         context_data['field'] = field
+        if result_only:
+            return render(self.request, "partials/field_summary_data.html#values", context_data)
         return render(self.request, "partials/field_summary_data.html", context_data)
 
     def get_filterset_kwargs(self, filterset_class):
