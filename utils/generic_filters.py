@@ -27,7 +27,6 @@ from django.forms import Field
 from django.core.exceptions import FieldDoesNotExist
 
 LOOKUP_SYMBOL = {
-    "exact": "is",
     "iexact": "is",
     "icontains": "contains",
     "isnull": "empty",
@@ -89,133 +88,209 @@ def filter_name_not(self, queryset, name, value):
         return queryset
     return queryset.exclude(**{name: value})
 
+def filter_label(field, lookup):
+    return f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}"
+
+
+def text_widget():
+    return TextInput(
+        attrs={
+            "type": "text",
+            "class": "form-control",
+        }
+    )
+
+
+def select_widget(field_name, lookup):
+    return Select(
+        attrs={
+            "class": "form-select",
+            "id": f"{field_name}__{lookup}",
+        }
+    )
+
+
+def picker_widget(model, field):
+    return HTMXMultiPickerWidget(
+        model=model,
+        fieldname=field.name,
+        multiple=True,
+    )
+
+
+def create_isnull_filter(model, field, lookup):
+    return TypedChoiceFilter(
+        field_name=field.name,
+        lookup_expr="isnull",
+        choices=NULL_CHOICES,
+        coerce=lambda value: None if value in ("", None) else value == "True",
+        label=filter_label(field, lookup),
+        widget=select_widget(field.name, lookup),
+    )
+
+
+def create_not_equal_filter(model, field, lookup):
+    return CharFilter(
+        method="filter_name_not",
+        field_name=field.name,
+        label=filter_label(field, lookup),
+        widget=text_widget(),
+    )
+
+
+def create_choices_filter(model, field, lookup):
+    return MultipleChoiceFilter(
+        field_name=field.name,
+        label=filter_label(field, lookup),
+        choices=field.choices,
+        widget=picker_widget(model, field),
+    )
+
+
+def get_foreign_key_search_field(field):
+    related_model = field.remote_field.model
+
+    for related_field in related_model._meta.fields:
+        if "name" in related_field.name.lower():
+            return f"{field.name}__{related_field.name}"
+
+    return field.name
+
+
+def create_foreign_key_contains_filter(model, field, lookup):
+    field_path = get_foreign_key_search_field(field)
+
+    return CharFilter(
+        field_name=field_path,
+        lookup_expr="icontains",
+        label=filter_label(field, lookup),
+        widget=text_widget(),
+    )
+
+
+def create_foreign_key_filter(model, field, lookup):
+    related_model = field.remote_field.model
+
+    return ModelMultipleChoiceFilter(
+        field_name=field.name,
+        label=filter_label(field, lookup),
+        queryset=related_model.objects.all(),
+        widget=picker_widget(model, field),
+    )
+
+
+def create_exact_filter(model, field, lookup):
+    filter = MyInFilter(
+        field_name=field.name,
+        lookup_expr="in",
+        label=filter_label(field, lookup),
+    )
+
+    filter.field.widget = picker_widget(model, field)
+
+    return filter
+
+
+def create_date_range_filter(model, field, lookup):
+    return DateFromToRangeFilter(
+        label=f"{field.verbose_name} Between",
+        widget=DateRangeWidget(
+            attrs={
+                "type": "date",
+                "class": "form-control",
+            }
+        ),
+    )
+
+
+def create_date_iexact_filter(model, field, lookup):
+    filter_ = MyDateInFilter(
+        field_name=field.name,
+        lookup_expr="in",
+        label=filter_label(field, lookup),
+    )
+
+    filter_.field.widget = picker_widget(model, field)
+
+    return filter_
+
+
+def create_date_filter(model, field, lookup):
+    return DateFilter(
+        field_name=field.name,
+        lookup_expr=lookup,
+        label=filter_label(field, lookup),
+        widget=DateInput(
+            attrs={
+                "type": "date",
+                "class": "form-control",
+            }
+        ),
+    )
+
+
+def create_default_filter(model, field, lookup):
+    return CharFilter(
+        field_name=field.name,
+        lookup_expr=lookup,
+        label=filter_label(field, lookup),
+        widget=text_widget(),
+    )
+
+FILTER_RULES = [
+    (
+        lambda field, lookup: "isnull" in lookup,
+        create_isnull_filter,
+    ),
+    (
+        lambda field, lookup: "ne" in lookup,
+        create_not_equal_filter,
+    ),
+    (
+        lambda field, lookup: bool(field.choices),
+        create_choices_filter,
+    ),
+    (
+        lambda field, lookup: (
+            isinstance(field, models.ForeignKey)
+            and "icontains" in lookup
+        ),
+        create_foreign_key_contains_filter,
+    ),
+    (
+        lambda field, lookup: isinstance(field, models.ForeignKey),
+        create_foreign_key_filter,
+    ),
+    (
+        lambda field, lookup: (
+            isinstance(field, models.DateField)
+            and "range" in lookup
+        ),
+        create_date_range_filter,
+    ),
+    (
+        lambda field, lookup: (
+            isinstance(field, models.DateField)
+            and "iexact" in lookup
+        ),
+        create_date_iexact_filter,
+    ),
+    (
+        lambda field, lookup: isinstance(field, models.DateField),
+        create_date_filter,
+)]
 
 def generate_filter_for_field(model, field_name, lookup):
     try:
         field = model._meta.get_field(field_name)
     except FieldDoesNotExist:
         return None
-    # Null filter
 
-    if "isnull" in lookup:
-        return TypedChoiceFilter(
-            field_name=field_name,
-            lookup_expr="isnull",
-            choices=NULL_CHOICES,
-            coerce=lambda v: None if v in ("", None) else v == "True",
-            label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
-            widget=Select(
-                attrs={"class": "form-select", "id": f"{field_name}__{lookup}"}
-            ),
-        )
+    for condition, factory in FILTER_RULES:
+        if condition(field, lookup):
+            return factory(model, field, lookup)
 
-    if "ne" in lookup:
-        return CharFilter(
-            method="filter_name_not",
-            label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
-            field_name=field_name,
-            widget=TextInput(attrs={"type": "text", "class": "form-control"}),
-        )
-
-    if field.choices:
-        return MultipleChoiceFilter(
-            field_name=field_name,
-            label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
-            choices=field.choices,
-            widget=HTMXMultiPickerWidget(
-                    model=model,
-                    fieldname=field.name,
-                    multiple=True,
-            ),
-
-        )
-
-    # ForeignKey filters
-    if isinstance(field, models.ForeignKey):
-        related_model = field.remote_field.model
-        model_fields = related_model._meta.fields  # concrete fields only
-        # string search on ForeignKey
-        if "icontains" in lookup:
-            # find a field on the related model with 'name' in its name
-            foreign_fields = [f.name for f in model_fields if "name" in f.name.lower()]
-
-            if foreign_fields:
-                field_path = f"{field_name}__{foreign_fields[0]}"
-            else:
-                # fallback to raw FK field
-                field_path = field_name
-
-            return CharFilter(
-                label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
-                field_name=field_path,
-                lookup_expr="icontains",
-                widget=TextInput(attrs={"type": "text", "class": "form-control"}),
-            )
-        # lookup search on foreighkey
-        else:
-            # get fields in model that contains name or description
-            return ModelMultipleChoiceFilter(
-                label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
-                field_name=field_name,
-                queryset=related_model.objects.all(),
-                widget=HTMXMultiPickerWidget(
-                    model=model,
-                    fieldname=field.name,
-                    multiple=True,
-                ),
-            )
-
-    elif "exact" in lookup and not isinstance(field, models.DateField):
-        myfilter = MyInFilter(
-            field_name=field.name,
-            lookup_expr="in",
-            label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
-        )
-
-        myfilter.field.widget = HTMXMultiPickerWidget(
-                model=model,
-                fieldname=field.name,
-                multiple=True,
-            )
-        return myfilter
-
-    # Date field filters
-    elif isinstance(field, models.DateField):
-        if "range" in lookup:
-            return DateFromToRangeFilter(
-                label=f"{field.verbose_name} Between",
-                widget=DateRangeWidget(
-                    attrs={"type": "date", "class": "form-control"},
-                ),
-            )
-
-        if "iexact" in lookup:
-            myfilter = MyDateInFilter(
-                field_name=field.name,
-                lookup_expr="in",
-                label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}")
-            
-            myfilter.field.widget=HTMXMultiPickerWidget(
-                    model=model,
-                    fieldname=field.name,
-                    multiple=True,
-                )
-            return myfilter 
-        else:
-            return DateFilter(
-                label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
-                field_name=field_name,
-                lookup_expr=lookup,
-                widget=DateInput(attrs={"type": "date", "class": "form-control"}),
-            )
-
-    else:
-        return CharFilter(
-            label=f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}",
-            field_name=field_name,
-            lookup_expr=lookup,
-            widget=TextInput(attrs={"type": "text", "class": "form-control"}),
-        )
+    return create_default_filter(model, field, lookup)
 
 
 class CustomFilterSet(FilterSet):
