@@ -189,7 +189,7 @@ def generate_filter_for_field(model, field_name, lookup):
                 ),
             )
 
-        if "exact" in lookup:
+        if "iexact" in lookup:
             myfilter = MyDateInFilter(
                 field_name=field.name,
                 lookup_expr="in",
@@ -295,7 +295,7 @@ def get_filter_fields(model, visible_columns):
     text_lookups = ["iexact", "icontains", "istartswith", "isnull"]
     foreign_lookups = ["iexact", "icontains", "isnull"]
     numeric_lookups = ["iexact", "lt", "lte", "gt", "gte", "isnull", "ne"]
-    date_lookups = ["exact", "lt", "lte", "gt", "gte", "range", "isnull"]
+    date_lookups = ["iexact", "lt", "lte", "gt", "gte", "range", "isnull"]
     choice_lookups = ["iexact"]
 
     for field in model._meta.get_fields():

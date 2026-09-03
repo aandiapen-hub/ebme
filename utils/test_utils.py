@@ -126,7 +126,7 @@ def test_filtered_table_view_add_filter_date(client, user_setup, lookup):
     if 'range' in lookup['lookup_expr']:
         assert f'name="{DATE_FIELD}__range__lte"' in response.content.decode()
     else:
-        assert f'name="{filter_name}"' in response.content.decode()
+        assert f'div_id_{filter_name}' in response.content.decode()
 
 
 @pytest.mark.django_db
