@@ -1,13 +1,17 @@
 from datetime import datetime
 from typing import Literal
 import re
+
+from dataclasses import field
+from datetime import datetime
+from functools import cached_property
 from django.urls import reverse
 from django_htmx.http import HttpResponseClientRedirect
 from django.db import IntegrityError
 from django.contrib import messages
 from django.shortcuts import render
 from django.views.generic.edit import FormMixin
-from django.views.generic import View
+from django.views.generic import View, TemplateView, ListView
 from django_filters.views import FilterView
 from django_tables2 import SingleTableMixin, CheckBoxColumn, TemplateColumn, Table, Column
 from django.db.models import(
@@ -15,35 +19,48 @@ from django.db.models import(
     DateField,
     JSONField,
     Subquery,
+    IntegerField,
+    DecimalField,
+    FloatField,
+    CharField,
     Q,
 )
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count
 from django.core.paginator import Paginator
 from urllib.parse import urlencode
-from users.models import UserProfiles
-from utils.generic_filters import (
+from .generic_filters import (
     dynamic_filterset_generator,
     get_filter_fields,
     get_filter_from_field_lookup,
 )
-from collections import Counter
 from django_tables2.export.views import ExportMixin
 from django.core.exceptions import ValidationError
 
-from django.views.decorators.cache import never_cache
-from django.utils.decorators import method_decorator
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django import forms
 from django.apps import apps
 from django.http import QueryDict
 from dataclasses import dataclass
+from django.conf import settings
+
+from django.http import Http404
+
 
 EXPORT_LIMIT = 3000
 
 
 # get visible columns for a model for a user
 # Get user's preferred columns from user_profiles.table_settings
+#
+
+def get_user_profile_model():
+    return apps.get_model(
+        settings.DJANGO_TABLE["user_profile_model"]
+    )
+
 def get_visible_columns(request, model, open_column=None):
+    UserProfiles = get_user_profile_model()
     user = request.user
     try:
         user_profile = UserProfiles.objects.get(user_id=user)
@@ -61,16 +78,6 @@ def get_visible_columns(request, model, open_column=None):
 class CustomCheckBoxColumn(CheckBoxColumn):
     verbose_name = ""
 
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("attrs", {})
-        attrs = kwargs.setdefault("attrs", {})
-        attrs["td"] = {
-            "_": """
-                on click
-                toggle @checked on the <input/> in me
-            """
-        }
-        super().__init__(*args, **kwargs)
 
 from django_tables2.utils import OrderByTuple
 
@@ -152,7 +159,7 @@ def get_dynamic_table_class(
                 "style": "position: sticky; top: 0; z-index: 1;",
             },
         }
-        template_name = "tables/tables2_with_filter.html"
+        template_name = "django_filter_table/tables/tables2_with_filter.html"
         if template_columns:
             fields = (
                 ["selected"]
@@ -198,7 +205,7 @@ class FilteredTableView(
     model = None  # override in subclass - Mandatory
     open_column = None # override in subclass - Mandatory
     template_columns = None  # override in subclass - optional
-    template_name = "filter_table.html"  # override in subclass - Mandatory
+    template_name = "django_filter_table/filter_table.html"  # override in subclass - Mandatory
     universal_search_fields = None  # override in subclass - Mandatory
     default_columns = None
     actions = None  # overridein subclass if bulk actions are available
@@ -226,7 +233,7 @@ class FilteredTableView(
         # call parent's dispatch so that the check for new filter is completed
         response = super().dispatch(request, *args, **kwargs)
         if getattr(self, "new_filter_context", False):
-            return render(request, "partials/new_filter.html", self.new_filter_context)
+            return render(request, "django_filter_table/new_filter.html", self.new_filter_context)
 
         # fallback is to return of filtered table data
         return response
@@ -469,8 +476,8 @@ class FilteredTableView(
         context_data["summary_field_data"] = summary_field_data
         context_data['field'] = field
         if result_only:
-            return render(self.request, "partials/field_summary_data.html#values", context_data)
-        return render(self.request, "partials/field_summary_data.html", context_data)
+            return render(self.request, "django_filter_table/field_summary_data.html#values", context_data)
+        return render(self.request, "django_filter_table/field_summary_data.html", context_data)
 
     def get_filterset_kwargs(self, filterset_class):
         # Copy the GET params to make them mutable
@@ -543,7 +550,7 @@ class FilteredTableView(
 
     def get_template_names(self):
         if self.request.htmx:
-            return ["filter_table.html#table-partial"]
+            return ["django_filter_table/filter_table.html#table-partial"]
         return [self.template_name]
 
     def apply_additional_session_filter(self, qs, session_filter, filter_qd):
@@ -822,3 +829,300 @@ class RoutingViewMixin(View):
         response["HX-Redirect"] = self.redirect_url
 
         return response
+
+
+# column chooser
+
+class ColumnChooser(LoginRequiredMixin, TemplateView):
+    template_name = 'users/partials/column_chooser.html'
+
+    def get_success_url(self):
+        url = self.request.POST.get("next")
+        return url
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # get user's visible colums if exists
+        user = self.request.user
+        request_app_model = self.request.GET.get('appmodel')
+        model_name = request_app_model.split('.')[1]
+
+        # list available columns
+        model = apps.get_model(request_app_model)
+        if model:
+            all_columns = [field for field in model._meta.get_fields() if field.concrete and not field.auto_created]
+
+        UserProfiles = get_user_profile_model()
+        profile = UserProfiles.objects.filter(user_id=user).first()
+        available_columns = []
+        if profile and model_name:
+            visible_columns_names = profile.get_preference(model_name, 'visible_columns')
+            all_column_names = [c.name for c in all_columns]
+            visible_columns = []
+            for col_name in visible_columns_names:
+                if col_name in all_column_names:
+                    visible_columns.append(all_columns[all_column_names.index(col_name)]) 
+
+
+            if visible_columns:
+                context['visible_columns'] = visible_columns
+                available_columns = [f for f in all_columns if f not in visible_columns]
+
+        context["available_columns"] = available_columns or all_columns
+
+        context['request_model'] = model_name
+
+        next_url = self.request.GET.get("next_path")
+        query_params = self.request.GET.urlencode()
+        context['next'] = f"{next_url}?{query_params}"
+        return context
+
+    def post(self, request, *args, **kwargs):
+        request_model = request.POST.get('request_model')
+        user_id = self.request.user
+        UserProfiles = get_user_profile_model()
+        profile, created = UserProfiles.objects.get_or_create(
+            user_id=user_id, defaults={"table_settings": {}}
+        )
+
+        columns = request.POST.getlist('columns', None)
+        if columns and profile:
+            profile.set_preference(request_model, 'visible_columns', columns)
+        return HttpResponseRedirect(self.get_success_url())
+
+
+#htmx search
+
+
+class HtmxPickerSearch(
+    LoginRequiredMixin,
+    ListView
+):
+    paginate_by = 20
+    template_name = 'htmx_select/search_result.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.field = self.get_field()
+        self.picker_mode = self.get_picker_mode()
+        self.model = self.get_options_data_source()
+
+
+        return super().dispatch(request, *args, **kwargs)
+
+    @cached_property
+    def get_model(self):
+        model_path = self.kwargs["modelpath"]
+        try:
+            app_label, model_name = model_path.split("__", 1)
+            model = apps.get_model(app_label, model_name)
+        except (ValueError, LookupError):
+            raise Http404
+
+        return model
+
+    def get_field(self):
+        fieldname = self.kwargs["fieldname"]
+        model = self.get_model
+
+        return model._meta.get_field(fieldname)
+
+    def get_picker_mode(self):
+        if self.field.primary_key:
+            return "model"
+
+        if self.field.remote_field:
+            return "foreign_key"
+
+        if self.field.choices:
+            return "choices"
+
+        if isinstance(self.field, CharField):
+            return "values"
+
+        if isinstance(self.field, DateField):
+            return "date"
+
+        raise Http404
+
+
+    def get_options_data_source(self):
+        if self.picker_mode != 'foreign_key':
+            model = self.get_model
+
+        else:
+            model = self.field.remote_field.model
+
+        picker = getattr(model, "htmx_picker", None)
+
+        if not picker or not getattr(picker, "enabled", False):
+            raise Http404
+
+        return model
+
+    @cached_property
+    def get_config(self):
+        return self.model.htmx_picker
+
+    def apply_customer_scope(self, qs):
+        if self.request.user.is_staff:
+            return qs
+
+        customer_id = self.request.user.customerid
+
+        if not customer_id:
+            return qs.none()
+
+        field_name =  self.get_config.customer_scope
+        
+        if not field_name:
+            return qs
+
+        conditions = Q()
+
+        conditions |= Q(**{field_name:customer_id})
+
+        return qs.filter(conditions)
+
+    def get_option_label(self, obj):
+        option_str = getattr(
+            self.model.htmx_picker,
+            "label_str",
+            str,
+        ) or str
+        return option_str(obj)
+
+    def get_distinct_values(self,qs):
+
+        if isinstance(field, (
+            IntegerField,
+            DecimalField,
+            FloatField,
+        )):
+            qs = (
+                qs.exclude(**{f"{self.field.name}__isnull": True})
+                .exclude(**{self.field.name: ""})
+            )
+
+        qs = (
+            qs.order_by()
+            .values_list(self.field.name, flat=True)
+            .distinct()
+        )
+        q = self.request.GET.get("q", "").strip()
+
+        if q:
+            qs = qs.filter(
+                **{f"{self.field.name}__icontains": q}
+            )
+
+        return qs
+
+    def get_choices(self):
+
+        qs = self.field.choices
+
+        q = self.request.GET.get("q", "").strip()
+
+        if q:
+            qs = [choice for choice in qs if str(q) in choice[1].lower()]
+
+
+        return qs
+
+    def apply_q_filter(self,qs):
+
+        q = self.request.GET.get('q', None)
+
+        if q:
+            search_terms = self.get_config.search_terms
+            q_object = Q()
+
+            for term in search_terms:
+                q_object |= Q(**{term: q})
+            qs = qs.filter(q_object)
+        return qs
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        qs = self.apply_customer_scope(qs)
+
+        if self.picker_mode in ['foreign_key', 'model']:
+            qs = self.apply_q_filter(qs)
+
+        elif self.picker_mode == 'choices':
+            qs = self.get_choices()
+
+        elif self.picker_mode == 'values':
+            qs =self.get_distinct_values(qs)
+
+        elif self.picker_mode == 'date':
+            qs =self.get_distinct_values(qs)
+
+        else:
+            raise Http404
+        
+        return qs
+
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+
+        fieldname =  self.request.GET.get('fieldname', None)
+        context['fieldname'] = fieldname
+        if fieldname:
+            context['selected'] = self.request.GET.getlist(fieldname)
+
+        context['multiple'] = self.request.GET.get('multiple', '').lower() == 'true'
+
+        if self.picker_mode in ['foreign_key', 'model']:
+            context['options'] = [
+                {
+                    'value': obj.pk,
+                    'label': self.get_option_label(obj)
+                }
+                for obj in context['object_list'] 
+            ]
+        elif self.picker_mode == 'choices':
+            context['options'] = [
+                {
+                    'value': obj[0],
+                    'label': obj[1] 
+                }
+                for obj in context['object_list'] 
+            ]
+
+        elif self.picker_mode == 'values':
+            context['options'] = [
+                {
+                    'value': value,
+                    'label': str(value), 
+                }
+                for value in context['object_list'] 
+            ]
+
+        elif self.picker_mode == 'date':
+            context['options'] = [
+                {
+                    'value': datetime.strftime(value, '%Y-%m-%d'),
+                    'label': datetime.strftime(value, '%Y-%m-%d'), 
+                }
+                for value in context['object_list'] if value
+            ]
+
+
+        return context
+
+
+
+@dataclass(frozen=True)
+class PickerDependency:
+    field: str
+    lookup: str
+
+@dataclass(frozen=True)
+class HtmxPicker:
+    enabled: bool = True # True
+    search_terms: tuple[str, ...] = () # ('fieldname__icontains',)
+    label_str: str | None = None  # lambda obj: f"{obj.modelname} ({obj.brandid})"
+    customer_scope: str | None = None # 'customerid'
+    dependency: tuple[PickerDependency, ...] =()

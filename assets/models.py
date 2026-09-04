@@ -11,7 +11,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.urls import reverse
 from model_information.models import EquipmentConfigurationLink, EquipmentConfiguration
 
-from htmx_select.utils import HtmxPicker
+from django_filter_table.views import HtmxPicker
 
 class Tblassets(models.Model):
     assetid = models.BigAutoField(

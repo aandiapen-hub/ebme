@@ -12,7 +12,7 @@ from assets.models import (
     Tblpartsused,
     Tblcheckslists,
 )
-from htmx_select.forms import HTMXMultiPickerWidget
+from  django_filter_table.forms  import HTMXMultiPickerWidget
 from parts.models import Tblpartslist
 
 from utils.dynamic_formset import CustomFormsetForm

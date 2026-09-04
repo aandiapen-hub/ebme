@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
-from htmx_select.utils import HtmxPicker
+from django_filter_table.views import HtmxPicker
 
 
 class SoftwareType(models.Model):

@@ -42,15 +42,18 @@ from .forms import (
     ReplicateAssetForm,
 )
 
-from utils.generic_views import BulkUpdateView, TableAction
-
 # import permissions
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from .mixins import CustomerAssetPermissionMixin
 
 from documents.models import TempUploadGroup, DocumentTypes
 
-from utils.generic_views import FilteredTableView, RoutingViewMixin
+from django_filter_table.views import(
+        FilteredTableView,
+        RoutingViewMixin,
+        BulkUpdateView,
+        TableAction
+)
 
 UNIVERSAL_SEARCH_FIELDS = [
     "serialnumber__icontains",

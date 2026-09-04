@@ -5,7 +5,7 @@ from assets.models import JobView
 import html
 
 from django.db.models import DateField, JSONField
-from utils.generic_filters import get_filter_fields 
+from django_filter_table.views import get_filter_fields 
 
 from django.contrib.auth.models import Permission
 

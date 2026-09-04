@@ -53,7 +53,7 @@ from .forms import (
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 
 # import generic filter table view
-from utils.generic_views import FilteredTableView, TableAction
+from django_filter_table.views import FilteredTableView, TableAction
 
 from .reports.purchase_order import print_po
 

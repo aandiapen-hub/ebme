@@ -2,7 +2,7 @@ from django import forms
 from assets.models import Tblbrands, Tblmodel
 
 from documents.mixins import TempUploadUpdateFormMixin
-from htmx_select.forms import HTMXMultiPickerWidget
+from  django_filter_table.forms  import HTMXMultiPickerWidget
 from model_information.models import EquipmentConfigurationScope
 
 

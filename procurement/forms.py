@@ -1,5 +1,5 @@
 from django import forms
-from htmx_select.forms import HTMXMultiPickerWidget
+from  django_filter_table.forms  import HTMXMultiPickerWidget
 from .models import (
     TblInvoices,
     TblPurchaseOrder,

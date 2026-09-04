@@ -6,7 +6,7 @@
 {% load export_url from django_tables2 %}
 {% load i18n %}
 {% load static %}
-{% load custom_tags %}
+{% load django_filter_table %}
 
 {% partialdef result-container %} 
 
@@ -16,15 +16,15 @@
 
       <!-- Mobile -->
       <div class="d-md-none">
-        {% render_table table 'tables/cards_with_filter.html' %}
+        {% render_table table 'django_filter_table/tables/cards_with_filter.html' %}
       </div>
 
   {% endpartialdef %}
 
 <!-- define table partial -->
 {% partialdef table-partial %}
-{% include "partials/summary_data.html" %}
-{% include "partials/form_filter_content.html" %}
+{% include "django_filter_table/summary_data.html" %}
+{% include "django_filter_table/form_filter_content.html" %}
 
 
 {% partial result-container %}
@@ -41,7 +41,7 @@
         <div id="action_reports">
                 {% for action in actions %}
                   {% if not action.on_selectable_items %}
-                    {% include "buttons/action_button.html" with button_content=action.name url=action.url %}        
+                    {% include "django_filter_table/buttons/action_button.html" with button_content=action.name url=action.url %}
                   {% endif %}
                 {% endfor %}
         </div>
@@ -77,7 +77,7 @@
 
               _="on change
                     remove @hidden from #filter_form_submit_button">
-              {% include "partials/form_filter_content.html" %}
+              {% include "django_filter_table/form_filter_content.html" %}
             </form>
     </div>
 
@@ -86,10 +86,10 @@
               <!-- column chooser modal (modal and modal open button)-->
               {% include "users/partials/column_chooser_button.html" with column_chooser_model=model_name success_url=request.url %}
               <!-- column chooser modal (modal and modal open button)-->
-              {% include "partials/add_filter_modal.html" %}
+              {% include "django_filter_table/add_filter_modal.html" %}
             </div>
             <!-- count of results -->
-            {% include "partials/summary_data.html" %}
+            {% include "django_filter_table/summary_data.html" %}
     </div>
   </div>
   <section id="result-section" class="row">
@@ -109,12 +109,12 @@
         </section>
 
       <form id='row_select_form'
-      _='on click from #result-container 
+      _='on click from #result-container
           if  event.target.type is "checkbox"
             set x to target.value:String
             set inputs to <input/> 
             repeat for input in inputs
-            if the value of input is x then set input.checked to target.checked
+              if the value of input is x then set input.checked to target.checked end
             end
           end
         end'>
@@ -196,7 +196,7 @@
                     <li>
                       {% for action in actions %}
                         {% if action.on_selectable_items %}
-                        {% include "buttons/action_button.html" with button_content=action.name url=action.url %}        
+                        {% include "django_filter_table/buttons/action_button.html" with button_content=action.name url=action.url %}        
                         {% endif %}
                       {% endfor %}
                     </li>

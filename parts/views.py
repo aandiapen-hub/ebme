@@ -10,7 +10,6 @@ from django.urls import reverse_lazy, reverse
 from django.utils.timezone import now
 
 from documents.services.documents import delete_object_document_links
-from utils.generic_views import BulkUpdateView
 
 from .models import Tblpartslist, Tblpartsprice, SparepartView, TblPartModel
 from assets.models import Tblmodel
@@ -28,7 +27,7 @@ from django.views.generic import (
 
 
 # import generic filter table view
-from utils.generic_views import FilteredTableView, TableAction
+from django_filter_table.views  import FilteredTableView, TableAction, BulkUpdateView
 
 # import form tools
 from .forms import (

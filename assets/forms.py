@@ -11,7 +11,7 @@ from model_information.models import EquipmentConfigurationLink, EquipmentSoftwa
 
 from django.core.exceptions import ValidationError
 from model_information.models import EquipmentConfiguration, Software, SoftwareModel
-from htmx_select.forms import HTMXMultiPickerWidget
+from  django_filter_table.forms  import HTMXMultiPickerWidget
 
 from documents.mixins import TempUploadUpdateFormMixin
 

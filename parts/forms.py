@@ -1,4 +1,4 @@
-from htmx_select.forms import HTMXMultiPickerWidget
+from  django_filter_table.forms  import HTMXMultiPickerWidget
 
 from django import forms
 

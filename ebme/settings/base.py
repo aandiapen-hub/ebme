@@ -36,10 +36,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_tables2",
     "django_filters",
+    "django_filter_table",
     "django_bootstrap5",
     "django_htmx",
     "django_tasks_db",
-    "htmx_select",
     "jobs",
     "assets",
     "dashboard",
@@ -162,3 +162,6 @@ LOGIN_REDIRECT_URL = "users:landing"  # Or another view name
 TASKS = {
     "default": {"BACKEND": "django_tasks_db.DatabaseBackend", "QUEUES": ["default"]}
 }
+
+DJANGO_TABLE= { 'user_profile_model': "users.UserProfiles" }
+

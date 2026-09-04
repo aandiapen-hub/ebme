@@ -31,7 +31,6 @@ from django.views.generic import (
 from django_tables2 import tables, SingleTableMixin, columns
 
 from documents.services.documents import delete_object_document_links
-from utils.generic_views import BulkUpdateView
 
 # import forms
 from .forms import (
@@ -49,7 +48,7 @@ from .forms import (
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 
 
-from utils.generic_views import FilteredTableView, TableAction
+from django_filter_table.views import FilteredTableView, TableAction, BulkUpdateView
 
 # brand views
 

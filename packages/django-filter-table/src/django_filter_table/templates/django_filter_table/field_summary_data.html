@@ -1,5 +1,5 @@
 {% load static %}
-{% load custom_tags %}
+{% load django_filter_table %}
 
 {% partialdef values %}
   {% for item in summary_field_data.data %}
@@ -72,7 +72,7 @@
       {% endfor %}
       {% if summary_field_data.page.has_next %}
             <div
-              hx-get="{{ request.get_full_path }}{% querystring summary_page=summary_field_data.page.next_page_number result_only='true' %}" 
+              hx-get="{{ request.path }}{% querystring summary_page=summary_field_data.page.next_page_number result_only='true' %}" 
               hx-include='#search_summary_data, #filter_form'
               hx-trigger='intersect once'
               hx-swap='outerHTML'

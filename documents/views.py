@@ -65,7 +65,7 @@ from .forms import (
 )
 
 # import generic filter table view
-from utils.generic_views import FilteredTableView, BulkUpdateView, TableAction
+from django_filter_table.views import FilteredTableView, BulkUpdateView, TableAction
 from django.db.models import ForeignKey
 
 

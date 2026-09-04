@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.contrib.contenttypes.fields import GenericRelation
 from django.urls import reverse
-from htmx_select.utils import HtmxPicker
+from django_filter_table.views import HtmxPicker
 
 
 # Create your models here.

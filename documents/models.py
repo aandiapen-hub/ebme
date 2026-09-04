@@ -9,7 +9,7 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.urls import reverse
 
-from htmx_select.utils import HtmxPicker
+from django_filter_table.views import HtmxPicker
 
 # Create your models here.
 from django.core.files.storage import FileSystemStorage

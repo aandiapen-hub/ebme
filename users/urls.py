@@ -5,7 +5,6 @@ from .views import (
     PasswordChangeView,
     LogOutConfirmationView,
     LandingView,
-    ColumnChooser,
 )
 
 app_name = 'users'
@@ -17,6 +16,4 @@ urlpatterns = [
     path('logoutconfirm/', CustomLogoutView.as_view(), name='logout_confirmation'),
     path('update_password/', PasswordChangeView.as_view(), name='update_password'),
 
-    # table column chooser
-    path('assets_columns_chooser/', ColumnChooser.as_view(), name='column_chooser'),
 ]

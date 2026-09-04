@@ -18,6 +18,9 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 RUN pip install psycopg
 
+# Install your local reusable Django package
+RUN pip install -e /app/packages/django-filter-table
+
 ENV DJANGO_SETTINGS_MODULE=ebme.settings.development
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

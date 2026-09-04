@@ -1,10 +1,7 @@
-from django_filters import DateFilter
-import datetime
-
 from django import forms
 from django.urls import reverse
 from urllib.parse import urlencode
-from django.db.models import ForeignKey, CharField, DateField
+from django.db.models import CharField, DateField
 
 
 class HTMXMultiPickerWidget(forms.SelectMultiple):
@@ -60,7 +57,7 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
 
         else:
             base_url = reverse(
-                "htmx_picker_search",
+                "django_filter_table:htmx_picker_search",
                 kwargs={
                     "modelpath": (
                         f"{self.model._meta.app_label}"

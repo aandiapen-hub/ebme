@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "django-filter-table"
+version = "0.1.0"
+description = "Reusable Django filter and table components"
+requires-python = ">=3.11"
+dependencies = [
+    "Django>=4.2",
+    "django-filter",
+    "django-tables2",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

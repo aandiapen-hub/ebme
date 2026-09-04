@@ -1,10 +1,9 @@
 # myapp/checks.py
 
-from django.apps import apps
 from django.core import checks
 from django.db import models
 
-from utils.generic_views import FilteredTableView
+from django_filter_table.views import FilteredTableView
 
 
 def all_subclasses(cls):

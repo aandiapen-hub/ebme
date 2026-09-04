@@ -1,9 +1,9 @@
 {# templates/tables/bootstrap_htmx.html #}
 
-{% extends 'tables/bootstrap5-responsive.html' %}
+{% extends 'django_filter_table/tables/bootstrap5-responsive.html' %}
 {% load i18n %}
 {% load django_tables2 %}
-{% load custom_tags %}
+{% load django_filter_table %}
 
 {% block table %}
     {% for row in table.paginated_rows %}

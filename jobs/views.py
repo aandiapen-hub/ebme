@@ -39,7 +39,7 @@ from assets.models import (
 from documents.mixins import TempUploadMixin
 from documents.services.documents import delete_object_document_links
 from parts.models import Tblpartslist
-from utils.generic_views import BulkUpdateView, FilteredTableView, TableAction
+from django_filter_table.views import BulkUpdateView, FilteredTableView, TableAction
 
 from .forms import (
     JobBulkUpdateForm,

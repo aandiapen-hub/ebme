@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from django.urls import reverse, reverse_lazy
 from .models import (
     CapitalProject,
@@ -6,7 +5,7 @@ from .models import (
     CommissionRequest,
 )
 
-from utils.generic_views import FilteredTableView, TableAction
+from django_filter_table.views import FilteredTableView, TableAction
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 
 from django.views.generic import (

@@ -21,7 +21,7 @@ from django.urls import path, include
 
 from django.conf import settings
 from django.conf.urls.static import static
-from htmx_select.views import HtmxPickerSearch
+
 
 # home page
 from dashboard.views import DashboardTemplateView
@@ -38,7 +38,7 @@ urlpatterns = [
     path("capital_project/", include("cap_project.urls")),
     path("procurement/", include('procurement.urls')),
     # htmx search url
-    path('htmx_search/<str:modelpath>/<str:fieldname>/', HtmxPickerSearch.as_view(), name='htmx_picker_search'),
+    path('filter_table/', include('django_filter_table.urls')),
     # set home page
     path('', DashboardTemplateView.as_view(), name='home')
 ]

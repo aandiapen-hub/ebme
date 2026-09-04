@@ -4,7 +4,7 @@ from functools import reduce
 from django.db import models
 
 
-from htmx_select.forms import HTMXMultiPickerWidget
+from .forms import HTMXMultiPickerWidget
 
 from django_filters import (
     DateFilter,
@@ -260,6 +260,10 @@ FILTER_RULES = [
     (
         lambda field, lookup: isinstance(field, models.ForeignKey),
         create_foreign_key_filter,
+    ),
+    (
+        lambda field, lookup: ( "iexact" in lookup),
+        create_exact_filter,
     ),
     (
         lambda field, lookup: (

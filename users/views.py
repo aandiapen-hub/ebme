@@ -1,13 +1,7 @@
 from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView
-from django.http import HttpResponseRedirect
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 
 from django.views.generic import TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
-
-from users.models import UserProfiles
-from django.apps import apps
-
 
 # Create your views here.
 
@@ -34,60 +28,3 @@ class LandingView(TemplateView):
     template_name = "users/landing_page.html"
 
 
-# column chooser
-
-class ColumnChooser(LoginRequiredMixin, TemplateView):
-    model = UserProfiles
-    template_name = 'users/partials/column_chooser.html'
-
-    def get_success_url(self):
-        url = self.request.POST.get("next")
-        return url
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # get user's visible colums if exists
-        user = self.request.user
-        request_app_model = self.request.GET.get('appmodel')
-        model_name = request_app_model.split('.')[1]
-
-        # list available columns
-        model = apps.get_model(request_app_model)
-        if model:
-            all_columns = [field for field in model._meta.get_fields() if field.concrete and not field.auto_created]
-
-        profile = UserProfiles.objects.filter(user_id=user).first()
-        available_columns = []
-        if profile and model_name:
-            visible_columns_names = profile.get_preference(model_name, 'visible_columns')
-            all_column_names = [c.name for c in all_columns]
-            visible_columns = []
-            for col_name in visible_columns_names:
-                if col_name in all_column_names:
-                    visible_columns.append(all_columns[all_column_names.index(col_name)]) 
-
-
-            if visible_columns:
-                context['visible_columns'] = visible_columns
-                available_columns = [f for f in all_columns if f not in visible_columns]
-
-        context["available_columns"] = available_columns or all_columns
-
-        context['request_model'] = model_name
-
-        next_url = self.request.GET.get("next_path")
-        query_params = self.request.GET.urlencode()
-        context['next'] = f"{next_url}?{query_params}"
-        return context
-
-    def post(self, request, *args, **kwargs):
-        request_model = request.POST.get('request_model')
-        user_id = self.request.user
-        profile, created = UserProfiles.objects.get_or_create(
-            user_id=user_id, defaults={"table_settings": {}}
-        )
-
-        columns = request.POST.getlist('columns', None)
-        if columns and profile:
-            profile.set_preference(request_model, 'visible_columns', columns)
-        return HttpResponseRedirect(self.get_success_url())
