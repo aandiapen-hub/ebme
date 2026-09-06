@@ -1,16 +1,17 @@
 
 import pytest
 from django.urls import reverse
-from assets.models import JobView
+from .testapp.models import JobView
 import html
+from urllib.parse import urlencode
 
 from django.db.models import DateField, JSONField
 from django_filter_table.views import get_filter_fields 
 
 from django.contrib.auth.models import Permission
 
-URL = reverse("jobs:jobs_list")
-GET_TEMPLATE = "filter_table.html"
+URL = reverse("jobs")
+GET_TEMPLATE = "django_filter_table/filter_table.html"
 PERMISSION = 'view_jobview'
 FK_FIELD = 'modelid'
 TEXT_FIELD = 'serialnumber'
@@ -32,9 +33,9 @@ def context_has_field(response, field_name):
 
 
 @pytest.mark.django_db
-def test_filtered_table_view_get_success(client, user_setup):
+def test_filtered_table_view_get_success(client, user):
     # --- Setup user and permissions ---
-    user = user_setup
+    user = user
     permission = Permission.objects.filter(codename=PERMISSION).last()
     user.user_permissions.add(permission)
 
@@ -219,3 +220,68 @@ def test_filtered_table_view_get_summary_field(
         for value in values:
             if value is not None:
                 assert str(value) in html.unescape(response.text)
+
+
+
+# test columns chooser
+@pytest.mark.django_db
+def test_column_chooser_requires_login(client):
+    url = reverse("django_filter_table:column_chooser")
+    response = client.get(url)
+
+    assert response.status_code == 302
+    assert "/login" in response.url.lower()
+
+
+@pytest.mark.django_db
+def test_column_chooser_view_renders(client, user_setup):
+    user = user_setup
+    client.force_login(user)
+    base_url = reverse("django_filter_table:column_chooser")
+    query_params = urlencode({"appmodel": "assets.AssetView"})
+    url = f"{base_url}?{query_params}"
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "django_filter_table/column_chooser.html" in [t.name for t in response.templates]
+
+
+@pytest.mark.django_db
+def test_column_chooser_post_updates_preferences(client, user_setup):
+    user = user_setup
+    client.force_login(user)
+    base_url = reverse("django_filter_table:column_chooser")
+    query_params = urlencode({"appmodel": "assets.AssetView"})
+    url = f"{base_url}?{query_params}"
+    response = client.get(url)
+    assert response.status_code == 200
+
+    # Post data to update preferences
+    post_data = {
+        "request_model": "AssetView",
+        "columns": ["assetid", "serialnumber", "modelname"],
+        "next": reverse("assets:assets_list"),
+    }
+    response = client.post(url, post_data)
+
+    # Check for redirect to success URL
+    assert response.status_code == 302
+    assert reverse("assets:assets_list") in response.url
+
+    # Verify that the user's preferences were updated
+    profile = user.userprofiles
+    visible_columns = profile.get_preference("AssetView", "visible_columns")
+
+    assert visible_columns == [
+        "assetid",
+        "serialnumber",
+        "modelname",
+    ]
+
+    response = client.get(url)
+    cols =  response.context["visible_columns"]
+    col_names = [f.name for f in cols]
+    col_names== [
+        "assetid",
+        "serialnumber",
+        "modelname",
+    ]

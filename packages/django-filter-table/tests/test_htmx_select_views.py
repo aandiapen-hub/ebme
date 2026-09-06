@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
 
-from assets.models import Tblassets
+from .testapp.models import Tblassets
 import pytest
 from django.urls import reverse
 from django.contrib.auth.models import Permission
@@ -35,7 +35,7 @@ def test_htmx_select_view_renders_for_staff(
 
     client.force_login(user)
     url = reverse(
-        "htmx_picker_search",
+        "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
                 f"assets__Tblassets"
@@ -71,7 +71,7 @@ def test_htmx_select_view_renders_for_non_staff(
 
     client.force_login(user)
     url = reverse(
-        "htmx_picker_search",
+        "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
                 f"assets__Tblassets"
@@ -105,7 +105,7 @@ def test_htmx_select_view_renders_for_fk(
 
     client.force_login(user)
     url = reverse(
-        "htmx_picker_search",
+        "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
                 f"assets__Tblassets"
@@ -142,7 +142,7 @@ def test_htmx_select_view_renders_fk_with_search_q(
     client.force_login(user)
     search_q = 'a'
     base_url = reverse(
-        "htmx_picker_search",
+        "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
                 f"assets__Tblassets"
@@ -180,7 +180,7 @@ def test_htmx_select_view_renders_char_with_search_q(
     client.force_login(user)
     search_q = 'a'
     base_url = reverse(
-        "htmx_picker_search",
+        "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
                 f"assets__Tblassets"
@@ -222,7 +222,7 @@ def test_htmx_select_view_renders_with_selected(
     client.force_login(user)
     search_q = 'a'
     base_url = reverse(
-        "htmx_picker_search",
+        "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
                 f"assets__Tblassets"

@@ -84,7 +84,7 @@
     <div class='col-12 d-flex gap-1 flex-wrap justify-content-between'>
             <div class='d-flex flex-nowrap gap-1'>
               <!-- column chooser modal (modal and modal open button)-->
-              {% include "users/partials/column_chooser_button.html" with column_chooser_model=model_name success_url=request.url %}
+              {% include "django_filter_table/buttons/column_chooser_button.html" with column_chooser_model=model_name success_url=request.url %}
               <!-- column chooser modal (modal and modal open button)-->
               {% include "django_filter_table/add_filter_modal.html" %}
             </div>

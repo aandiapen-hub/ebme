@@ -474,7 +474,7 @@ class ChecklistsTable(tables.Table):
                 "class": "table-bordered align-middle",
             },
         }
-        template_name = "tables/tables2_with_filter.html"
+        template_name = "django_filter_table/tables/tables2_with_filter.html"
         fields = ("testid", "modelid", "testname", "test_description")
 
 

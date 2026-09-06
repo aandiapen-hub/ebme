@@ -15,3 +15,11 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+django_find_project = false
+pythonpath = ["."]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_tests.py"]

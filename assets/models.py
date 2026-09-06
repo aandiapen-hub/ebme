@@ -13,6 +13,28 @@ from model_information.models import EquipmentConfigurationLink, EquipmentConfig
 
 from django_filter_table.views import HtmxPicker
 
+class Tblcustomer(models.Model):
+    customer_name = models.CharField(
+        db_column="Customer Name", unique=True, max_length=100, verbose_name="Customer"
+    )
+    customer_address = models.CharField(
+        db_column="Customer Address",
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Address",
+    )
+    customer_phone = models.CharField(
+        db_column="Customer Phone",
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Phone",
+    )
+    customerid = models.BigAutoField(
+        db_column="CustomerID", primary_key=True
+    )
+
 class Tblassets(models.Model):
     assetid = models.BigAutoField(
         db_column="AssetID", primary_key=True, verbose_name="ID"
@@ -374,7 +396,7 @@ class JobView(models.Model):
 
     htmx_picker = HtmxPicker(
         enabled=True,
-        search_terms=(),
+        search_terms=('jobid__icontains',),
         customer_scope='customerid',
     )
 

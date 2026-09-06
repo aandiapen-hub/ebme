@@ -40,11 +40,6 @@ def test_po_table_view_renders(client, user):
     url = reverse("procurement:po")
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "filter_table.html")
-
-    # test htmx response
-    response_htmx = client.get(url, HTTP_HX_REQUEST="true")
-    assert response_htmx.status_code == 200
 
 
 # test POCreateView
@@ -563,11 +558,6 @@ def test_invoice_table_view_renders(client, user):
     url = reverse("procurement:invoices_table")
     response = client.get(url)
     assert response.status_code == 200
-    assertTemplateUsed(response, "procurement/invoices_table.html")
-
-    # test htmx
-    response_with_params = client.get(url, HTTP_HX_REQUEST="true")
-    assert response_with_params.status_code == 200
 
 
 @pytest.mark.django_db

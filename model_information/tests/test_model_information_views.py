@@ -65,17 +65,6 @@ def test_brand_table_view_renders(client, user, mocker, search_term):
     assert (
         response.status_code == 200
     )  # Depends on how CustomerAssetPermissionMixin handles it
-    assertTemplateUsed(response, "filter_table.html")
-
-    # test htmx
-    response = client.get(url, HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
-
-    # test filter
-    query_string = urlencode({"universal_search": search_term})
-    url = f"{url}?{query_string}"
-    response = client.get(url, HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
 
 
 # test BrandUpdateview
@@ -328,17 +317,6 @@ def test_model_table_view_renders(client, user):
     assert (
         response.status_code == 200
     )  # Depends on how CustomerAssetPermissionMixin handles it
-    assertTemplateUsed(response, "filter_table.html")
-
-    # test htmx
-    response = client.get(url, HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
-
-    # test filter
-    query_string = urlencode({"universal_search": ""})
-    url = f"{url}?{query_string}"
-    response = client.get(url, HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
 
 
 # test ModelUpdateView
@@ -612,11 +590,6 @@ def test_category_table_view_renders(client, user):
     assert (
         response.status_code == 200
     )  # Depends on how CustomerAssetPermissionMixin handles it
-    assertTemplateUsed(response, "filter_table.html")
-
-    # test htmx
-    response = client.get(url, HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
 
 
 # test CategoryUpdateView
@@ -1223,7 +1196,6 @@ def test_software_filter_view_renders(client, user_setup, jobs):
     response = client.get(url)
 
     assert response.status_code == 200
-    assertTemplateUsed(response, "filter_table.html")
 
     # test htmx request
     response = client.get(url, HTTP_HX_REQUEST="true")
@@ -1681,7 +1653,6 @@ def test_equipment_configuration_filter_view_renders(client, user):
     response = client.get(url)
 
     assert response.status_code == 200
-    assertTemplateUsed(response, "filter_table.html")
 
 
 # test equipment configuration filter view

@@ -136,8 +136,8 @@ def create_service_report(content):
             c.setFont("Helvetica-Bold", 45)
             c.drawString(margin, y, f"{value}:")
 
-            text = text.replace("\n", "<br/>")
             text = "" if text is None else text
+            text = text.replace("\n", "<br/>")
 
             draw_paragraph(c, text, margin, y, page_width - 2 * margin, 500)
 

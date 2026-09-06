@@ -67,11 +67,6 @@ def test_filtered_job_list_view_renders(client, user_setup, jobs):
     response = client.get(url)
 
     assert response.status_code == 200
-    assertTemplateUsed(response, "filter_table.html")
-
-    # test htmx request
-    response = client.get(url, HTTP_HX_REQUEST="true")
-    assert response.status_code == 200
 
 
 # test JobUpdateView

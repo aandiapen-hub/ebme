@@ -370,7 +370,6 @@ class FilteredInvoiceTableView(
     model = TblInvoices
     paginate_by = 25
     permission_required = "procurement.view_tblinvoices"
-    template_name = "procurement/invoices_table.html"
     template_columns = {"open": "procurement/tables/open_invoice.html"}
     universal_search_fields = [
         "invoice_id__icontains",

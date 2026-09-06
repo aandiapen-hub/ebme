@@ -834,7 +834,7 @@ class RoutingViewMixin(View):
 # column chooser
 
 class ColumnChooser(LoginRequiredMixin, TemplateView):
-    template_name = 'users/partials/column_chooser.html'
+    template_name = 'django_filter_table/column_chooser.html'
 
     def get_success_url(self):
         url = self.request.POST.get("next")
@@ -1114,15 +1114,3 @@ class HtmxPickerSearch(
 
 
 
-@dataclass(frozen=True)
-class PickerDependency:
-    field: str
-    lookup: str
-
-@dataclass(frozen=True)
-class HtmxPicker:
-    enabled: bool = True # True
-    search_terms: tuple[str, ...] = () # ('fieldname__icontains',)
-    label_str: str | None = None  # lambda obj: f"{obj.modelname} ({obj.brandid})"
-    customer_scope: str | None = None # 'customerid'
-    dependency: tuple[PickerDependency, ...] =()

@@ -150,15 +150,24 @@ def create_choices_filter(model, field, lookup):
 def get_foreign_key_search_field(field):
     related_model = field.remote_field.model
 
+    search_terms = related_model.htmx_picker.search_terms
+    if search_terms:
+        return search_terms
+
+    return field.name
+
+
+def get_foreign_key_name_field(field):
+    related_model = field.remote_field.model
+
     for related_field in related_model._meta.fields:
         if "name" in related_field.name.lower():
             return f"{field.name}__{related_field.name}"
 
     return field.name
 
-
 def create_foreign_key_contains_filter(model, field, lookup):
-    field_path = get_foreign_key_search_field(field)
+    field_path = get_foreign_key_name_field(field)
 
     return CharFilter(
         field_name=field_path,
@@ -290,9 +299,9 @@ def generate_filter_for_field(model, field_name, lookup):
     except FieldDoesNotExist:
         return None
 
-    for condition, factory in FILTER_RULES:
+    for condition, field_factory in FILTER_RULES:
         if condition(field, lookup):
-            return factory(model, field, lookup)
+            return field_factory(model, field, lookup)
 
     return create_default_filter(model, field, lookup)
 
