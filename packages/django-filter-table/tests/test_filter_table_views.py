@@ -49,6 +49,25 @@ def test_filtered_table_view_get_success(client, user, jobs):
     assert GET_TEMPLATE in [t.name for t in response.templates]
     assert len(response.context['table'].rows) == 10
 
+@pytest.mark.django_db
+def test_filtered_table_export_data_csv(client, user, jobs):
+    # --- Setup user and permissions ---
+    user = user()
+    permission = Permission.objects.filter(codename=PERMISSION).last()
+    user.user_permissions.add(permission)
+
+    client.force_login(user)
+
+    jobs = jobs()
+
+    # --- Test normal GET ---
+    query_params = urlencode({"_export": "csv"})
+    full_url = f"{URL}?{query_params}"
+
+    response = client.get(full_url)
+    assert response.status_code == 200
+    assert 'text/csv' in response["Content-Type"]
+    
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(

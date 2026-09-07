@@ -13,6 +13,7 @@ dependencies = [
     "django-tables2",
     "django-htmx",
     "django-bootstrap5",
+    "tablib",
 ]
 
 [tool.setuptools.packages.find]
