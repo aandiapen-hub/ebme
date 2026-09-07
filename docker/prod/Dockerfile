@@ -19,6 +19,9 @@ RUN pip install psycopg
 
 RUN python manage.py collectstatic --noinput
 
+# Install your local reusable Django package
+RUN pip install /app/packages/django-filter-table
+
 ENV DJANGO_SETTINGS_MODULE=ebme.settings.production
 
 CMD ["gunicorn", "ebme.wsgi:application", "--config", "docker/prod/gunicorn.conf.py"]
