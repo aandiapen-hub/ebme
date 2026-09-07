@@ -611,7 +611,7 @@ class FilteredTableView(
         context["title"] = self.title
         context['session_filter'] = self.session_filter_active
         context['filters_active'] = self.filter_active
-
+        context['base_template'] = settings.DJANGO_TABLE.get('base_template') or 'django_filter_table/base.html'
         return context
 
 
@@ -879,7 +879,7 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
         request_model = request.POST.get('request_model')
-        user_id = self.request.user
+        user_id = self.request.user.pk
         UserProfiles = get_user_profile_model()
         profile, created = UserProfiles.objects.get_or_create(
             user_id=user_id, defaults={"table_settings": {}}
@@ -946,6 +946,7 @@ class HtmxPickerSearch(
 
 
     def get_options_data_source(self):
+
         if self.picker_mode != 'foreign_key':
             model = self.get_model
 
@@ -1066,7 +1067,6 @@ class HtmxPickerSearch(
 
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
-
         fieldname =  self.request.GET.get('fieldname', None)
         context['fieldname'] = fieldname
         if fieldname:

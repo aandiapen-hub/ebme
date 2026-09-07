@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,40 +24,11 @@
 
 
 <body id='body' class='bg-light'>
-    <!--index-->
-    {% if user.is_authenticated %}
-    {% include "indices/index.html" %}
-    {% endif %}
-  
 
     {% block content %}
     {% endblock content %}
 
 
-<div class="toast-container position-fixed bottom-0 end-0 p-3"
-_="on show_message from body 
-    set msg to event.detail.message
-    set level to event.detail.level or 'success'
-    
-    make a <div.toast/> called toast
-    add .fade to toast
-    add .show to toast
-    add .{'bg-' + level} to toast
-    add .text-white to toast
-
-
-    put `<div class='d-flex'>
-            <div class='toast-body'>${msg}</div>
-            <button type='button'
-            class='btn-close btn-close me-2 m-auto'
-            data-bs-dismiss='toast'></button>
-          </div>` into toast 
-
-    put toast into me
-    wait 4s
-    remove toast
-    ">
-</div>
 
 <!-- htmx selector funtions -->
 {% include "htmx_select/htmx_selector._hs" %}

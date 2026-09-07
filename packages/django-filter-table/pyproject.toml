@@ -11,6 +11,8 @@ dependencies = [
     "Django>=4.2",
     "django-filter",
     "django-tables2",
+    "django-htmx",
+    "django-bootstrap5",
 ]
 
 [tool.setuptools.packages.find]

@@ -33,19 +33,21 @@ def context_has_field(response, field_name):
 
 
 @pytest.mark.django_db
-def test_filtered_table_view_get_success(client, user):
+def test_filtered_table_view_get_success(client, user, jobs):
     # --- Setup user and permissions ---
-    user = user
+    user = user()
     permission = Permission.objects.filter(codename=PERMISSION).last()
     user.user_permissions.add(permission)
 
     client.force_login(user)
 
+    jobs = jobs()
 
     # --- Test normal GET ---
     response = client.get(URL)
     assert response.status_code == 200
     assert GET_TEMPLATE in [t.name for t in response.templates]
+    assert len(response.context['table'].rows) == 10
 
 
 @pytest.mark.django_db
@@ -53,9 +55,9 @@ def test_filtered_table_view_get_success(client, user):
     "lookup",
     get_filter_fields(MODEL, [FK_FIELD])[FK_FIELD]["lookups"]
 )
-def test_filtered_table_view_add_filter_fk(client, user_setup, lookup):
+def test_filtered_table_view_add_filter_fk(client, user, lookup):
     # --- Setup user and permission ---
-    user = user_setup
+    user = user()
     permission = Permission.objects.filter(codename=PERMISSION).last()
     user.user_permissions.add(permission)
     client.force_login(user)
@@ -80,9 +82,9 @@ def test_filtered_table_view_add_filter_fk(client, user_setup, lookup):
     "lookup",
     get_filter_fields(MODEL, [TEXT_FIELD])[TEXT_FIELD]["lookups"]
 )
-def test_filtered_table_view_add_filter_text(client, user_setup, lookup):
+def test_filtered_table_view_add_filter_text(client, user, lookup):
     # --- Setup user and permission ---
-    user = user_setup
+    user = user()
     permission = Permission.objects.filter(codename=PERMISSION).last()
     user.user_permissions.add(permission)
     client.force_login(user)
@@ -106,9 +108,9 @@ def test_filtered_table_view_add_filter_text(client, user_setup, lookup):
     "lookup",
     get_filter_fields(MODEL, [DATE_FIELD])[DATE_FIELD]["lookups"]
 )
-def test_filtered_table_view_add_filter_date(client, user_setup, lookup):
+def test_filtered_table_view_add_filter_date(client, user, lookup):
     # --- Setup user and permission ---
-    user = user_setup
+    user = user()
     permission = Permission.objects.filter(codename=PERMISSION).last()
     user.user_permissions.add(permission)
     client.force_login(user)
@@ -135,9 +137,9 @@ def test_filtered_table_view_add_filter_date(client, user_setup, lookup):
     "lookup",
     get_filter_fields(MODEL, [NUMERIC_FIELD])[NUMERIC_FIELD]["lookups"]
 )
-def test_filtered_table_view_add_filter_numeric(client, user_setup, lookup):
+def test_filtered_table_view_add_filter_numeric(client, user, lookup):
     # --- Setup user and permission ---
-    user = user_setup
+    user = user()
     permission = Permission.objects.filter(codename=PERMISSION).last()
     user.user_permissions.add(permission)
     client.force_login(user)
@@ -157,9 +159,9 @@ def test_filtered_table_view_add_filter_numeric(client, user_setup, lookup):
 
 
 @pytest.mark.django_db
-def test_filtered_table_view_get_universal_search_result(client, user_setup):
+def test_filtered_table_view_get_universal_search_result(client, user):
     # --- Setup user and permissions ---
-    user = user_setup
+    user = user()
     permission = Permission.objects.filter(codename=PERMISSION).last()
     user.user_permissions.add(permission)
 
@@ -187,11 +189,11 @@ def test_filtered_table_view_get_universal_search_result(client, user_setup):
 )
 def test_filtered_table_view_get_summary_field(
     client,
-    user_setup,
+    user,
     summary_field,
 ):
     # --- Setup user and permissions ---
-    user = user_setup
+    user = user()
     permission = Permission.objects.filter(codename=PERMISSION).last()
     user.user_permissions.add(permission)
     user.is_staff = True
@@ -216,6 +218,7 @@ def test_filtered_table_view_get_summary_field(
 
     if isinstance(field, JSONField) or isinstance(field, DateField):
         assert 'not available' in content
+    
     else:
         for value in values:
             if value is not None:
@@ -234,11 +237,11 @@ def test_column_chooser_requires_login(client):
 
 
 @pytest.mark.django_db
-def test_column_chooser_view_renders(client, user_setup):
-    user = user_setup
+def test_column_chooser_view_renders(client, user):
+    user = user()
     client.force_login(user)
     base_url = reverse("django_filter_table:column_chooser")
-    query_params = urlencode({"appmodel": "assets.AssetView"})
+    query_params = urlencode({"appmodel": "testapp.Tblassets"})
     url = f"{base_url}?{query_params}"
     response = client.get(url)
     assert response.status_code == 200
@@ -246,35 +249,35 @@ def test_column_chooser_view_renders(client, user_setup):
 
 
 @pytest.mark.django_db
-def test_column_chooser_post_updates_preferences(client, user_setup):
-    user = user_setup
+def test_column_chooser_post_updates_preferences(client, user):
+    user = user()
     client.force_login(user)
     base_url = reverse("django_filter_table:column_chooser")
-    query_params = urlencode({"appmodel": "assets.AssetView"})
+    query_params = urlencode({"appmodel": "testapp.Tblassets"})
     url = f"{base_url}?{query_params}"
     response = client.get(url)
     assert response.status_code == 200
 
     # Post data to update preferences
     post_data = {
-        "request_model": "AssetView",
-        "columns": ["assetid", "serialnumber", "modelname"],
-        "next": reverse("assets:assets_list"),
+        "request_model": "Tblassets",
+        "columns": ["assetid", "serialnumber", "modelid"],
+        "next": reverse("jobs"),
     }
     response = client.post(url, post_data)
 
     # Check for redirect to success URL
     assert response.status_code == 302
-    assert reverse("assets:assets_list") in response.url
+    assert reverse("jobs") in response.url
 
     # Verify that the user's preferences were updated
-    profile = user.userprofiles
-    visible_columns = profile.get_preference("AssetView", "visible_columns")
+    profile = user.profile
+    visible_columns = profile.get_preference("Tblassets", "visible_columns")
 
     assert visible_columns == [
         "assetid",
         "serialnumber",
-        "modelname",
+        "modelid",
     ]
 
     response = client.get(url)
@@ -283,5 +286,5 @@ def test_column_chooser_post_updates_preferences(client, user_setup):
     col_names== [
         "assetid",
         "serialnumber",
-        "modelname",
+        "modelid",
     ]

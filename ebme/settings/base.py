@@ -163,5 +163,9 @@ TASKS = {
     "default": {"BACKEND": "django_tasks_db.DatabaseBackend", "QUEUES": ["default"]}
 }
 
-DJANGO_TABLE= { 'user_profile_model': "users.UserProfiles" }
+DJANGO_TABLE= { 
+    'user_profile_model': "users.UserProfiles",
+    'base_template': 'base.html'
+}
+
 

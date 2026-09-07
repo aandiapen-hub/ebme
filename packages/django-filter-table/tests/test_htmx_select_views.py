@@ -10,7 +10,15 @@ from django.contrib.auth.models import Permission
 def test_htmx_select_view_requires_login(
     client,
 ):
-    url = reverse("assets:assets_list")
+    url = reverse(
+        "django_filter_table:htmx_picker_search",
+        kwargs={
+            "modelpath": (
+                f"testapp__Tblassets"
+            ),
+            'fieldname': 'serialnumber'
+        },
+    )
     response = client.get(url)
     assert response.status_code == 302  # Redirect to login
     assert "/login" in response.url.lower()  # Ensure it's going to the login page
@@ -18,18 +26,18 @@ def test_htmx_select_view_requires_login(
 @pytest.mark.django_db
 def test_htmx_select_view_renders_for_staff(
     client,
-    user_setup,
+    user,
     customer,
-    create_assets,
+    assets,
 ):
 
     customer1 = customer(customer_name='customerA')
     customer2 = customer(customer_name='customerb')
 
-    assets1 = create_assets(customerid=customer1, count=10)
-    assets2 = create_assets(customerid=customer2, count=10)
+    assets1 = assets(customerid=customer1, count=10)
+    assets2 = assets(customerid=customer2, count=10)
 
-    user = user_setup
+    user = user()
     user.is_staff = True 
     user.save()
 
@@ -38,7 +46,7 @@ def test_htmx_select_view_renders_for_staff(
         "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
-                f"assets__Tblassets"
+                f"testapp__Tblassets"
             ),
             'fieldname': 'serialnumber'
         },
@@ -51,21 +59,19 @@ def test_htmx_select_view_renders_for_staff(
 @pytest.mark.django_db
 def test_htmx_select_view_renders_for_non_staff(
     client,
-    user_setup,
+    user,
     customer,
-    create_assets,
+    assets,
 ):
 
     customer1 = customer(customer_name='customerA')
     customer2 = customer(customer_name='customerb')
 
-    assets1 = create_assets(customerid=customer1, count=10)
-    assets2 = create_assets(customerid=customer2, count=10)
+    assets1 = assets(customerid=customer1, count=10)
+    assets2 = assets(customerid=customer2, count=10)
 
-    user = user_setup
+    user = user()
     user.is_staff = False
-    permission = Permission.objects.get(codename="view_assetview")
-    user.user_permissions.add(permission)
     user.customerid = customer1
     user.save()
 
@@ -74,7 +80,7 @@ def test_htmx_select_view_renders_for_non_staff(
         "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
-                f"assets__Tblassets"
+                f"testapp__Tblassets"
             ),
             'fieldname': 'serialnumber'
         },
@@ -88,18 +94,18 @@ def test_htmx_select_view_renders_for_non_staff(
 @pytest.mark.django_db
 def test_htmx_select_view_renders_for_fk(
     client,
-    user_setup,
+    user,
     customer,
-    create_assets,
+    assets,
 ):
 
     customer1 = customer(customer_name='customerA')
     customer2 = customer(customer_name='customerb')
 
-    assets1 = create_assets(customerid=customer1, count=10)
-    assets2 = create_assets(customerid=customer2, count=10)
+    assets1 = assets(customerid=customer1, count=10)
+    assets2 = assets(customerid=customer2, count=10)
 
-    user = user_setup
+    user = user()
     user.is_staff = True 
     user.save()
 
@@ -108,12 +114,13 @@ def test_htmx_select_view_renders_for_fk(
         "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
-                f"assets__Tblassets"
+                f"testapp__Tblassets"
             ),
             'fieldname': 'modelid'
         },
     )
     response = client.get(url)
+    assert response.status_code == 200
 
     modelids = set(Tblassets.objects.all().values_list('modelid', flat=True))
 
@@ -124,18 +131,18 @@ def test_htmx_select_view_renders_for_fk(
 @pytest.mark.django_db
 def test_htmx_select_view_renders_fk_with_search_q(
     client,
-    user_setup,
+    user,
     customer,
-    create_assets,
+    assets,
 ):
 
     customer1 = customer(customer_name='customerA')
     customer2 = customer(customer_name='customerb')
 
-    assets1 = create_assets(customerid=customer1, count=10)
-    assets2 = create_assets(customerid=customer2, count=10)
+    assets1 = assets(customerid=customer1, count=10)
+    assets2 = assets(customerid=customer2, count=10)
 
-    user = user_setup
+    user = user()
     user.is_staff = True 
     user.save()
 
@@ -145,7 +152,7 @@ def test_htmx_select_view_renders_fk_with_search_q(
         "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
-                f"assets__Tblassets"
+                f"testapp__Tblassets"
             ),
             'fieldname': 'modelid'
         },
@@ -162,18 +169,18 @@ def test_htmx_select_view_renders_fk_with_search_q(
 @pytest.mark.django_db
 def test_htmx_select_view_renders_char_with_search_q(
     client,
-    user_setup,
+    user,
     customer,
-    create_assets,
+    assets,
 ):
 
     customer1 = customer(customer_name='customerA')
     customer2 = customer(customer_name='customerb')
 
-    assets1 = create_assets(customerid=customer1, count=10)
-    assets2 = create_assets(customerid=customer2, count=10)
+    assets1 = assets(customerid=customer1, count=10)
+    assets2 = assets(customerid=customer2, count=10)
 
-    user = user_setup
+    user = user()
     user.is_staff = True 
     user.save()
 
@@ -183,7 +190,7 @@ def test_htmx_select_view_renders_char_with_search_q(
         "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
-                f"assets__Tblassets"
+                f"testapp__Tblassets"
             ),
             'fieldname': 'serialnumber'
         },
@@ -204,18 +211,18 @@ def test_htmx_select_view_renders_char_with_search_q(
 @pytest.mark.django_db
 def test_htmx_select_view_renders_with_selected(
     client,
-    user_setup,
+    user,
     customer,
-    create_assets,
+    assets,
 ):
 
     customer1 = customer(customer_name='customerA')
     customer2 = customer(customer_name='customerb')
 
-    assets1 = create_assets(customerid=customer1, count=10)
-    assets2 = create_assets(customerid=customer2, count=10)
+    assets1 = assets(customerid=customer1, count=10)
+    assets2 = assets(customerid=customer2, count=10)
 
-    user = user_setup
+    user = user()
     user.is_staff = True 
     user.save()
 
@@ -225,7 +232,7 @@ def test_htmx_select_view_renders_with_selected(
         "django_filter_table:htmx_picker_search",
         kwargs={
             "modelpath": (
-                f"assets__Tblassets"
+                f"testapp__Tblassets"
             ),
             'fieldname': 'serialnumber'
         },

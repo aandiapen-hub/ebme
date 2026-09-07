@@ -1,5 +1,6 @@
 from .models import JobView
 from django_filter_table.views import FilteredTableView
+from django.views.generic import DetailView
 from django.utils import timezone
 
 SEARCHFILEDS = [
@@ -37,3 +38,6 @@ class FilteredJobTableView(
             'lookups': {"enddate": timezone.localdate()},
          },
     }
+
+class JobDetailView(DetailView):
+    pass
