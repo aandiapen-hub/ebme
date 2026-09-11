@@ -5,6 +5,37 @@ from django.db.models import CharField, DateField
 
 
 class HTMXMultiPickerWidget(forms.SelectMultiple):
+    """
+        HTMX-powered widget for selecting one or more values from a model field.
+        The widget determines how values are displayed and searched based
+        on the supplied model and field. Results can be searched and paginated,
+        making it suitable for fields with a large number of available choices.
+
+        Supports both single- and multiple-selection modes, with optional autocomplete
+        and modal-based selection.
+
+        Args:
+            model: Django model containing the field being selected from.
+            fieldname: Name of the model field used as the data source.
+            multiple: Whether multiple values can be selected.
+            placeholder: Placeholder text displayed when no value is selected.
+            search_url: Optional URL used to retrieve search results.
+            autocomplete: Whether autocomplete/search functionality is enabled.
+            modal: Whether the picker is displayed in a modal interface.
+            attrs: Optional HTML attributes for the widget.    
+
+        Minimal usage example is:
+        
+            class AssetBulkUpdateForm(forms.Form):
+                modelid = forms.ModelChoiceField(
+                    queryset=Tblmodel.objects.all(),
+                    required=False,
+                    widget=HTMXMultiPickerWidget(
+                            model=Tblassets, 
+                            fieldname='modelid',
+                    ),
+                )
+    """
     template_name = "htmx_select/htmx_multi_select.html"
 
     def __init__(

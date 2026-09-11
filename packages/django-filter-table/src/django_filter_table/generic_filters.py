@@ -1,5 +1,6 @@
 from django_filters import FilterSet, Filter
 from functools import reduce
+from django.db.models import ForeignKey, Model, Field, QuerySet
 
 from django.db import models
 
@@ -23,7 +24,7 @@ from django.forms.widgets import (
     DateInput,
     Select,
 )
-from django.forms import Field
+from django.forms import Widget, Field
 from django.core.exceptions import FieldDoesNotExist
 
 LOOKUP_SYMBOL = {
@@ -52,6 +53,10 @@ NULL_CHOICES = (
 
 
 class CharListField(Field):
+    """
+        Defining a django form field that would 
+        return a list as cleaned output
+    """
     def to_python(self, value):
         if value in (None, ""):
             return []
@@ -63,6 +68,11 @@ class CharListField(Field):
 
 
 class CharListFilter(Filter):
+    """
+        A django filter field using
+        CharListField as base and returning 
+        values present in a search list.
+    """
     field_class = CharListField
 
     def filter(self, qs, value):
@@ -83,16 +93,18 @@ class MyInFilter(BaseInFilter, CharFilter):
 class MyDateInFilter(BaseInFilter, DateFilter):
     pass
 
-def filter_name_not(self, queryset, name, value):
+def filter_name_not[T:Model](self, queryset: QuerySet[T], name: str, value: str) -> QuerySet[T]:
+    """ django filter function for ''not equal'' filtering """
     if not value:
         return queryset
     return queryset.exclude(**{name: value})
 
 def filter_label(field, lookup):
+    """ returning labels for filter fields """
     return f"{field.verbose_name} {LOOKUP_SYMBOL.get(lookup, lookup)}"
 
 
-def text_widget():
+def text_widget() -> Widget:
     return TextInput(
         attrs={
             "type": "text",
@@ -148,6 +160,7 @@ def create_choices_filter(model, field, lookup):
 
 
 def get_foreign_key_search_field(field):
+
     related_model = field.remote_field.model
 
     search_terms = related_model.htmx_picker.search_terms
@@ -307,6 +320,17 @@ def generate_filter_for_field(model, field_name, lookup):
 
 
 class CustomFilterSet(FilterSet):
+    """
+        Custom ``FilterSet`` providing a universal fuzzy-search filter.
+        The universal search applies a search term across the fields defined by
+        ``universal_search_fields`` and combines the resulting lookups into a single filter.
+        Class attributes:
+                visible_columns: Optional collection of columns available to the associated table view.
+                universal_search_fields: Fields and lookup expressions used by the universal search,
+                    for example ``["name__icontains", "assetid__istartswith"]``.
+                    The ``universal_search`` filter exposes the search functionality to forms
+                    and views using this filter set.
+    """
     visible_columns = None
     universal_search_fields = None
 
@@ -332,6 +356,7 @@ class CustomFilterSet(FilterSet):
 
         return queryset.filter(q_object)
 
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         universal_search = self.filters["universal_search"].field
@@ -350,9 +375,25 @@ def get_universal_search_fields(filter_model, field_list):
 
 
 def dynamic_filterset_generator(
-    filter_model, universal_search_fields=None, active_filters=None
+    filter_model: type[Model],
+    universal_search_fields: list[str] | None = None,
+    active_filters: list[str] | None = None
 ):
+    """ 
+        Dynamically generate a ``FilterSet`` subclass for the given model.
+        Builds a ``CustomFilterSet`` subclass with the supplied universal search fields and active filters.
+        Filter definitions are generated from the model's field lookup expressions
+        and attached to the dynamically created class.
+        Args:
+            filter_model: Django model the generated filter set operates on.
+            universal_search_fields: Optional field lookup expressions used by the universal search.
+            active_filters: Optional iterable of field lookup expressions for which filters should be generated.
+            Returns: A dynamically generated ``CustomFilterSet`` subclass configured for ``filter_model``. """
     attritutes = {}
+
+    if active_filters is None:
+        active_filters = []
+
     # remove hidden fields from visible columns
 
     attritutes["universal_search_fields"] = universal_search_fields
@@ -377,7 +418,10 @@ def dynamic_filterset_generator(
     return DynamicFilterSet
 
 
-def get_filter_fields(model, visible_columns):
+def get_filter_fields(model: type[Model], visible_columns: list[str]) -> dict[str, list[str]]:
+    """
+     This uses model meta information and returns filters available for visible model fields
+    """
     fields = {}
     # Define relevant lookups per type
     text_lookups = ["iexact", "icontains", "istartswith", "isnull"]

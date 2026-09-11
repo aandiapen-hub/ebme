@@ -1,7 +1,9 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, ClassVar, Mapping
 import re
 
+from django_tables2.utils import OrderByTuple
+from django.db.models import Model
 from dataclasses import field
 from datetime import datetime
 from functools import cached_property
@@ -13,7 +15,8 @@ from django.shortcuts import render
 from django.views.generic.edit import FormMixin
 from django.views.generic import View, TemplateView, ListView
 from django_filters.views import FilterView
-from django_tables2 import SingleTableMixin, CheckBoxColumn, TemplateColumn, Table, Column
+
+from django_tables2 import SingleTableMixin, CheckBoxColumn, TemplateColumn, Table, Column, columns
 from django.db.models import(
     ForeignKey,
     DateField,
@@ -43,7 +46,7 @@ from django.apps import apps
 from django.http import QueryDict
 from dataclasses import dataclass
 from django.conf import settings
-
+from django.http import HttpRequest
 from django.http import Http404
 
 
@@ -51,15 +54,30 @@ EXPORT_LIMIT = 3000
 
 
 # get visible columns for a model for a user
-# Get user's preferred columns from user_profiles.table_settings
-#
+# define table actions
 
-def get_user_profile_model():
+ActionType = Literal["link", "bulk_htmx"]
+@dataclass(frozen=True)
+class TableAction:
+    name: str
+    url: str
+    permission: str
+    on_selectable_items: bool
+    type: ActionType = "link"
+    qp: str | None = None
+    icon: str | None = None
+    color: str | None = None
+
+def get_user_profile_model() -> type[Model]:
     return apps.get_model(
         settings.DJANGO_TABLE["user_profile_model"]
     )
 
-def get_visible_columns(request, model, open_column=None):
+def get_visible_columns(
+    request: HttpRequest,
+    model: type[Model],
+    open_column: str | None =None
+) -> list[str]:
     UserProfiles = get_user_profile_model()
     user = request.user
     try:
@@ -76,10 +94,10 @@ def get_visible_columns(request, model, open_column=None):
 
 
 class CustomCheckBoxColumn(CheckBoxColumn):
+    """ Defing a checkbox column with a custom verbose_name"""
     verbose_name = ""
 
 
-from django_tables2.utils import OrderByTuple
 
 class CustomBaseTable(Table):
     def __init__(self, *args, **kwargs):
@@ -109,20 +127,25 @@ class CustomBaseTable(Table):
 
 # Function to dynamically create table class
 def get_dynamic_table_class(
-        table_model,
-        visible_columns=None,
-        template_columns=None,
-        open_column=None):
+        table_model: type[Model],
+        visible_columns: list[str] | None = None,
+        template_columns: dict[str,str] | None = None,
+        open_column: str | None = None
+) -> type[Table]:
     """
     Create a dynamic Table class based on user's column preferences.
 
     - model: Django model
     - user: request.user
     - template_columns: optional dict of {column_name: template_code} for TemplateColumns
+    - open column: field to be used as 'click to open' on table
     """
 
     # Build columns dict
     table_columns = {}
+
+    if visible_columns is None:
+        visible_columns = []
 
     # Add template columns first (if any)
     if template_columns:
@@ -138,8 +161,11 @@ def get_dynamic_table_class(
         table_columns[open_column] = Column(
             linkify=True,
         )
-        if open_column in visible_columns:
-            visible_columns.remove(open_column)
+        visible_columns = [
+            col
+            for col in (visible_columns or [])
+            if col != open_column
+        ]
 
 
     # Always include checkbox column
@@ -200,18 +226,74 @@ class FilteredTableView(
     ExportMixin,
     FilterView,
 ):
-    title = None  # Override in subclass - Mandatory
-    permission_required = None  # Override in subclass - Mandatory
-    model = None  # override in subclass - Mandatory
-    open_column = None # override in subclass - Mandatory
-    template_columns = None  # override in subclass - optional
-    template_name = "django_filter_table/filter_table.html"  # override in subclass - Mandatory
-    universal_search_fields = None  # override in subclass - Mandatory
-    default_columns = None
-    actions = None  # overridein subclass if bulk actions are available
-    quick_filters = None # list of django filters made up of lookup combinations. e.g {'quick_filter': ['pk__in'=[1,2], field2 = 'value2']}
-    additional_session_filters = None # Set of filter function names. the filter functions needs to be defined on the child class
+    title: ClassVar[str]  # Override in subclass - Mandatory
+    permission_required: ClassVar[str | None] = None  # Override in subclass - optional 
+    model: ClassVar[type[Model]]  # override in subclass - Mandatory
+    open_column: ClassVar[str | None] = None # override in subclass - Mandatory
+    template_name = "django_filter_table/filter_table.html"
+    universal_search_fields: ClassVar[list[str]]  # override in subclass - Mandatory e.g ['field1__icontains', 'field2__relatedfield__istartswith']
+    default_columns: ClassVar[list[str] | None] = None # override in subclass - optional ['field2', 'field5']
+    actions: list[TableAction] | None = None  # overridein subclass if bulk actions are available
+    quick_filters: dict[str, object] | None = None
+    additional_session_filters: tuple[str] | None = None # typle of filter function names. the filter functions needs to be defined on the child class and applied via session
 
+    '''
+        Base class for filterable, searchable, exportable table views.
+        Subclasses must define the table title, model, the column used
+        to open a record, and the fields supported by the universal search.
+        Optional class attributes can be used to configure permissions,
+        displayed columns, bulk actions, quick filters, and additional filters
+        persisted in the session. Required subclass attributes:
+        title: Title displayed for the table view. model: Django model displayed by the table.
+        open_column: Name of the column used to open a record.
+        universal_search_fields: Lookup expressions used by universal search,
+            e.g. ``["field1__icontains", "field2__relatedfield__istartswith"]``.
+            Optional subclass attributes:
+                permission_required: Permission required to access the view.
+                template_columns: Mapping of column names to their display templates.
+                default_columns: Columns displayed by default.
+                actions: Bulk actions available for selected rows.
+                quick_filters: Additional filters exposed as quick-filter controls.
+                additional_session_filters: Tuple of filter method names to apply using
+                values persisted in the session.
+                Each named method must be implemented by the subclass.
+                The default template is ``django_filter_table/filter_table.html``. """
+
+    example of quick_filter:
+        {
+            "completed_today": {
+                "name": "Completed Today",
+                "lookups": {
+                    "enddate": timezone.localdate(),
+                },
+            },
+            "completed_last_7_days": {
+                "name": "Completed in last 7 days",
+                "lookups": {
+                    "enddate__gte": timezone.localdate() - datetime.timedelta(days=7),
+                },
+            },
+        }
+
+    example of additional_session_filters defined on child:
+        first: define the class attribute in the child
+        additional_filters = (
+            "filter_latest_ppm",
+        )
+
+        second: define the class method in the child
+        def filter_latest_ppm(self, qs):
+            qs = qs.filter(
+                jobtypeid__jobtypename__icontains="PPM"
+            )
+            latest = qs.filter(assetid=OuterRef("assetid")).order_by("-enddate").values("enddate")[:1]
+            return qs.filter(
+                enddate=Subquery(latest)
+            )
+        third: add the filter name the url as below to apply the filter
+            base_url?additional_filter_options=filter_latest_ppm
+        
+    '''
     def dispatch(self, request, *args, **kwargs):
         self.visible_columns = (
             get_visible_columns(self.request, self.model, open_column=self.open_column) or self.default_columns
@@ -276,7 +358,7 @@ class FilteredTableView(
             
         return table
 
-    def clean_name(self, value):
+    def clean_name(self, value) -> str:
         REMOVE_CHARS = str.maketrans("", "", '\n\r"')
         if not value:
             return "Unknown"
@@ -775,18 +857,6 @@ def apply_session_filter(queryset, session_filter, filter_qd):
     return qs
 
 
-# define table actions
-ActionType = Literal["link", "bulk_htmx"]
-@dataclass(frozen=True)
-class TableAction:
-    name: str
-    url: str
-    permission: str
-    on_selectable_items: bool
-    type: ActionType = "link"
-    qp: str | None = None
-    icon: str | None = None
-    color: str | None = None
 
 
 
@@ -834,6 +904,15 @@ class RoutingViewMixin(View):
 # column chooser
 
 class ColumnChooser(LoginRequiredMixin, TemplateView):
+    """ 
+        CBV that allows users to view and update visible columns
+        for each django model displayed by FilterTableView instances.
+
+        The target model is identified by the ``appmodel`` query parameter,
+        expected in the format ``"app_label.model_name"``.
+        Requires the user to be authenticated.
+
+    """
     template_name = 'django_filter_table/column_chooser.html'
 
     def get_success_url(self):
@@ -851,6 +930,8 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
         model = apps.get_model(request_app_model)
         if model:
             all_columns = [field for field in model._meta.get_fields() if field.concrete and not field.auto_created]
+        else:
+            all_columns = []
 
         UserProfiles = get_user_profile_model()
         profile = UserProfiles.objects.filter(user_id=user).first()
@@ -898,6 +979,13 @@ class HtmxPickerSearch(
     LoginRequiredMixin,
     ListView
 ):
+    """ Search view used by ``HTMXMultiPickerWidget`` to retrieve and
+        display matching options. The view determines the target model,
+        field, and picker mode from the request, performs the
+        appropriate lookup, and renders the results using a
+        consistent context for the HTMX response.
+    """
+
     paginate_by = 20
     template_name = 'htmx_select/search_result.html'
 
