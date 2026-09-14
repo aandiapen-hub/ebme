@@ -33,17 +33,17 @@ def print_page(canvas, doc):
 
 
 short_keys = {
-    "customer": "Customer",
+    "customerid": "Customer",
     "jobid": "Job ID",
     "customerasset": "Cust Asset",
     "serialnumber": "Serial No",
-    "brandnamd": "Brand",
-    "model": "Model",
-    "jobtypename": "Job Type",
-    "jobstatus": "Status",
+    "brandid": "Brand",
+    "modelid": "Model",
+    "jobtypeid": "Job Type",
+    "jobstatusid": "Status",
     "startdate": "Start Date",
     "enddate": "End Date",
-    "technician_name": "Technician",
+    "technicianid": "Technician",
 }
 
 long_keys = {
@@ -99,7 +99,7 @@ def create_service_report(content):
         y1 = y
 
         for key, value in short_keys.items():
-            text = content[i].get(key)
+            text = getattr(content[i],key, '')
 
             # format date to preferred display format. Also, if date if not valid, then return a blank string
             if "date" in key:
@@ -114,13 +114,13 @@ def create_service_report(content):
             c.drawString(x + 275, y1, str(text))
 
             # space below customer
-            if key == "customer":
+            if key == "customerid":
                 y1 -= 2 * space
             else:
                 y1 -= space
 
             # split column
-            if key == "model":
+            if key == "modelid":
                 x = page_width / 2
                 y1 = y - 2 * space
 
@@ -131,7 +131,7 @@ def create_service_report(content):
 
         # draw keys with long fields
         for key, value in long_keys.items():
-            text = content[i].get(key, "None")
+            text = getattr(content[i],key, "")
 
             c.setFont("Helvetica-Bold", 45)
             c.drawString(margin, y, f"{value}:")
@@ -148,7 +148,7 @@ def create_service_report(content):
 
         # Total Cost
         key = "total_cost"
-        text = content[i].get(key, "0.00")
+        text = getattr(content[i],key, "0.00")
         c.drawString(margin, y, f"Total Cost of Parts: £{text}")
         y -= space
 

@@ -18,6 +18,7 @@ import os
 from datetime import datetime
 import uuid
 
+
 # Page size
 page_height = 2156
 page_width = 3050
@@ -45,16 +46,18 @@ def list_jobs(content):
         "jobid",
         "customerasset",
         "serialnumber",
-        "brandname",
-        "model",
-        "jobtypename",
-        "jobstatus",
+        "brandid",
+        "modelid",
+        "jobtypeid",
+        "jobstatusid",
         "startdate",
         "enddate",
     ]
     job_lines = []
-    for i in range(len(content)):
-        job_lines.append(list(map(content[i].get, job_headers)))
+    for item in content:
+        job_line = [getattr(item, x, None) for x in job_headers]
+        job_line = [x if x  else '' for x in job_line]
+        job_lines.append(job_line)
     # splitting jobs into chunks for printing on different pages
     job_lines_per_page = 25
     job_lines = [
