@@ -2,6 +2,7 @@ from io import BytesIO
 from assets.models import Tblassets
 from django.shortcuts import get_object_or_404, redirect
 
+from utils.message import add_htmx_message
 from django.db import transaction
 import json
 import uuid
@@ -127,10 +128,13 @@ class DocumentAndLinkCreateView(
         )
 
         if self.request.htmx:
-            return HttpResponse(status=204)
+            response = HttpResponse(status=204)
         else:
-            return HttpResponseRedirect(self.success_url)
+            response = HttpResponseRedirect(self.success_url)
 
+        response = add_htmx_message(response, 'success', 'Document created and linked')
+
+        return response
 
 class DocumentLinkDeleteView(
     LoginRequiredMixin, DocumentLinkPermissionMixin, DeleteView
