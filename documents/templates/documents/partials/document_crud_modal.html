@@ -1,18 +1,13 @@
 {% load django_bootstrap5 %}
 
-<div  class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Attach Document</h5>
-      </div>
-      <div class="modal-body">
+    {% bootstrap_messages %}
 
         <form id='document_link_create_form' class="form" method="post"
         enctype="multipart/form-data"
         hx-post="{{request.get_full_path}}"
         hx-trigger="submit"
-        hx-target="#modals-here"
-        hx-on::after-Request= "bootstrap.Modal.getInstance(document.getElementById('modals-here')).hide();">
+        hx-target="#document_create_modal_content"
+        hx-on::after-Request= "bootstrap.Modal.getInstance(document.getElementById('document_create_modal')).hide();">
         <h4>Link to {{object}} </h4>
   
         {{form.media}}
@@ -21,12 +16,7 @@
         {% csrf_token %}
         {% bootstrap_form form %}
 
-        {% if view_type == "delete" %}
-        <h3> Are you sure you want to delete document {{object.document_name}} </h3>
-        <button id="save_button" class="btn btn-danger" type="submit">Confirm Delete</button>
-        {% else %}
         <button id="save_button" class="btn btn-primary" type="submit">Save</button>
-        {% endif %}
 
       </form>
 
@@ -38,14 +28,3 @@
       hx-target='this'
       >
       </div>
-
-      
-    {% bootstrap_messages %}
-
-
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>

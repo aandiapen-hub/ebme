@@ -1,18 +1,39 @@
 {% load django_bootstrap5 %}
 
+  <!-- Document/link create Modal -->
 <p><small class="text-muted">Documents</small></p>
 <div class='container'>
     <button id="create_doc_button"
     hx-get="{% url 'documents:create_document_link'%}?object_id={{object_id}}&content_type={{content_type}}"
-        hx-target="#modals-here"
+        hx-target="#document_create_modal_content"
+        hx-swap="innerHTML"
         hx-trigger="click"
         data-bs-toggle="modal"
-        data-bs-target="#modals-here"
+        data-bs-target="#document_create_modal"
         class="btn btn-outline-secondary">
         <i class="bi bi-file-earmark-plus"></i>
     </button>   
 
-    <!-- Button trigger modal -->
+
+  <div class="modal fade" id="document_create_modal" tabindex="-1" aria-labelledby="document_create_modalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="document_create_modalLabel">Create Document</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div id='document_create_modal_content' class="modal-body">
+          ...
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
 
 <button class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasDocuments_{{object_id}}_{{content_type}}" aria-controls="offcanvasDocuments_{{object_id}}_{{content_type}}"> <i class="bi bi-files-alt"></i> </button>
 

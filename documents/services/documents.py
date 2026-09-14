@@ -55,6 +55,7 @@ def create_document_from_file(
 ):
     file_hash = None
 
+    print('document type id in service start', document_type_id)
     # check if no document or content has been passed for create or update
     if (
         document is None
@@ -148,6 +149,7 @@ def create_document_from_file(
                     document_name=document_name,
                     mime_type=mime_type,
                     document_description=document_description,
+                    document_type_id=document_type_id,
                 )
                 document.set_content(content)
 

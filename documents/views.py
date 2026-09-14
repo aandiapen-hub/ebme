@@ -111,6 +111,7 @@ class DocumentAndLinkCreateView(
         object = model.objects.get(pk=object_id)
 
         document_type_id = form.cleaned_data.get("document_type_id")
+        print('document type id*****from form', document_type_id)
         # check whether a new file is being uploaded or permanent document
         # is being created from temporary uploads
         uploaded_file = self.request.FILES["document_bytea"]
@@ -240,7 +241,8 @@ class DocumentDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
         links = self.object.links.all()
         with transaction.atomic():
             links.delete()
-            return super().form_valid(form)
+            self.object.delete()
+        return HttpResponseRedirect(self.success_url)
 
 
 class DocumentLinksTableView(
@@ -366,6 +368,7 @@ class DocumentListView(LoginRequiredMixin, DocumentLinkPermissionMixin, ListView
                 documents, key=lambda d: d.documentid.get_document_type_id_display()
             ):
                 grouped_documents[key] = list(group)
+            
             context["grouped_documents"] = grouped_documents
         return context
 

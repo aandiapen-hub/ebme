@@ -85,11 +85,12 @@ def get_visible_columns(
         user_columns = user_profile.get_preference(
             model.__name__, key="visible_columns"
         )
+        user_columns.append(open_column)
+
     except Exception:
         # fallback to all model fields
         return [field.name for field in model._meta.get_fields() if field.concrete and not field.auto_created]
 
-    user_columns.append(open_column)
     return user_columns
 
 
@@ -226,7 +227,7 @@ class FilteredTableView(
     ExportMixin,
     FilterView,
 ):
-    title: ClassVar[str]  # Override in subclass - Mandatory
+    title: ClassVar[str| None] = None  # Override in subclass - Mandatory
     permission_required: ClassVar[str | None] = None  # Override in subclass - optional 
     model: ClassVar[type[Model]]  # override in subclass - Mandatory
     open_column: ClassVar[str | None] = None # override in subclass - Mandatory
@@ -236,7 +237,7 @@ class FilteredTableView(
     actions: list[TableAction] | None = None  # overridein subclass if bulk actions are available
     quick_filters: dict[str, object] | None = None
     additional_session_filters: tuple[str] | None = None # typle of filter function names. the filter functions needs to be defined on the child class and applied via session
-
+    template_columns: list[str] | None = None
     '''
         Base class for filterable, searchable, exportable table views.
         Subclasses must define the table title, model, the column used
