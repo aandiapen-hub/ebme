@@ -15,11 +15,10 @@ RUN apt-get update \
     && pip install psycopg
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
+RUN pip install /app/packages/django-filter-table
 RUN pip install psycopg
 
 # Install your local reusable Django package
-RUN pip install /app/packages/django-filter-table
-
 RUN python manage.py collectstatic --noinput
 
 

@@ -42,6 +42,7 @@ from .forms import (
     AddNewConfigVersionForm,
     AddNewSoftwareVersionForm,
     ModelCopyForm,
+    SoftwareCreateForm
 )
 
 # import permissions mixins
@@ -49,6 +50,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMix
 
 
 from django_filter_table.views import FilteredTableView, TableAction, BulkUpdateView
+
+from model_information.services import software
 
 # brand views
 
@@ -640,7 +643,7 @@ class SoftwareDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
 class SoftwareCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     permission_required = "model_information.add_software"
     model = Software
-    fields = "__all__"
+    form_class = SoftwareCreateForm
     template_name = "model_information/software_create.html"
     context_object_name = "software"
 
@@ -653,6 +656,35 @@ class SoftwareCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
         context = super().get_context_data(**kwargs)
         context["cancel_url"] = reverse("model_information:softwares")
         return context
+
+    def form_invalid(self, form):
+        return super().form_invalid(form)
+
+    def form_valid(self, form):
+        print('form valid')
+        model_ids = self.request.POST.getlist('modelid')
+        print('we are here', model_ids)
+        if model_ids:
+            models = Tblmodel.objects.filter(pk__in=model_ids)
+        else:
+            models = None
+
+        try:
+            with transaction.atomic():
+                super().form_valid(form)
+                if models:
+                    for model in models:
+                        SoftwareModel.objects.create(
+                            model=model,
+                            software=self.object
+                        )
+        except Exception as e:
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
+        
+        return HttpResponseRedirect(self.get_success_url())
+
+        
 
 
 class AddNewSoftwareVersion(LoginRequiredMixin, PermissionRequiredMixin, FormView):

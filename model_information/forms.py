@@ -1,5 +1,6 @@
 from django import forms
 from assets.models import Tblbrands, Tblmodel
+from .models import Software
 
 from documents.mixins import TempUploadUpdateFormMixin
 from  django_filter_table.forms  import HTMXMultiPickerWidget
@@ -98,3 +99,18 @@ class AddNewConfigVersionForm(forms.Form):
 
 class AddNewSoftwareVersionForm(forms.Form):
     new_version = forms.CharField(max_length=50)
+
+class SoftwareCreateForm(forms.ModelForm):
+    modelid = forms.ModelMultipleChoiceField(
+        required=True,
+        label='Supported Models',
+        queryset=Tblmodel.objects.all(),
+        widget=HTMXMultiPickerWidget(
+            model=Tblmodel,
+            fieldname='modelid',
+            multiple=True
+        )
+    )
+    class Meta:
+        model = Software
+        fields = '__all__'

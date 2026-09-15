@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div id="model-detail" class='container bg-white p-2'>
-      <div class="row"> 
+<div id="model-detail" class='container p-2'>
+      <div class="row bg-white" >
         <div class="col">
           <p><small class="text-muted">ID: </small>{{object.modelid}}</p>
           <p><small class="text-muted">Model Name: </small>{{object.modelname}}</p>
@@ -44,14 +44,26 @@
         </div>
       </div>
     </div>
+    </div>
+  
+  <div id=software>
+  <h6>Software</h6> 
+    {% for software in object.supported_software.all %}
+      {{software}}
+    {% empty %}
+      <p>No software available</p>
+    {% endfor %}
+
+  </div>
   <!--Checklist-->
-  <div id="checklist"
+  <div class='mt-3 bg-white border border-dark' id="checklist"
     hx-get="{% url 'model_information:checklist' %}?modelid={{object.modelid}}"
     hx-trigger="load, refreshDiv from:body"
     hx-target="#checklist"
     hx-swap='innerHTML'>
   </div>    
   
+  </div>
 {% endblock content %}
 
 
