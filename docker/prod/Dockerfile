@@ -17,10 +17,11 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 RUN pip install psycopg
 
-RUN python manage.py collectstatic --noinput
-
 # Install your local reusable Django package
 RUN pip install /app/packages/django-filter-table
+
+RUN python manage.py collectstatic --noinput
+
 
 ENV DJANGO_SETTINGS_MODULE=ebme.settings.production
 

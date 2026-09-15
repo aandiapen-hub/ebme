@@ -84,7 +84,6 @@ class GenerateReportView(
 
     def get(self, request, *args, **kwargs):
         data = super().get_table_data()
-        print('data', data)
         count = data.count()
 
         staff_allowed = request.user.is_staff and count < 300
