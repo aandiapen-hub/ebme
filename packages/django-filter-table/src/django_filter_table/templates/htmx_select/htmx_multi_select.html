@@ -138,6 +138,7 @@
           
                     <div class="modal-body">
 
+                      {{widget.search_url}}
                         <div class="mb-3">
                             <label
                                 for="{{ widget.modal_id }}_search"
@@ -159,7 +160,7 @@
                                 hx-trigger="intersect once, input changed delay:300ms"
                                 hx-target="#{{ widget.results_id }}"
                                 hx-indicator="#{{ widget.modal_id }}_spinner"
-                                hx-vals='{"multiple": "{{widget.multiple}}", "fieldname":"{{widget.name}}"}'
+                                hx-vals='{"fieldname":"{{widget.name}}"}'
                             >
                             
                         </div>

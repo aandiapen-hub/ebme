@@ -220,7 +220,7 @@ class AssetView(models.Model):
         verbose_name="Category",
     )
     support_level_name = models.CharField(blank=True, null=True)
-    ppm_compliance = models.TextField(
+    ppm_compliance = models.CharField(
         blank=True, null=True, verbose_name="PPM Compliance"
     )
 

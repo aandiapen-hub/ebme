@@ -51,7 +51,8 @@
     {% for software in object.supported_software.all %}
       {{software}}
     {% empty %}
-      <p>No software available</p>
+    <a href="{% url 'model_information:software_create' %}?modelid={{object.pk}}" class='btn btn-outline-secondary'>Add New Software</a>
+    <a href="{% url 'model_information:software_model_create' %}?model={{object.pk}}" class='btn btn-outline-secondary'>Link Existing Software</a>
     {% endfor %}
 
   </div>

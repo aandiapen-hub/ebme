@@ -652,6 +652,11 @@ class SoftwareCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
             "model_information:software_detail", kwargs={"pk": self.object.pk}
         )
 
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['modelid'] = self.request.GET.get('modelid')
+        return initial
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["cancel_url"] = reverse("model_information:softwares")
