@@ -675,13 +675,21 @@ class FilteredTableView(
         )
 
     def add_quick_filters_to_ctx(self, context):
+        quick_filters = {}
         if self.quick_filters:
+            for key, value in self.quick_filters.items():
+                lookup = value['lookups']
+                lookup = lookup() if callable(lookup) else lookup
+                
+                value['lookups'] = lookup
+                quick_filters[key] = value
+                
             context["quick_filters"] = [
                 {
                     **quick_filter,
                     "url": f"{self.request.path}?{urlencode(quick_filter['lookups'])}",
                 }
-                for quick_filter in self.quick_filters.values()
+                for quick_filter in quick_filters.values()
             ]
         return context
 

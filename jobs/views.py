@@ -86,8 +86,15 @@ class GenerateReportView(
         data = super().get_table_data()
         count = data.count()
 
-        staff_allowed = request.user.is_staff and count < 300
-        user_allowed = count < 200
+        staff_limit = 300
+        user_limit = 200
+        if request.user.is_staff:
+            limit = staff_limit
+        else:
+            limit = user_limit
+
+        staff_allowed = request.user.is_staff and count < staff_limit 
+        user_allowed = count < user_limit
 
         if not staff_allowed and not user_allowed:
             response = HttpResponse(
@@ -96,7 +103,7 @@ class GenerateReportView(
             )
             response["HX-Trigger"] = json.dumps({
                 "show_message": {
-                    "message": "Too many records selected. Download limit is 200 records",
+                    "message": f"Too many records selected. Download limit is {limit} records",
                     "level": "danger",
                 },
             })
@@ -411,12 +418,14 @@ class FilteredJobTableView(
     quick_filters = {
         'completed_today': {
             'name':'Completed Today',
-            'lookups': {"enddate": timezone.localdate()},
+            'lookups': lambda: {
+                "enddate__gte": timezone.localdate()
+            },
          },
         'completed_last_7_days': {
             'name':'Completed in last 7 days',
-            "lookups": {
-                "enddate__gte": timezone.localdate() - datetime.timedelta(days=7),
+            'lookups': lambda: {
+            'enddate__gte': timezone.localdate() - datetime.timedelta(days=7),
             }
          },
     }

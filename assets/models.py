@@ -511,7 +511,7 @@ class Tbljob(models.Model):
     class Meta:
         managed = False
         db_table = "tblJob"
-        ordering = ("jobid",)
+        ordering = ("-jobid",)
         permissions = [
             ("bulk_update_tbljob", "Can perform bulk updates"),
             ("genreport_tbljob", "Can download job reports"),
