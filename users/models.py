@@ -123,16 +123,3 @@ class UserProfiles(models.Model):
     def __str__(self):
         return f"{self.user_id.user_name}  preferences"
 
-    def set_preference(self, table_name, key, value):
-        """
-        Update a single preference for a specific table.
-        Example: set_table_preference("orders", "visible_columns",["id", "status"])
-        table_settings will look like {"orders":{"visible_columns":['id','status']}}
-        """
-        settings = self.table_settings.get(table_name, {})
-        settings[key] = value
-        self.table_settings[table_name] = settings
-        self.save(update_fields=['table_settings', 'updated_at'])
-
-    def get_preference(self, table_name, key, default=None):
-        return self.table_settings.get(table_name, {}).get(key, default)

@@ -3,6 +3,8 @@ import time
 from typing import Literal, ClassVar, Mapping
 import re
 
+from .utils import get_preference, set_preference
+
 from django_tables2.utils import OrderByTuple
 from django.db.models import Model
 from dataclasses import field
@@ -83,8 +85,8 @@ def get_visible_columns(
     user = request.user
     try:
         user_profile = UserProfiles.objects.get(user_id=user)
-        user_columns = user_profile.get_preference(
-            model.__name__, key="visible_columns"
+        user_columns = get_preference(
+            user_profile, model.__name__, key="visible_columns"
         )
         user_columns.append(open_column)
 
@@ -953,7 +955,7 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
         profile = UserProfiles.objects.filter(user_id=user).first()
         available_columns = []
         if profile and model_name:
-            visible_columns_names = profile.get_preference(model_name, 'visible_columns')
+            visible_columns_names = get_preference(profile, model_name, 'visible_columns')
             all_column_names = [c.name for c in all_columns]
             visible_columns = []
             for col_name in visible_columns_names:
@@ -984,7 +986,7 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
 
         columns = request.POST.getlist('columns', None)
         if columns and profile:
-            profile.set_preference(request_model, 'visible_columns', columns)
+            set_preference(profile, request_model, 'visible_columns', columns)
         return HttpResponseRedirect(self.get_success_url())
 
 
