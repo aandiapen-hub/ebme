@@ -283,6 +283,8 @@ class TblDocumentLinks(models.Model):
     def __str__(self):
         return repr(self.document_link_id)
 
+    def get_absolute_url(self):
+        reverse('documents:view_document', kwargs={'pk':self.documentid.pk})
 
 class DocumentsView(models.Model):
     document_link_id = models.BigIntegerField(primary_key=True, verbose_name="Link ID")

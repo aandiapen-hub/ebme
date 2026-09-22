@@ -253,9 +253,9 @@ class DocumentLinksTableView(
 ):
     model = TblDocumentLinks
     title = 'Document Links'
-    paginate_by = 25
     permission_required = "documents.view_tbldocumentlinks"
-    template_columns = {"actions": "documents/tables/document_links_buttons.html"}
+
+    open_column = 'document_link_id'
     universal_search_fields = DOCUMENT_LINK_SEARCH
     exclude = ["document_bytea"]
 
