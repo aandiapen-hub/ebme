@@ -307,8 +307,8 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
         is_asset_data = (
             group.extracted_json.get("resolved", {}).get("gtin", {}).get("value", False)
         )
-        if is_asset_data and group.document_type_id == DocumentTypes.UNKNOWN:
-            group.document_type_id = DocumentTypes.ASSET_DATA
+        if is_asset_data and group.document_type_id.code == 'unknown':
+            group.document_type_id.code = 'asset_data' 
             group.save()
 
         return scanned

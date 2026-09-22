@@ -136,7 +136,7 @@
                 <small>Document Type:</small>
                 <a href='{% url "documents:temp_group_update" pk=group.pk %}'
                   class='btn btn-sm btn-outline-secondary text-decoration-none'>
-                  {{ group.get_document_type_id_display }}
+                  {{ group.document_type_id }}
                 </a>
 
           </div>

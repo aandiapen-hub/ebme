@@ -102,7 +102,6 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         return f"{base_url}?{query_params}"
 
     def get_context(self, name, value, attrs):
-        print('widget mode', self.widget_mode)
         context = super().get_context(name, value, attrs)
         widget = context["widget"]
 

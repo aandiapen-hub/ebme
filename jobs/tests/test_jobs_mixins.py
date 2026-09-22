@@ -72,7 +72,7 @@ def test_staff_can_access_any_job(
 
     client.force_login(user)
     url = reverse('jobs:jobs_list') 
-    response = client.get(url)
+    response = client.get(url, HTTP_HX_REQUEST='true')
     customer_jobs = [job for job in jobs if job.assetid.customerid==customer]
     assert response.context['table'].data.data.count() == len(customer_jobs) 
 

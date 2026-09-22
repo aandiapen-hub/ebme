@@ -15,6 +15,17 @@ from documents.models import (
     TemporaryUpload,
 )
 
+DOCUMENT_TYPE_CODES = [
+    'asset_data'
+    'user_manual',
+    'service_manual',
+]
+class DocumentTypesFactory(DjangoModelFactory):
+    class Meta:
+        model = DocumentTypes
+
+    document_type_name = factory.Faker("word")
+    code = factory.Iterator(DOCUMENT_TYPE_CODES, cycle=True)
 
 class DocumentsFactory(DjangoModelFactory):
     class Meta:
@@ -30,7 +41,7 @@ class DocumentsFactory(DjangoModelFactory):
         lambda o: hashlib.sha256(o.document_bytea).hexdigest()
     )
     mime_type = "application/pdf"
-    document_type_id = factory.Iterator(DocumentTypes.values)
+    document_type_id = factory.SubFactory(DocumentTypesFactory)
 
 
 class DocumentLinkFactory(DjangoModelFactory):
@@ -57,8 +68,6 @@ class TempUploadGroupFactory(DjangoModelFactory):
 
     id = factory.Faker("uuid4")
     user = factory.SubFactory(UserFactory)
-
-    document_type_id = DocumentTypes.UNKNOWN
 
     combined_ocr_text = "test ocr text"
     extracted_json = factory.LazyFunction(dict)

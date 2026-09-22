@@ -1,6 +1,4 @@
-
 {% extends base_template %}
-
 {% load django_tables2 %}
 {% load querystring from django_tables2 %}
 {% load export_url from django_tables2 %}
@@ -72,7 +70,7 @@
     <div class="col" >
       
       <form id='filter-form' hx-get="{{request.path}}" hx-target="#result-container" 
-            hx-trigger="submit from:#filter-form"
+            hx-trigger="submit, load"
             hx-swap="innerHTML" hx-push-url='true' hx-indicator='.htmx-indicator' name="search" 
 
               _="on change

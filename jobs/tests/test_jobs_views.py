@@ -517,18 +517,45 @@ def test_job_create_view_post_successfully(
     assert response.status_code == 302
     assert response.url == reverse("jobs:job_update", kwargs={"pk": created_job.jobid})
 
+
+@pytest.mark.django_db
+def test_job_create_view_post_successfully_quick_job(
+    client, user_setup, asset, jobtype, jobstatus, technician
+):
+
+    asset = asset()
+    user = user_setup
+    user.customerid = asset.customerid
+
+    user.save()
+    client.force_login(user)
+
+    permission = Permission.objects.get(codename="add_tbljob")
+    user.user_permissions.add(permission)
+
+    url = reverse("jobs:job_create")
+    query_params = urlencode({"assetid": asset.assetid})
+    full_url = f"{url}?{query_params}"
+
+    form = {
+        "assetid": asset.pk,
+        "jobenddate": "2025-05-07",
+        "jobtypeid": jobtype().pk,
+        "technicianid": technician().pk,
+        "jobstatusid": jobstatus().pk,
+    }
+
     # test quick job
     jobstatus = jobstatus(jobstatusname="Completed")
     jobstype = jobtype(jobtypename="PPM")
     query_params = urlencode({"assetid": asset.assetid, "quickjob": "successful_ppm"})
     full_url = f"{url}?{query_params}"
 
-    response = client.post(full_url, form)
-    created_job = Tbljob.objects.last()
-    assert created_job.assetid.assetid == asset.assetid
-    assert response.status_code == 302
-    assert response.url == reverse("jobs:job_update", kwargs={"pk": created_job.jobid})
-
+    response2 = client.post(full_url, form)
+    created_job2 = Tbljob.objects.last()
+    assert created_job2.assetid.assetid == asset.assetid
+    assert response2.status_code == 302
+    assert response2.url == reverse("jobs:job_update", kwargs={"pk": created_job2.jobid})
 
 @pytest.mark.django_db
 def test_job_create_view_post_incorrect_customer(

@@ -1,8 +1,10 @@
+from typing_extensions import Doc
+
 from django.contrib import messages
 from urllib.parse import urlencode
 from functools import cached_property
 
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.db import transaction
 from assets.services.oustanding_tasks import get_equipment_tasks
 from assets.services.sofware_service import apply_software_change
@@ -474,6 +476,7 @@ class ReplicateAsset(LoginRequiredMixin, PermissionRequiredMixin, FormView):
 
     def get(self, *args, **kwargs):
         group_id = self.kwargs["group_id"]
+
         if group_id == "new":
             group = self.get_group
             return redirect(
@@ -501,19 +504,20 @@ class ReplicateAsset(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     def get_group(self):
         if self.request.POST:
             group_id = self.request.POST.get("group_id")
+
         group_id = self.kwargs["group_id"]
 
         if group_id == "new":
             group = TempUploadGroup.objects.filter(
                 user=self.request.user,
-                document_type_id=DocumentTypes.ASSET_DATA,
+                document_type_id=get_object_or_404(DocumentTypes, code='asset_data'),
                 temp_uploads__isnull=True,
             ).first()
 
             if group is None:
                 group = TempUploadGroup.objects.create(
                     user=self.request.user,
-                    document_type_id=DocumentTypes.ASSET_DATA,
+                    document_type_id=get_object_or_404(DocumentTypes, code='asset_data'),
                 )
 
         else:

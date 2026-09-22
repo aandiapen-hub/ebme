@@ -26,7 +26,7 @@ def test_customer_asse_permission_mixin_list(
 
     client.force_login(user)
     url = reverse('assets:assets_list') 
-    response = client.get(url)
+    response = client.get(url, HTTP_HX_REQUEST='true')
 
     table = response.context['table']
     assert table.data.data.count() == 10
@@ -58,7 +58,7 @@ def test_customer_asse_permission_mixin_list_for_staff(
 
     client.force_login(user)
     url = reverse('assets:assets_list') 
-    response = client.get(url)
+    response = client.get(url, HTTP_HX_REQUEST='true')
 
     table = response.context['table']
     assert table.data.data.count() == 30

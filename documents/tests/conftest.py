@@ -7,6 +7,7 @@ import pytest
 from documents .models import DocumentTypes, TempUploadGroup
 from .factories import(
     DocumentLinkFactory,
+    DocumentTypesFactory,
     DocumentsFactory,
     TempUploadGroupFactory,
     TemporaryUploadFactory,
@@ -23,12 +24,9 @@ def document_link():
     return DocumentLinkFactory
 
 @pytest.fixture
-def document_type():
-    def make_document_type(name='USER_MANUAL'):
-        return {
-        'USER_MANUAL': DocumentTypes.USER_MANUAL,
-        'SERVICE_MANUAL':DocumentTypes.SERVICE_MANUAL,
-        }[name]
+def document_type(**kwargs):
+    def make_document_type(**kwargs):
+        return DocumentTypesFactory(**kwargs)
     return make_document_type
 
 @pytest.fixture
@@ -46,9 +44,9 @@ def temp_group():
     return TempUploadGroupFactory
 
 @pytest.fixture
-def asset_data_temp_group():
+def asset_data_temp_group(document_type):
     return TempUploadGroupFactory(
-        document_type_id=DocumentTypes.ASSET_DATA,
+        document_type_id=document_type(code='asset_data'),
         extracted_json = {
             'merged_gs1_ai':{
                 'GIAI': '50552395105533488', 'GTIN': '00885403497233', 'brand': None,
@@ -83,7 +81,7 @@ def test_file():
     return _get
 
 @pytest.fixture
-def document(test_file):
+def document(test_file, document_type):
     def _get_document(filename=None, content_type=None):
         if filename:
             file = test_file(filename, content_type)
@@ -103,7 +101,7 @@ def document(test_file):
             document_bytea=content,
             mime_type=file.content_type,
             file_size=file.size,
-            document_type_id=DocumentTypes.UNKNOWN,
+            document_type_id=document_type(code='unknown'),
             document_hash = hashlib.sha256(content).hexdigest()
         )
 
@@ -147,28 +145,35 @@ def temp_document(test_file):
     return _get_temp_document
 
 @pytest.fixture
-def asset_id_temp_document(temp_document):
-    return temp_document(filename='equipment_gs2.jpg', group_type=DocumentTypes.ASSET_DATA)
+def asset_id_temp_document(temp_document, document_type):
+    doc_type = document_type(code='asset_data')
+    return temp_document(filename='equipment_gs2.jpg', group_type=doc_type)
 
 @pytest.fixture
-def gs1_conflict_temp_document(temp_document):
-    return temp_document(filename='gs1_conflict.jpg', group_type=DocumentTypes.ASSET_DATA)
+def gs1_conflict_temp_document(temp_document, document_type):
+
+    doc_type = document_type(code='asset_data')
+    return temp_document(filename='gs1_conflict.jpg', group_type=doc_type)
 
 @pytest.fixture
-def asset_no_temp_document(temp_document):
-    return temp_document(filename='asset_no.jpg', group_type=DocumentTypes.ASSET_DATA)
+def asset_no_temp_document(temp_document, document_type):
+    doc_type = document_type(code='asset_data')
+    return temp_document(filename='asset_no.jpg', group_type=doc_type)
 
 @pytest.fixture
-def asset_temp_document(temp_document):
-    return temp_document(filename='equipment_gs1.jpg', group_type=DocumentTypes.ASSET_DATA)
+def asset_temp_document(temp_document, document_type):
+    doc_type = document_type(code='asset_data')
+    return temp_document(filename='equipment_gs1.jpg', group_type=doc_type)
 
 @pytest.fixture
-def service_report_temp_document(temp_document):
-    return temp_document(filename='service_report.pdf', group_type=DocumentTypes.SERVICE_REPORT)
+def service_report_temp_document(temp_document, document_type):
+    doc_type = document_type(code='service_report')
+    return temp_document(filename='service_report.pdf', group_type=doc_type)
 
 @pytest.fixture
-def delivery_note_temp_document(temp_document):
-    return temp_document(filename='delivery_note.jpeg', group_type=DocumentTypes.DELIVERY_NOTE)
+def delivery_note_temp_document(temp_document, document_type):
+    doc_type = document_type(code='delivery_note')
+    return temp_document(filename='delivery_note.jpeg', group_type=doc_type)
 
 @pytest.fixture
 def temp_barcode_only():

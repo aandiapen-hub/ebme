@@ -3,6 +3,7 @@ import time
 from assets.models import Tblassets
 from django.contrib.auth.models import Permission
 from urllib.parse import urlencode
+from documents.tests.conftest import document
 import pytest
 from pytest_django.asserts import assertTemplateUsed
 from django.urls import reverse
@@ -71,7 +72,8 @@ def test_document_create_view_post_successfully(
     query_params = urlencode({"object_id": asset.pk, "content_type": content_type})
     url = f"{base_url}?{query_params}"
 
-    doc_type = document_type()
+    doc_type = document_type().pk
+
     # test html
     test_file = SimpleUploadedFile(
         "test.txt", b"Test content", content_type="text/plain"
@@ -125,7 +127,7 @@ def test_document_create_view_post_duplicated_document(
         "test.txt", b"Test content", content_type="text/plain"
     )
     form = {
-        "document_type_id": document_type(),
+        "document_type_id": document_type().pk,
         "document_name": "test_document",
         "document_description": "test_document_description",
         "document_bytea": test_file,
@@ -134,7 +136,7 @@ def test_document_create_view_post_duplicated_document(
     link1_document = TblDocumentLinks.objects.last().documentid
 
     form2 = {
-        "document_type_id": document_type(),
+        "document_type_id": document_type().pk,
         "document_name": "test_document2",
         "document_description": "test_document_description",
         "document_bytea": test_file,
@@ -1097,7 +1099,7 @@ def test_temporary_upload_create_view_renders(client, user):
 
 @pytest.mark.django_db
 def test_temporary_upload_create_view_post_new_group(
-    client, test_file, temp_document, user
+    client, test_file, document_type, temp_document, user
 ):
 
     user1 = user()
@@ -1105,6 +1107,7 @@ def test_temporary_upload_create_view_post_new_group(
     user1.user_permissions.add(permission)
     user1.is_staff = True
     user1.save()
+    document_type = document_type(document_type_id=60)
 
     client.force_login(user1)
 
@@ -1144,9 +1147,10 @@ def test_temporary_upload_create_view_post_validation_error(
 
 @pytest.mark.django_db
 def test_temporary_upload_create_view_post_specific_group(
-    client, test_file, temp_document, user
+    client, test_file, temp_document, user, document_type
 ):
 
+    document_type(code='asset_data', document_type_id=60)
     temp_document = temp_document()
     user1 = temp_document.group.user
 
@@ -1169,8 +1173,9 @@ def test_temporary_upload_create_view_post_specific_group(
 
 
 @pytest.mark.django_db
-def test_temporary_upload_create_view_post_htmx(client, test_file, temp_document, user):
+def test_temporary_upload_create_view_post_htmx(client, test_file, temp_document, user, document_type):
 
+    document_type(code='asset_data', document_type_id=60)
     temp_document = temp_document()
     user1 = temp_document.group.user
 
@@ -1192,9 +1197,12 @@ def test_temporary_upload_create_view_post_htmx(client, test_file, temp_document
     assertTemplateUsed(response, "documents/partials/temp_file.html")
 
 @pytest.mark.django_db
-def test_temporary_upload_create_view_post_htmx_from_listview(client, test_file, temp_group, user):
+def test_temporary_upload_create_view_post_htmx_from_listview(
+        client, test_file, temp_group, user, document_type
+):
     user1 = user()
-    group = temp_group(user=user1)
+    doc_type=document_type(document_type_name='asset data', code='asset_data', document_type_id=60)
+    group = temp_group(user=user1, document_type_id=doc_type)
 
     assert group.temp_uploads.count() == 0
     permission = Permission.objects.get(codename="add_temporaryupload")
@@ -1220,8 +1228,9 @@ def test_temporary_upload_create_view_post_htmx_from_listview(client, test_file,
     assert TempUploadGroup.objects.count() == 1
 
 @pytest.mark.django_db
-def test_temporary_upload_create_view_post_htmx_barcode_only(client, test_file, temp_document, user):
+def test_temporary_upload_create_view_post_htmx_barcode_only(client, test_file, temp_document, user, document_type):
 
+    document_type(code='asset_data', document_type_id=60)
     temp_document = temp_document()
     user1 = temp_document.group.user
 
@@ -1244,9 +1253,10 @@ def test_temporary_upload_create_view_post_htmx_barcode_only(client, test_file, 
 
 @pytest.mark.django_db
 def test_temporary_upload_create_view_post__new_group_htmx(
-    client, test_file, temp_document, user
+    client, test_file, temp_document, user, document_type
 ):
 
+    document_type(code='asset_data', document_type_id=60)
     temp_document = temp_document()
     user1 = temp_document.group.user
 
@@ -1268,9 +1278,10 @@ def test_temporary_upload_create_view_post__new_group_htmx(
 
 @pytest.mark.django_db
 def test_temporary_upload_create_view_post_non_staff(
-    client, test_file, temp_document, user
+    client, test_file, temp_document, user, document_type
 ):
 
+    document_type(code='asset_data', document_type_id=60)
     temp_document = temp_document()
     user1 = temp_document.group.user
 
@@ -1294,8 +1305,9 @@ def test_temporary_upload_create_view_post_non_staff(
 
 @pytest.mark.django_db
 def test_temporary_upload_create_view_post_specific_group_htmx(
-    client, temp_document, test_file
+    client, temp_document, test_file, document_type
 ):
+    document_type(code='asset_data', document_type_id=60)
     temp_document = temp_document()
     user1 = temp_document.group.user
 
@@ -1371,6 +1383,7 @@ def test_temp_file_list_view_renders(client, user, temp_document, temp_group):
 # test DocumentUpdateView
 @pytest.mark.django_db
 def test_document_update_view_requires_login(client, document):
+
     document = document()
     url = reverse("documents:update_document", kwargs={"pk": document.pk})
 
@@ -1441,7 +1454,9 @@ def test_document_update_view_post_error(client, user, document_link, customer):
     assert response.context['form'].errors
 
 @pytest.mark.django_db
-def test_document_update_view_post(client, user, document_link, customer):
+def test_document_update_view_post(
+        client, user, document_link, customer, document_type
+):
     document_link = document_link()
     last_document = document_link.documentid
     user = user()
@@ -1466,17 +1481,17 @@ def test_document_update_view_post(client, user, document_link, customer):
         "document_name": "test_document",
         "document_description": "test_document_description",
         "document_bytea": test_file,
+        "document_type_id": document_type().pk
     }
 
     response = client.post(url, data=form, format="multipart")
-
     assert response.status_code == 302
     last_document.refresh_from_db()
     assert last_document.document_name == "test_document"
 
 
 @pytest.mark.django_db
-def test_document_update_view_post_htmx(client, user, document_link, customer):
+def test_document_update_view_post_htmx(client, user, document_link, customer, document_type):
     document_link = document_link()
     last_document = document_link.documentid
     user = user()
@@ -1501,6 +1516,7 @@ def test_document_update_view_post_htmx(client, user, document_link, customer):
         "document_name": "test_document",
         "document_description": "test_document_description",
         "document_bytea": test_file,
+        "document_type_id": document_type().pk
     }
 
     response = client.post(url, data=form, format="multipart", HTTP_HX_REQUEST="true")
@@ -2030,11 +2046,13 @@ def test_group_extract_unknown_document_type(
     model,
     brand,
     mocker,
+    document_type,
 ):
 
     document1 = asset_id_temp_document
+    doc_type = document_type(code='unknown')
     group = document1.group
-    group.document_type_id = DocumentTypes.UNKNOWN
+    group.document_type_id = doc_type 
     group.save()
 
     mocker.patch(
@@ -2070,11 +2088,12 @@ def test_group_extract_ai_error(
     model,
     brand,
     mocker,
+    document_type
 ):
 
     document1 = asset_id_temp_document
     group = document1.group
-    group.document_type_id = DocumentTypes.UNKNOWN
+    group.document_type_id = document_type(code='unknown')
     group.save()
 
     mocker.patch(
@@ -2201,19 +2220,20 @@ def test_temp_group_update__renders(client, temp_document, user):
 
 
 @pytest.mark.django_db
-def test_temp_group_update_posts(client, temp_document, user):
+def test_temp_group_update_posts(client, temp_document, user, document_type):
     document = temp_document()
     user = document.group.user
     permission1 = Permission.objects.get(codename="change_tempuploadgroup")
     user.user_permissions.add(permission1)
     url = reverse("documents:temp_group_update", kwargs={"pk": document.group.pk})
     client.force_login(user)
-    from documents.models import DocumentTypes
-
-    data = {"document_type_id": DocumentTypes.ASSET_DATA}
+    doc_type = document_type(processable=True)
+    data = {"document_type_id": doc_type.pk }
 
     response = client.post(url, data=data)
+    document.group.refresh_from_db()
     assert response.status_code == 302
+    assert document.group.document_type_id == doc_type
 
 
 # test link_temp_document
@@ -2252,15 +2272,15 @@ def test_link_temp_document_renders(client, user):
 def test_link_temp_document_posts(client, temp_document, asset, document_type, user):
     asset = asset()
     document_name = "equipment_gs1.jpg"
+    doc_type = document_type(processable=True, document_type_id = 60)
     temp_document = temp_document(document_name)
     user = user()
     permission = Permission.objects.get(codename="add_tbldocuments")
     user.user_permissions.add(permission)
     client.force_login(user)
-
     data = {
         "group": temp_document.group.pk,
-        "document_type": document_type(),
+        "document_type": doc_type.pk,
     }
     query_params = urlencode(
         {"object_id": asset.pk, "content_type": "assets.tblassets"}
@@ -2268,6 +2288,9 @@ def test_link_temp_document_posts(client, temp_document, asset, document_type, u
     base_url = reverse("documents:link_temporary_document")
     full_url = f"{base_url}?{query_params}"
     response = client.post(full_url, data=data)
+
+    assert TblDocumentLinks.objects.filter(object_id=asset.pk).exists()
+    
     assert response.status_code == 302
 
 
@@ -2276,6 +2299,7 @@ def test_link_temp_document_posts_htmx(
     client, temp_document, asset, document_type, user
 ):
     asset = asset()
+    doc_type = document_type(processable=True, document_type_id = 60)
     document_name = "equipment_gs1.jpg"
     temp_document = temp_document(document_name)
     user = user()
@@ -2285,7 +2309,7 @@ def test_link_temp_document_posts_htmx(
 
     data = {
         "group": temp_document.group.pk,
-        "document_type": document_type(),
+        "document_type": doc_type.pk,
     }
     query_params = urlencode(
         {"object_id": asset.pk, "content_type": "assets.tblassets"}
@@ -2293,6 +2317,7 @@ def test_link_temp_document_posts_htmx(
     base_url = reverse("documents:link_temporary_document")
     full_url = f"{base_url}?{query_params}"
     response = client.post(full_url, data=data, HTTP_HX_REQUEST="true")
+    assert TblDocumentLinks.objects.filter(object_id=asset.pk).exists()
     assert response.status_code == 204
 
 
@@ -2309,7 +2334,7 @@ def test_link_temp_document_posts_unsuccessful(
 
     data = {
         "group": temp_document.group.pk,
-        "document_type": document_type(),
+        "document_type": document_type().pk,
     }
     query_params = urlencode({"object_id": 30, "content_type": "assets.tblassets"})
     base_url = reverse("documents:link_temporary_document")
@@ -2401,8 +2426,10 @@ def test_quick_scanner_renders(client, user):
 
 
 @pytest.mark.django_db
-def test_quick_scanner_post(client, test_file, user):
+def test_quick_scanner_post(client, test_file, user, document_type):
     user = user()
+
+    doc_type = document_type(document_type_id=60)
     client.force_login(user)
     test_file = test_file("delivery_note.jpeg")
     data = {"files": [test_file]}
@@ -2413,8 +2440,9 @@ def test_quick_scanner_post(client, test_file, user):
 
 
 @pytest.mark.django_db
-def test_quick_scanner_post_staff(client, test_file, user):
+def test_quick_scanner_post_staff(client, test_file, user, document_type):
     user = user()
+    doc_type = document_type(document_type_id=60)
     user.is_staff = True
     user.save()
     client.force_login(user)
@@ -2478,8 +2506,10 @@ def test_replicate_asset_view_permission_denied(client, user_setup, asset):
 
 
 @pytest.mark.django_db
-def test_replicate_asset_view_renders(client, user_setup, asset):
+def test_replicate_asset_view_renders(client, user_setup, asset, document_type):
     user = user_setup
+
+    doc_type = document_type(code='asset_data')
     permission = Permission.objects.get(codename="add_tblassets")
     user.user_permissions.add(permission)
 
@@ -2492,9 +2522,11 @@ def test_replicate_asset_view_renders(client, user_setup, asset):
 
 @pytest.mark.django_db
 def test_replicate_asset_view_renders_with_group(
-    client, user_setup, asset, temp_document
+    client, user_setup, asset, temp_document, document_type
 ):
     user = user_setup
+
+    doc_type = document_type(code='asset_data')
     permission = Permission.objects.get(codename="add_tblassets")
     user.user_permissions.add(permission)
 
@@ -2510,8 +2542,11 @@ def test_replicate_asset_view_renders_with_group(
 
 
 @pytest.mark.django_db
-def test_replicate_asset_view_posts(client,asset, user_setup, job, temp_document, model, jobtype):
+def test_replicate_asset_view_posts(client,asset, user_setup, job, temp_document, model, jobtype, document_type):
     model = model(gtin="00885403497233")
+
+    doc_type = document_type(code='asset_data', document_type_id=60)
+
     user = user_setup
     user.is_staff = True
     permission = Permission.objects.get(codename="add_tblassets")
@@ -2541,8 +2576,10 @@ def test_replicate_asset_view_posts(client,asset, user_setup, job, temp_document
 
 
 @pytest.mark.django_db
-def test_replicate_asset_view_posts_with_error(client,asset, user_setup, job, temp_document, model, jobtype):
+def test_replicate_asset_view_posts_with_error(client,asset, user_setup, job, temp_document, model, jobtype, document_type):
     model = model(gtin="00885403497233")
+
+    doc_type = document_type(code='asset_data', document_type_id=60)
     user = user_setup
     user.is_staff = True
     permission = Permission.objects.get(codename="add_tblassets")

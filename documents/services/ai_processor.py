@@ -81,7 +81,7 @@ def service_report_system_prompt():
 
 
 PROMPT_CONTENT = {
-    DocumentTypes.ASSET_DATA.value: {
+    'asset_data': {
         "user_prompt": """Get information about the medical equipment from the images
                             and decoded text and gs1 decoded informations. gs1 decoded information is always acurate. If the information
                             is not clear, return none, do not guess.
@@ -90,12 +90,12 @@ PROMPT_CONTENT = {
                         medical equipment and devices on a database.""",
         "response_format": AssetData,
     },
-    DocumentTypes.SERVICE_REPORT.value: {
+    'service_report': {
         "user_prompt": "Get information about the work carried out on a medical equipment from the service report.",
         "system_prompt": service_report_system_prompt,
         "response_format": JobData,
     },
-    DocumentTypes.DELIVERY_NOTE.value:{
+    'delivery_note':{
         "user_prompt": "Get delivery information from the delivery note including a list of items delivered. Do not guess",
         "system_prompt": "You are a receit and distribution admin expert at logging delivery paperworks",
         "response_format": DeliveryData,
@@ -113,7 +113,7 @@ def extract_group_info_with_ai(group):
     )
 
     qs = TemporaryUpload.objects.filter(group=group)
-    document_type = group.document_type_id
+    document_type = group.document_type_id.code
 
     encoded_images = encode_images(qs)
 

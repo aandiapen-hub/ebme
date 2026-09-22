@@ -804,7 +804,7 @@ def test_asset_to_job_view_renders(client, user, jobs):
     session_filter = response.wsgi_request.session["/jobs/jobs/"]
     assert  session_filter
 
-    response = client.get(response['HX-Redirect'])
+    response = client.get(response['HX-Redirect'], HTTP_HX_REQUEST='true')
     assert 0 < len(response.context["table"].rows) < 10
 
 @pytest.mark.django_db
@@ -832,7 +832,7 @@ def test_asset_to_job_view_renders_with_selected_ids(client, user, jobs):
     session_filter = response.wsgi_request.session["/jobs/jobs/"]
     assert  session_filter
 
-    response = client.get(response['HX-Redirect'])
+    response = client.get(response['HX-Redirect'], HTTP_HX_REQUEST='true')
     assert len(response.context["table"].rows) == asset0_job_count
 
 @pytest.mark.django_db

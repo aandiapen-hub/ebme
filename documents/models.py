@@ -1,5 +1,6 @@
 from enum import property
 import os
+from typing_extensions import Doc
 from django.db import models
 import hashlib
 from django.contrib.contenttypes.models import ContentType
@@ -20,6 +21,7 @@ from django.core.files.base import ContentFile
 from PIL import Image, ImageOps
 
 
+'''
 class DocumentTypes(models.IntegerChoices):
     UNKNOWN = 0, "UNKNOWN"
     USER_MANUAL = 10, "User Manual"
@@ -34,8 +36,23 @@ PROCESSABLE_DOCUMENTS = [
     DocumentTypes.ASSET_DATA,
     DocumentTypes.SERVICE_REPORT,
     DocumentTypes.DELIVERY_NOTE,
-]
 
+]
+    '''
+
+class DocumentTypes(models.Model):
+    document_type_id = models.BigAutoField(primary_key=True)
+    document_type_name = models.CharField()
+    code = models.CharField()
+    processable = models.BooleanField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = 'tbl_document_types'
+
+
+    def __str__(self):
+        return self.document_type_name
 
 class TblDocuments(models.Model):
     """
@@ -51,12 +68,7 @@ class TblDocuments(models.Model):
     # checksum = models.CharField( max_length=64, blank=True, null=True)  # e.g. SHA256 hex digest
     mime_type = models.CharField(max_length=100, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
-    document_type_id = models.IntegerField(
-        choices=DocumentTypes.choices,
-        default=DocumentTypes.UNKNOWN,
-        null=True,
-        blank=True,
-    )
+    document_type_id = models.ForeignKey(DocumentTypes, models.PROTECT, db_column='document_type_id')
     document_hash = models.CharField(
         max_length=64, unique=True, db_index=True, null=True, blank=True
     )
@@ -93,10 +105,7 @@ class TempUploadGroup(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,  # delete files if user is deleted
         related_name='temp_upload_group')
-    document_type_id = models.IntegerField(
-        choices=DocumentTypes.choices,
-        default=DocumentTypes.UNKNOWN,
-    )
+    document_type_id = models.ForeignKey(DocumentTypes, models.PROTECT, db_column='document_type_id', default=60)
 
     combined_ocr_text = models.TextField(blank=True)
     extracted_json = models.JSONField(default=dict, blank=True)
@@ -111,7 +120,10 @@ class TempUploadGroup(models.Model):
 
     @property
     def processable(self):
-        return self.document_type_id in PROCESSABLE_DOCUMENTS
+        processable_document_ids = DocumentTypes.objects.filter(
+            processable=True
+        ).values_list('pk', flat=True)
+        return self.document_type_id.pk in processable_document_ids
 
 
 class TemporaryUpload(models.Model):
@@ -289,11 +301,7 @@ class DocumentsView(models.Model):
     customer = models.ForeignKey(
         "assets.Tblcustomer", models.DO_NOTHING, db_column="CustomerID"
     )
-    document_type_id = models.IntegerField(
-        DocumentTypes,
-        null=True,
-        blank=True,
-    )
+    document_type_id = models.ForeignKey(DocumentTypes, models.PROTECT, null=True, blank=True)
 
     class Meta:
         managed = False

@@ -7,8 +7,8 @@ from .models import (
     TemporaryUpload,
     DocumentTypes,
     TempUploadGroup,
-    PROCESSABLE_DOCUMENTS,
 )
+
 from documents.services.documents import create_document_from_file
 
 from assets.models import Tblbrands
@@ -129,7 +129,7 @@ class BulkLinkDocument(forms.Form):
             }
         ),
     )
-    document_type = forms.ChoiceField(required=True, choices=DocumentTypes.choices)
+    document_type = forms.ModelChoiceField(required=True, queryset=DocumentTypes.objects.all())
     document_name = forms.CharField(
         required=False,
         widget=forms.TextInput(
@@ -163,8 +163,8 @@ class EmptyForm(forms.Form):
 
 
 class TempUploadGroupUpdateForm(forms.ModelForm):
-    document_type_id = forms.ChoiceField(
-        choices=[t for t in DocumentTypes.choices if t[0] in PROCESSABLE_DOCUMENTS]
+    document_type_id = forms.ModelChoiceField(
+        queryset = DocumentTypes.objects.filter(processable=True)
     )
 
     class Meta:
@@ -214,9 +214,9 @@ class DeliveryNoteDataUpdate(forms.Form):
 
 def get_temp_group_data_update_formclass(group_type):
     GROUP_TYPE_FORM_MAP = {
-        DocumentTypes.ASSET_DATA: AssetDataUpdate,
-        DocumentTypes.SERVICE_REPORT: ServiceReportDataUpdate,
-        DocumentTypes.DELIVERY_NOTE: DeliveryNoteDataUpdate,
+        'asset_data': AssetDataUpdate,
+        'service_report': ServiceReportDataUpdate,
+        'delivery_note': DeliveryNoteDataUpdate,
     }
     return GROUP_TYPE_FORM_MAP.get(group_type, AssetDataUpdate)
 

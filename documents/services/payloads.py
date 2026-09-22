@@ -43,12 +43,12 @@ def map_part_create_data(resolved_data):
 
 
 INITIAL_PAYLOAD_MAP = {
-    DocumentTypes.SERVICE_REPORT: map_service_report_data_to_job,
-    DocumentTypes.DELIVERY_NOTE: map_delivery_note,
-    DocumentTypes.ASSET_DATA: map_asset_data,
+    'service_report': map_service_report_data_to_job,
+    'delivery_note': map_delivery_note,
+    'asset_data': map_asset_data,
     "create_model": map_model_create_data,
     "update_model": map_model_update_data,
-    DocumentTypes.UNKNOWN: map_asset_data,
+    'unknown': map_asset_data,
     "create_part": map_part_create_data,
 }
 
@@ -70,7 +70,7 @@ def apply_payload_to_initial(
     if initial_mapper:
         mapper = INITIAL_PAYLOAD_MAP.get(initial_mapper)
     else:
-        mapper = INITIAL_PAYLOAD_MAP.get(temp_group.document_type_id)
+        mapper = INITIAL_PAYLOAD_MAP.get(temp_group.document_type_id.code)
 
     if not mapper:
         return initial
@@ -140,7 +140,7 @@ def map_model_data_to_context(resolved_data):
 
 
 CONTEXT_PAYLOAD_MAP = {
-    DocumentTypes.DELIVERY_NOTE: delivery_note_items_mapper,
+    'delivery_note': delivery_note_items_mapper,
     "create_model": map_model_data_to_context,
 }
 
@@ -158,7 +158,7 @@ def apply_payload_to_context(temp_group_id, context, context_mapper=None):
     if context_mapper:
         mapper = CONTEXT_PAYLOAD_MAP.get(context_mapper)
     else:
-        mapper = CONTEXT_PAYLOAD_MAP.get(temp_group.document_type_id)
+        mapper = CONTEXT_PAYLOAD_MAP.get(temp_group.document_type_id.code)
 
     if not mapper:
         return context

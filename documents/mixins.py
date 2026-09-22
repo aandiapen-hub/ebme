@@ -54,6 +54,7 @@ class TempUploadMixin:
             pk=temp_group_id
         ).first()
         return group 
+
     def apply_temp_payload_to_initial(self, initial):
         return apply_payload_to_initial(
             self.get_temp_group_id(),

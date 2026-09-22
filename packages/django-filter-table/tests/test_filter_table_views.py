@@ -47,6 +47,10 @@ def test_filtered_table_view_get_success(client, user, jobs):
     response = client.get(URL)
     assert response.status_code == 200
     assert GET_TEMPLATE in [t.name for t in response.templates]
+    assert len(response.context['table'].rows) == 0
+
+    response = client.get(URL, HTTP_HX_REQUEST='true')
+    assert response.status_code == 200
     assert len(response.context['table'].rows) == 10
 
 @pytest.mark.django_db

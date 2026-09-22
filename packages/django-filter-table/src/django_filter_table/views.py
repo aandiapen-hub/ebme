@@ -1,4 +1,5 @@
 from datetime import datetime
+import time
 from typing import Literal, ClassVar, Mapping
 import re
 
@@ -89,8 +90,7 @@ def get_visible_columns(
 
     except Exception:
         # fallback to all model fields
-        return [field.name for field in model._meta.get_fields() if field.concrete and not field.auto_created]
-
+        return None
     return user_columns
 
 
@@ -297,7 +297,7 @@ class FilteredTableView(
     '''
     def dispatch(self, request, *args, **kwargs):
         self.visible_columns = (
-            get_visible_columns(self.request, self.model, open_column=self.open_column) or self.default_columns
+            get_visible_columns(self.request, self.model, open_column=self.open_column) or self.default_columns or []
         )
 
         # --- check what type of request---#
@@ -646,12 +646,16 @@ class FilteredTableView(
         return qs
 
     def get_table_data(self):
-        self.filterset = self.get_filterset(self.get_filterset_class())
+        self.session_filter_active = False
+        # check is there are session filter active
+        if not self.request.htmx and not self.request.GET and not self.request.POST:
+            return self.model.objects.none()
 
+
+        self.filterset = self.get_filterset(self.get_filterset_class())
         queryset = self.filterset.qs
 
         session_filter = self.request.session.get(self.request.path, {})
-
         if session_filter:
             filter_params = session_filter.get("filter_params")
             filter_qd = QueryDict(mutable=True)
@@ -663,7 +667,10 @@ class FilteredTableView(
             queryset = apply_session_filter(queryset, session_filter, filter_qd)
             queryset = self.apply_additional_session_filter(queryset, session_filter, filter_qd)
 
-        self.session_filter_active = bool(session_filter)
+            self.session_filter_active = bool(session_filter)
+
+        # return empty qs if request if not HTMX for faster initial loading time 
+
 
         return queryset
 

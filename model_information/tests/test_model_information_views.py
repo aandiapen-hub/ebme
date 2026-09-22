@@ -1279,7 +1279,7 @@ def test_software_create_view_renders(client, user):
 
 
 @pytest.mark.django_db
-def test_software_create_view_posts(client, user, brand, software_type_factory):
+def test_software_create_view_posts(client, user, model, brand, software_type_factory):
 
     user = user()
     user.customerid = None
@@ -1298,6 +1298,7 @@ def test_software_create_view_posts(client, user, brand, software_type_factory):
         "version": "1.0.0",
         "version_number": 1,
         "software_type": software_type.pk,
+        "modelid": model().pk
     }
     response = client.post(url, data)
     assert response.status_code == 302

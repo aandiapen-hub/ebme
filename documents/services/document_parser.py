@@ -365,9 +365,7 @@ def gs1_resolver(parsed_data):
     asset = find_asset_by_serial_and_model(serial, known_model)
 
     if asset:
-        print(asset.prod_date, prod_date, '******')
         if asset.prod_date and prod_date:
-            print('is this running********8?')
             prod_date_missing = asset.prod_date.strftime("%y%m%d")  != prod_date
         else:
             prod_date_missing = False
@@ -624,9 +622,9 @@ def delivery_resolver(parsed_data):
 
 
 RESOLVER_MAP = {
-    DocumentTypes.ASSET_DATA.value: gs1_resolver,
-    DocumentTypes.SERVICE_REPORT.value: job_resolver,
-    DocumentTypes.DELIVERY_NOTE.value: delivery_resolver,
+    'asset_data': gs1_resolver,
+    'service_report': job_resolver,
+    'delivery_note': delivery_resolver,
 }
 
 
@@ -639,7 +637,7 @@ def temp_group_resolver(group_id):
     if data is None:
         data = group.extracted_json.get("merged_parsed_barcode", {}).get('values',{})
 
-    resolver = RESOLVER_MAP.get(group.document_type_id, gs1_resolver)
+    resolver = RESOLVER_MAP.get(group.document_type_id.code, gs1_resolver)
     if data and resolver:
         resolved_data = resolver(data)
         group.extracted_json.update({"resolved": resolved_data})

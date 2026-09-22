@@ -112,7 +112,6 @@ class DocumentAndLinkCreateView(
         object = model.objects.get(pk=object_id)
 
         document_type_id = form.cleaned_data.get("document_type_id")
-        print('document type id*****from form', document_type_id)
         # check whether a new file is being uploaded or permanent document
         # is being created from temporary uploads
         uploaded_file = self.request.FILES["document_bytea"]
@@ -369,7 +368,7 @@ class DocumentListView(LoginRequiredMixin, DocumentLinkPermissionMixin, ListView
             from itertools import groupby
 
             for key, group in groupby(
-                documents, key=lambda d: d.documentid.get_document_type_id_display()
+                documents, key=lambda d: d.documentid.document_type_id
             ):
                 grouped_documents[key] = list(group)
             
@@ -649,7 +648,7 @@ class TempUploadMergedDataUpdate(LoginRequiredMixin, PermissionRequiredMixin, Fo
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_class(self):
-        return get_temp_group_data_update_formclass(self.group.document_type_id)
+        return get_temp_group_data_update_formclass(self.group.document_type_id.code)
 
     def get_success_url(self):
         group_pk = self.kwargs.get("pk")

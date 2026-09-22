@@ -6,9 +6,9 @@ from documents.models import DocumentTypes
 
 
 CONTEXT_BUILDERS = {
-    DocumentTypes.SERVICE_REPORT: ServiceReportContext,
-    DocumentTypes.DELIVERY_NOTE: DeliveryNoteContext,
-    DocumentTypes.ASSET_DATA: AssetDataContext,
+    'service_report': ServiceReportContext,
+    'delivery_note': DeliveryNoteContext,
+    'asset_data': AssetDataContext,
     'global_search': AssetDataContext,
     'non_staff': NonStaffContext,
 }
@@ -22,11 +22,11 @@ def build_document_context(*, user, temp_group=None, resolved_data=None):
 
     elif temp_group and temp_group.document_type_id:
         builder_cls = CONTEXT_BUILDERS.get(
-            temp_group.document_type_id, None
+            temp_group.document_type_id.code, AssetDataContext
         )
     else:
         builder_cls = CONTEXT_BUILDERS.get(
-            'global_search', None
+            'global_search'
         )
 
     return builder_cls(
