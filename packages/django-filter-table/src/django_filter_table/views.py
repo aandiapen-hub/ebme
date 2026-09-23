@@ -375,6 +375,23 @@ class FilteredTableView(
         # return full template or partial of only the results
         result_only = self.request.GET.get('result_only')
 
+        # -----------------------------------------
+        # Initial modal render
+        # -----------------------------------------
+        if not result_only:
+            summary_field_data = {
+                "status": "list",
+                "data": [],
+                "page": 'first',
+                "page_number_name": "summary_page",
+                "search_term": "",
+            }
+
+            return self._render_field_summary(
+                summary_field_data,
+                field,
+                result_only,
+            )
 
 
         # summary data not available for date fields
@@ -553,6 +570,7 @@ class FilteredTableView(
 
     def _render_field_summary(self, summary_field_data, field, result_only):
         query = self.request.GET.copy()
+        
         for k in list(query.keys()):
             if "summary_field" in k:
                 del query[k]
@@ -987,6 +1005,11 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
         columns = request.POST.getlist('columns', None)
         if columns and profile:
             set_preference(profile, request_model, 'visible_columns', columns)
+        if request.htmx:
+            response = HttpResponse(status=204)
+            response['HX-Redirect'] = self.get_success_url()
+            return response
+
         return HttpResponseRedirect(self.get_success_url())
 
 

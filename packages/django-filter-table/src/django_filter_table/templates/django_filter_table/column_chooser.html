@@ -105,7 +105,12 @@
           show <ul>li/> in next <ul/>
             when its textContent.toLowerCase() contains my value.toLowerCase()
           "/>
-      <form id='column_chooser_form' method='post' action='{{ request.get_full_path }}'>
+      <form id='column_chooser_form' method='post' action='{{ request.get_full_path }}'
+        hx-post='{{ request.get_full_path }}'
+        hx-swap='none'
+        hx-trigger='submit'
+        hx-indicator='.htmx-indicator'
+        >
         {% csrf_token %}
         <input type="hidden" name="request_model" value="{{ request_model }}">
         <input type="hidden" name="next" value="{{ next }}">

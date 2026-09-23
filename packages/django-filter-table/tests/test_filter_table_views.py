@@ -239,7 +239,7 @@ def test_filtered_table_view_get_summary_field(
     values = MODEL.objects.all().values_list(summary_field, flat=True)
     field = MODEL._meta.get_field(summary_field)
 
-    if isinstance(field, JSONField) or isinstance(field, DateField):
+    if isinstance(field, JSONField):
         assert 'not available' in content
     
     else:

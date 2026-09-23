@@ -56,28 +56,21 @@
                     " >
               <label class="btn btn-secondary btn-sm text-start" for='{{item.order}}_checkbox'>{{ item.name }} ({{item.count}})</label>
             </div>
-      {% empty %}
-        <p>Quick filter not available. Use Advanced Filter</i></p>
-        <button
-            class="btn" type="button"
-            data-bs-toggle="modal" data-bs-target="#filter_list_Modal"
-            _="on click
-            set the value of #filter_list_search_box to '{{field.verbose_name}}'
-            trigger input on #filter_list_search_box 
-            add .show to #flush-collapse_{{field.name}}
-                "> 
-            <i class="bi bi-funnel-fill"></i>
-        </button>
 
       {% endfor %}
-      {% if summary_field_data.page.has_next %}
+      {% if summary_field_data.page.has_next or 'first' in summary_field_data.page %}
             <div
-              hx-get="{{ request.path }}{% querystring summary_page=summary_field_data.page.next_page_number result_only='true' %}" 
+              hx-get="{{ request.path }}{% querystring search_summary_data=None summary_page=summary_field_data.page.next_page_number result_only='true' %}"
               hx-include='#search_summary_data, #filter_form'
               hx-trigger='intersect once'
               hx-swap='outerHTML'
+              hx-indicator='#result_spinner'
               hx-target='this'
-              >Loading more
+              >
+                <small class='text-secondary'>Loading</small> <img id="result_spinner" class="htmx-indicator"
+                    width="24" height="24"
+                    src="{% static 'spinners/3-dots-fade.svg' %}">
+
             </div> 
       {% endif %}
 {% endpartialdef %}
