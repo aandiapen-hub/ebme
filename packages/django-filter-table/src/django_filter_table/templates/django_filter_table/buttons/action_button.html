@@ -31,6 +31,19 @@
       hx-trigger='click'>
       {{ action.name }} <i class="bi {{action.icon}}"></i>
     </button>
+
+{% elif action.type == 'download' %}
+
+  <button 
+    class="dropdown-item btn btn-sm btn-{{action.color}}"
+    hx-get="{{action.url}}?{{action.qp}}"
+    hx-include='#filter-form, #row_select_form'
+    type='button'
+    hx-disabled-elt="this"
+    hx-indicator='.htmx-indicator'
+    hx-trigger='click'>
+    {{ action.name }} <i class="bi {{action.icon}}"></i>
+  </button>
 {% endif %}
 
 

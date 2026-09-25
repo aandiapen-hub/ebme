@@ -14,13 +14,13 @@
     <link rel="stylesheet" href="{% static 'bootstrap-icons/bootstrap-icons.css' %}">
     <!-- Load htmx -->
     <script src="{% static 'js/htmx.min.js' %}"></script>
+    <script src="{% static 'js/hx-download.js' %}"></script>
     <!-- Load favorite icon -->
     <link rel="icon" href="{% static 'company_info/favicon.ico' %}">
     <script src="{% static 'js/hyperscript.js' %}"></script>
 
 
 </head>
-
 
 <body id='body' class='bg-light'>
     <!--index-->
@@ -33,31 +33,9 @@
     {% endblock content %}
 
 
-<div class="toast-container position-fixed bottom-0 end-0 p-3"
-_="on show_message from body 
-    set msg to event.detail.message
-    set level to event.detail.level or 'success'
-    
-    make a <div.toast/> called toast
-    add .fade to toast
-    add .show to toast
-    add .{'bg-' + level} to toast
-    add .text-white to toast
 
-
-    put `<div class='d-flex'>
-            <div class='toast-body'>${msg}</div>
-            <button type='button'
-            class='btn-close btn-close me-2 m-auto'
-            data-bs-dismiss='toast'></button>
-          </div>` into toast 
-
-    put toast into me
-    wait 4s
-    remove toast
-    ">
-</div>
-
+<!-- htmx pop up messages -->
+{% include "django_filter_table/pop_up_message.html" %}
 <!-- htmx selector funtions -->
 {% include "htmx_select/htmx_selector.html" %}
 

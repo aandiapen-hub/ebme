@@ -2,7 +2,7 @@ from io import BytesIO
 from assets.models import Tblassets
 from django.shortcuts import get_object_or_404, redirect
 
-from utils.message import add_htmx_message
+from django_filter_table.utils import add_htmx_message
 from django.db import transaction
 import json
 import uuid

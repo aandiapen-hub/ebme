@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+import json
+from django.http import HttpResponse
+
 @dataclass(frozen=True)
 class PickerDependency:
     field: str
@@ -26,3 +29,18 @@ def set_preference(profile, table_name, key, value):
 
 def get_preference(profile, table_name, key, default=None):
     return profile.table_settings.get(table_name, {}).get(key, default)
+
+
+def add_htmx_message(
+    response: type[HttpResponse],
+    message_level: str,
+    message: str
+):
+
+    response["HX-Trigger"] = json.dumps({
+            "show_message": {
+                "message": message,
+                "level": message_level,
+            },
+        })
+    return response

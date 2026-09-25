@@ -101,6 +101,7 @@ class GenerateReportView(
                 "Too many records selected. Please narrow your filter.",
                 status=403,  # or 403 if it's a permissions issue
             )
+            response['HX-Swap'] = None
             response["HX-Trigger"] = json.dumps({
                 "show_message": {
                     "message": f"Too many records selected. Download limit is {limit} records",
@@ -108,10 +109,6 @@ class GenerateReportView(
                 },
             })
             return response
-
-        if request.htmx:
-            # HTMX request – respond with a redirect header
-            return HttpResponse(headers={"HX-Redirect": request.get_full_path()})
 
         report_type = request.GET.get("report_type")
         report_generator = REPORT_GENERATORS.get(report_type)
@@ -470,7 +467,7 @@ class FilteredJobTableView(
         ),
         TableAction(
             name="Service Report",
-            type='htmx',
+            type='download',
             on_selectable_items = True,
             url=reverse_lazy('jobs:gen_report'),
             qp = urlencode({'report_type':'service_report'}),
@@ -480,7 +477,7 @@ class FilteredJobTableView(
         ),
         TableAction(
             name="Job List",
-            type='htmx',
+            type='download',
             on_selectable_items = True,
             url=reverse_lazy('jobs:gen_report'),
             qp=urlencode({'report_type':'job_list'}),

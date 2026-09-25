@@ -9,11 +9,11 @@ description = "Reusable Django filter and table components"
 requires-python = ">=3.11"
 dependencies = [
     "Django>=4.2",
-    "django-filter>=25.1",
-    "django-tables2>=2.7.5",
-    "django-htmx>=1.23.0",
-    "django-bootstrap5>=25.1",
-    "tablib>=3.8.0",
+    "django-filter==25.1",
+    "django-tables2==2.7.5",
+    "django-htmx==1.23.0",
+    "django-bootstrap5==25.1",
+    "tablib==3.8.0",
 ]
 
 [tool.setuptools.packages.find]

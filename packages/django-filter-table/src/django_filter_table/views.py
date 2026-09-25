@@ -3,7 +3,7 @@ import time
 from typing import Literal, ClassVar, Mapping
 import re
 
-from .utils import get_preference, set_preference
+from .utils import get_preference, set_preference, add_htmx_message
 
 from django_tables2.utils import OrderByTuple
 from django.db.models import Model
@@ -53,7 +53,7 @@ from django.http import HttpRequest
 from django.http import Http404
 
 
-EXPORT_LIMIT = 3000
+EXPORT_LIMIT = 300
 
 
 # get visible columns for a model for a user
@@ -327,12 +327,13 @@ class FilteredTableView(
         queryset = self.get_table_data()
         total = queryset.count()
         if total > EXPORT_LIMIT:
-            messages.error(self.request, f"Export limited to {EXPORT_LIMIT} rows.")
-            return HttpResponseRedirect(self.request.path)
-        if self.request.htmx:
-            response = HttpResponse(status=200)
-            response["HX-Redirect"] = self.request.get_full_path()
+            error_message = f"Export limited to {EXPORT_LIMIT} rows."
+
+            response = HttpResponse(status=404)
+            response = add_htmx_message(response, 'danger', error_message)
+            response['HX-Reswap'] = None
             return response
+
         return super().create_export(export_format)
 
     def get_table_class(self):
