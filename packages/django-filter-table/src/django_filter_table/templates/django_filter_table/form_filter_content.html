@@ -1,6 +1,6 @@
 {% load static %}
 
-<div id="filter-column" class='mb-1'  hx-swap-oob='innerHTML' >
+<div id="filter-column" class='mb-1'  hx-swap-oob='outerMorph' >
   <div id='div_filter_fields' class='d-flex flex-wrap'>
     {% for field in filter.form %}
       {% if 'search' in field.name %}
