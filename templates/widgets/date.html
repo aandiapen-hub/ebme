@@ -1,0 +1,14 @@
+<div class="input-group">
+    {% include "django/forms/widgets/input.html" %}
+
+    <button
+        type="button"
+        class="btn btn-outline-secondary"
+        onclick="
+            const dateInput = this.closest('.input-group').querySelector('input');
+            dateInput.value = '';
+        "
+    >
+    <i class="bi bi-x-circle"></i>
+    </button>
+</div>

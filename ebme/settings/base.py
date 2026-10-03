@@ -28,6 +28,7 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 INSTALLED_APPS = [
     "users",
+    "django.forms",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -82,6 +83,7 @@ TEMPLATES = [
         },
     },
 ]
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 WSGI_APPLICATION = "ebme.wsgi.application"
 

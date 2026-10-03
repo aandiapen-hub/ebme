@@ -12,6 +12,11 @@ def map_service_report_data_to_job(resolved_data):
 
 def map_delivery_note(resolved_data):
     payload = resolved_data.get("delivery", None)
+
+    for field, value in payload.items():
+        if field == "delivery_date" and isinstance(value,str):
+            payload[field] = datetime.strptime(value, "%y%m%d").date()
+
     auto_update_fields = '__all__'
     return payload, auto_update_fields
 

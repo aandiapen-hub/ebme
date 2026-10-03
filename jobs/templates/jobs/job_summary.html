@@ -60,15 +60,10 @@
               <ul class="dropdown-menu border-light dropdown-menu-end ">
                 <li class='dropdown-item'>
                   {% if perms.assets.change_tbljob %}
-                    <button
-                      hx-get="{% url 'jobs:job_update' pk=job.jobid %}"
-                      hx-target="#job_details"
-                      hx-swap='innerHTML'
-                      hx-push-url='true'
-                      hx-trigger="click"
-                      hx-select='#job_details'
+                    <a
+                      href="{% url 'jobs:job_update' pk=job.jobid %}"
                       class="btn text-primary">EDIT
-                    </button>
+                    </a>
                   {% endif %}
                 </li>
                 <li class='dropdown-item'>

@@ -14,6 +14,8 @@ from django.forms import BaseInlineFormSet
 from utils.dynamic_formset import CustomFormsetForm
 from django.forms import inlineformset_factory
 
+from utils.widgets import DateInput
+
 
 class PoLineForm(CustomFormsetForm):
     lookup_model = Tblpartslist
@@ -61,7 +63,7 @@ class DeliveryCreateForm(forms.ModelForm):
         model = TblDeliveries
         fields = ["po", "delivery_date", "delivery_note_number"]
 
-        widgets = {"delivery_date": forms.DateInput(attrs={"type": "date"})}
+        widgets = {"delivery_date": DateInput()}
 
         labels = {
             "po": "Purchase Order",
@@ -113,14 +115,6 @@ DeliveryLineFormset = inlineformset_factory(
     formset=DeliveryLineBaseFormSet,
     can_delete=True,
 )
-
-
-class DateInput(forms.DateInput):
-    input_type = "date"
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("format", "%Y-%m-%d")  # HTML5 format
-        super().__init__(*args, **kwargs)
 
 
 class InvoiceCreateForm(forms.ModelForm):

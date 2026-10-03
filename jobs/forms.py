@@ -16,14 +16,7 @@ from  django_filter_table.forms  import HTMXMultiPickerWidget
 from parts.models import Tblpartslist
 
 from utils.dynamic_formset import CustomFormsetForm
-
-class DateInput(forms.DateInput):
-    input_type = "date"
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("format", "%Y-%m-%d")  # HTML5 format
-        super().__init__(*args, **kwargs)
-
+from utils.widgets import DateInput
 
 class JobUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
     jobid = forms.IntegerField(

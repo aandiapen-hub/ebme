@@ -14,15 +14,7 @@ from model_information.models import EquipmentConfiguration, Software, SoftwareM
 from  django_filter_table.forms  import HTMXMultiPickerWidget
 
 from documents.mixins import TempUploadUpdateFormMixin
-
-
-class DateInput(forms.DateInput):
-    input_type = "date"
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("format", "%Y-%m-%d")  # HTML5 format
-        super().__init__(*args, **kwargs)
-
+from utils.widgets import DateInput
 
 class AssetUpdateForm(TempUploadUpdateFormMixin, forms.ModelForm):
     assetid = forms.CharField(
@@ -116,7 +108,7 @@ class AssetBulkUpdateForm(forms.Form):
     installationdate = forms.DateField(
         required=False,
         label="Installation Date",
-        widget=forms.DateInput(attrs={"type": "date"}),
+        widget=DateInput(),
     )
     unitprice = forms.DecimalField(required=False, label="Unit Price")
     ordernumber = forms.CharField(required=False, label="Order No.")
@@ -127,7 +119,7 @@ class AssetBulkUpdateForm(forms.Form):
     prod_date = forms.DateField(
         required=False,
         label="Production Date",
-        widget=forms.DateInput(attrs={"type": "date"}),
+        widget=DateInput(),
     )
     is_test_eq = forms.NullBooleanField(
         required=False,

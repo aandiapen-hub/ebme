@@ -96,8 +96,8 @@ PROMPT_CONTENT = {
         "response_format": JobData,
     },
     'delivery_note':{
-        "user_prompt": "Get delivery information from the delivery note including a list of items delivered. Do not guess",
-        "system_prompt": "You are a receit and distribution admin expert at logging delivery paperworks",
+        "user_prompt": "Get delivery information from the delivery note including a list of items delivered. Do not guess.",
+        "system_prompt": "You are a receit and distribution admin expert at logging delivery paperworks. Date should be yyyy-mm-dd format",
         "response_format": DeliveryData,
     }
 }

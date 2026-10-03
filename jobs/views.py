@@ -310,6 +310,10 @@ class SparePartsListView(
     permission_required = "assets.change_tbljob"
     config = FORMSET_CONFIG
     add_formset_row_view = "jobs:add_formset_row"
+    search_fields = [
+        "part_number",
+        "short_name",
+    ]
 
     def get_queryset(self):
         qs = super().get_queryset()

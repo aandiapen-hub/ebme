@@ -66,6 +66,7 @@ def extract_information_from_temp_group(group_id):
         try:
             print('using ai to enhence extracted data')
             ai_data = extract_group_info_with_ai(group)
+            print('ai_data', ai_data)
         except Exception as e:
             ai_data = {}
             pass

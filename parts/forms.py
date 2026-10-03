@@ -1,5 +1,6 @@
 from  django_filter_table.forms  import HTMXMultiPickerWidget
 
+from utils.widgets import DateInput
 from django import forms
 
 from assets.models import Tblmodel
@@ -24,7 +25,7 @@ class UpdatePartPrice(forms.ModelForm):
         fields = ("price","partid","effectivedate")
         widgets = {
             'partid': forms.HiddenInput(),
-            'effectivedate': forms.DateInput(attrs={'type':'date'})
+            'effectivedate': DateInput()
         }
 
 class PartsBulkUpdateForm(forms.ModelForm):
