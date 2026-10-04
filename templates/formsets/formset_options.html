@@ -4,8 +4,8 @@
   <form method="get"
   hx-get='{{ request.get_full_path }}'
   hx-trigger='submit'
-  hx-target='#option_list'
-  hx-select='#option_list'
+        hx-target='#option_list_{{prefix}}'
+        hx-select='#option_list_{{prefix}}'
   >
 
       <input 
@@ -19,7 +19,7 @@
       </button>
   </form>
 {% endif %}
-<div id='option_list'>
+<div id='option_list_{{prefix}}'>
   <ul class="list-group"
 
       _='on load or click
@@ -56,10 +56,9 @@
           {% if page_obj.has_previous %}
           <li class="page-item">
               <a class="page-link"
-                href="#"
                 hx-get="{{ request.path }}{% querystring page=page_obj.previous_page_number %}"
-                hx-target='#option_list'
-                hx-select='#option_list'
+                hx-target='#option_list_{{prefix}}'
+                hx-select='#option_list_{{prefix}}'
                 hx-swap="innerHTML">
                   Previous
               </a>
@@ -84,8 +83,8 @@
                   <a class="page-link"
                     href="#"
                     hx-get='{{ request.path }}{% querystring page=num %}'
-                    hx-target='#option_list'
-                    hx-select='#option_list'
+                    hx-target='#option_list_{{prefix}}'
+                    hx-select='#option_list_{{prefix}}'
                     hx-swap="innerHTML">
                       {{ num }}
                   </a>
@@ -100,8 +99,8 @@
               <a class="page-link"
                 href="#"
                 hx-get="{{ request.path }}{% querystring page=page_obj.next_page_number %}"
-                hx-target='#option_list'
-                hx-select='#option_list'
+                hx-target='#option_list_{{prefix}}'
+                hx-select='#option_list_{{prefix}}'
                 hx-swap="innerHTML">
                   Next
               </a>
