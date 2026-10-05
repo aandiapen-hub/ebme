@@ -129,6 +129,10 @@ class PoItemOptionListView(FormsetOptionsListView):
     permission_required = "procurement.change_tblpurchaseorder"
     config = PO_FORMSET_CONFIG
     add_formset_row_view = "procurement:add_formset_row"
+    search_fields = [
+        'part_number',
+        'short_name'
+    ]
 
     def get_queryset(self):
         qs = super().get_queryset()

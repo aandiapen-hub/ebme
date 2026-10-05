@@ -35,6 +35,9 @@ from assets.models import (
     Tbljobstatus,
     Tbljobtypes,
     Tblassets,
+    Tblpartsused,
+    Tbltesteqused,
+    Tbltestscarriedout,
 )
 from documents.mixins import TempUploadMixin
 from documents.services.documents import delete_object_document_links
@@ -368,8 +371,12 @@ class JobDeleteView(
     DeleteView,
 ):
     model = Tbljob
-    template_name = "jobs/partials/delete_modal.html"
+    template_name = "jobs/job_delete.html"
     permission_required = "assets.delete_tbljob"
+
+    def get_success_url(self):
+        return reverse('assets:view_asset', kwargs={'pk':self.object.assetid})
+        
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -377,21 +384,23 @@ class JobDeleteView(
         context["title"] = f"Delete Job: {self.object.jobid}"
         return context
 
-    def post(self, request, *args, **kwargs):
+    def form_valid(self, form):
         self.object = self.get_object()
+        checks = Tbltestscarriedout.objects.filter(jobid=self.object.pk)
+        parts_used = Tblpartsused.objects.filter(jobid=self.object.pk)
+        test_eq_used = Tbltesteqused.objects.filter(jobid=self.object.pk)
         try:
             with transaction.atomic():
+                checks.delete()
+                parts_used.delete()
+                test_eq_used.delete()
                 delete_object_document_links(self.object)
                 self.object.delete()
             # Return an empty 204 response so HTMX knows it's successful
-            return HttpResponse(status=204)
+            return HttpResponseRedirect(self.get_success_url())
         except Exception as e:
-            # Return an error message as plain text (not JSON)
-            context = self.get_context_data()
-            context["error_message"] = (
-                f"An error occurred while deleting the Job. Error Details: {str(e)}"
-            )
-            return self.render_to_response(context)
+            form.add_error(None, e)
+            return self.form_invalid(form)
 
 
 class FilteredJobTableView(

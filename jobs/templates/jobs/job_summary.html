@@ -68,14 +68,10 @@
                 </li>
                 <li class='dropdown-item'>
                   {% if perms.assets.delete_tbljob %}
-                    <button
-                      hx-get="{% url 'jobs:job_delete' pk=job.jobid %}"
-                      hx-target="#modals-here"
-                      hx-trigger="click"
-                      data-bs-toggle="modal"
-                      data-bs-target="#modals-here"
+                    <a
+                      href="{% url 'jobs:job_delete' pk=job.jobid %}"
                       class="btn text-danger">DELETE
-                    </button>
+                    </a>
                   {% endif %}
                 </li>
               </ul>

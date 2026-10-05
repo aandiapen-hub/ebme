@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% load django_bootstrap5 %}
+
+<div class='container'>
+  <form class="form" method="post"
+     action ="{{request.path}}">
+      {% csrf_token %}
+      <h5>Delete job: {{object}}</h5>
+      <p>The following records related to this job will also be deleted.</p>
+      <ul>
+        <li>Documents</li>
+        <li>Test Equipment Used</li>
+        <li>Parts Used</li>
+        <li>Checklist</li>
+      </ul>
+      {% bootstrap_form form %}
+
+      <button class="btn btn-danger" type="submit">Confirm Delete</button>
+
+
+  </form>
+</div>
+{% endblock content %}
