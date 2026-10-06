@@ -1,4 +1,5 @@
 from datetime import datetime
+from django.contrib.auth import get_user_model 
 import time
 from typing import Literal, ClassVar, Mapping
 import re
@@ -998,9 +999,11 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         request_model = request.POST.get('request_model')
         user_id = self.request.user.pk
+        User = get_user_model()
+        user = User.objects.get(pk=user_id)
         UserProfiles = get_user_profile_model()
         profile, created = UserProfiles.objects.get_or_create(
-            user_id=user_id, defaults={"table_settings": {}}
+            user_id=user, defaults={"table_settings": {}}
         )
 
         columns = request.POST.getlist('columns', None)
@@ -1034,6 +1037,7 @@ class HtmxPickerSearch(
     def dispatch(self, request, *args, **kwargs):
         self.field = self.get_field()
         self.picker_mode = self.get_picker_mode()
+        print('this is running')
         self.model = self.get_options_data_source()
 
 
@@ -1086,7 +1090,7 @@ class HtmxPickerSearch(
         picker = getattr(model, "htmx_picker", None)
 
         if not picker or not getattr(picker, "enabled", False):
-            raise Http404
+            raise Http404(f'Picker not enabled on model:{model}')
 
         return model
 

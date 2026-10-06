@@ -1,6 +1,7 @@
 from django.db import models
 import datetime
 from django.urls import reverse 
+from django_filter_table.utils import HtmxPicker
 
 # Create your models here.
 class Tblpartslist(models.Model):
@@ -21,6 +22,13 @@ class Tblpartslist(models.Model):
     def __str__(self):
         return f"{self.short_name} - {self.part_number}"
 
+    htmx_picker = HtmxPicker(
+        enabled=True,
+        search_terms=(
+            'part_number__icontains',
+            'short_name__icontains',
+        ),
+    )
 
 class SparepartView(models.Model):
     partid = models.BigIntegerField(db_column='partID', primary_key=True)  # Field name made lowercase.
@@ -38,11 +46,10 @@ class SparepartView(models.Model):
 
     def __str__(self):
         return f"{self.short_name} - {self.part_number}"
-    
+
     def get_absolute_url(self):
         return reverse('parts:part_detail', kwargs={'pk':self.pk})
-    
-    
+
 class Tblpartsprice(models.Model):
     priceid = models.BigAutoField(db_column='priceID', primary_key=True)  # Field name made lowercase.
     partid = models.ForeignKey(Tblpartslist, models.PROTECT, db_column='partID')  # Field name made lowercase.
@@ -52,8 +59,6 @@ class Tblpartsprice(models.Model):
     class Meta:
         managed = False  
         db_table = 'tblPartsPrice'
-        
-
 
 
 class TblPartModel(models.Model):

@@ -62,7 +62,8 @@ class HTMXMultiPickerWidget(forms.SelectMultiple):
         super().__init__(attrs)
 
     def get_field(self, fieldname):
-        return self.model._meta.get_field(fieldname)
+        name = self.model._meta.get_field(fieldname)
+        return name
 
     def get_widget_mode(self):
         if self.field.primary_key:

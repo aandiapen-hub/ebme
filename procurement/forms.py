@@ -77,6 +77,15 @@ class DeliveryLineForm(forms.ModelForm):
         model = TblDeliveryLines
         fields = ["delivery", "item", "qty"]
 
+        widgets = {
+            'item': HTMXMultiPickerWidget(
+            model=TblDeliveryLines,
+            fieldname='item',
+            multiple=False,
+        )
+
+        }
+
         labels = {"qty_ordered": "qty"}
 
     def __init__(self, *args, **kwargs):
