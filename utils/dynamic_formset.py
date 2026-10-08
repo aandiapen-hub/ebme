@@ -293,6 +293,10 @@ class CustomFormsetForm(forms.ModelForm):
 
 class FormsetMixin(UpdateView):
     config = None
+    save_object_service = None
+
+    def _service(self):
+        return self.save_object_service
 
     def get_formsets(self):
             formsets = {}
@@ -338,14 +342,23 @@ class FormsetMixin(UpdateView):
 
         try:
             with transaction.atomic():
-                self.object = form.save()
+                if self.save_object_service:
+                    self.object = self.save_object_service(job=self.object, **form.cleaned_data)
+                else:
+                    self.object = form.save()
 
                 for formset in formsets:
                     formset.instance = self.object
                     formset.save()
 
         except Exception as e:
-            form.add_error(None, f"Database integrity error: {e}")
+            if hasattr(e, "message_dict"):
+                for field, errors in e.message_dict.items():
+                    for error in errors:
+                        form.add_error(field, error)
+                print('form errors', form.errors)
+            else:
+                form.add_error(None, f"Error while saving: {e}")
             return self.form_invalid(form)
 
         response = HttpResponseRedirect(self.get_success_url())

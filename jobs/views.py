@@ -61,7 +61,9 @@ from .reports.job_list import generate_jobs_list
 # ServiceReportReaderForm)
 from .reports.service_reports import generate_service_report
 
-# Job Views.
+from .services.jobs import save_job_service
+
+# Job Views
 
 SEARCHFILEDS = [
     "modelid__modelname__icontains",
@@ -189,12 +191,14 @@ class JobUpdateView(
     permission_required = "assets.change_tbljob"
     config = FORMSET_CONFIG
     success_url_app_view = "jobs:job_summary"
+    save_object_service = staticmethod(save_job_service)
 
 
     def form_valid(self, form):
         try:
             with transaction.atomic():
                 # saving of formset and form handled in FormsetMixin
+
                 response = super().form_valid(form)
                 # save document related records from TempUploadMixin
                 self.after_save(form)
@@ -280,16 +284,22 @@ class JobCreateView(
         return context
 
     def form_valid(self, form):
-        with transaction.atomic():
-            self.object = form.save()
-            print('created', self.object.pk)
-            self.after_save(form)
+        try:
+            with transaction.atomic():
+                self.object = save_job_service(**form.cleaned_data)
+                self.after_save(form)
+        except Exception as e:
+            if hasattr(e, "message_dict"):
+                for field, errors in e.message_dict.items():
+                    for error in errors:
+                        form.add_error(field, error)
+                print('form errors', form.errors)
+            else:
+                form.add_error(None, f"Error while saving: {e}")
+            return self.form_invalid(form)
 
-            return HttpResponseRedirect(self.get_success_url())
+        return HttpResponseRedirect(self.get_success_url())
 
-    def form_invalid(self, form):
-        context = self.get_context_data(form=form)
-        return self.render_to_response(context)
 
 
 class TestEqListView(
