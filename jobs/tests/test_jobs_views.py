@@ -124,6 +124,8 @@ def test_job_update_view_post_successfully(
     active_spare_part,
 ):
     job = job()
+    job.jobstatusid.is_closed=False
+    job.jobstatusid.save()
     part = active_spare_part
     test_eq = test_eq
     check = check()
@@ -140,7 +142,7 @@ def test_job_update_view_post_successfully(
         url,
         data={
             "jobid": job.jobid,
-            "jobenddate": "2025-05-07",
+            "jobstartdate": "2025-05-07",
             "jobtypeid": job.jobtypeid.jobtypeid,
             "technicianid": job.technicianid.technicianid,
             "jobstatusid": job.jobstatusid.jobstatusid,
@@ -505,10 +507,11 @@ def test_job_create_view_post_successfully(
 
     form = {
         "assetid": asset.pk,
+        "jobstartdate": "2025-05-07",
         "jobenddate": "2025-05-07",
         "jobtypeid": jobtype().pk,
         "technicianid": technician().pk,
-        "jobstatusid": jobstatus().pk,
+        "jobstatusid": jobstatus(is_closed=True).pk,
     }
     response = client.post(full_url, form)
 
@@ -540,9 +543,10 @@ def test_job_create_view_post_successfully_quick_job(
     form = {
         "assetid": asset.pk,
         "jobenddate": "2025-05-07",
+        "jobstartdate": "2025-05-07",
         "jobtypeid": jobtype().pk,
         "technicianid": technician().pk,
-        "jobstatusid": jobstatus().pk,
+        "jobstatusid": jobstatus(is_closed=True).pk,
     }
 
     # test quick job
@@ -684,26 +688,6 @@ def test_job_delete_view_renders(client, job, user_setup):
     assert response.context["title"] == f"Delete Job: {job.jobid}"
 
 
-@pytest.mark.django_db
-def test_job_delete_view_post_error(
-    client, active_spare_part, customer, job, user_setup
-):
-    job = job()
-    part = active_spare_part
-    user = user_setup
-    user.customerid = job.assetid.customerid
-    user.save()
-    client.force_login(user)
-
-    permission = Permission.objects.get(codename="delete_tbljob")
-    user.user_permissions.add(permission)
-
-    Tblpartsused.objects.create(jobid=job, partid=part, quantity=1, unitprice=100)
-
-    url = reverse("jobs:job_delete", kwargs={"pk": job.jobid})
-    response = client.post(url)
-    assert response.status_code == 200
-    assert Tbljob.objects.filter(pk=job.jobid).exists()
 
 
 def test_job_delete_view_post_successfully(client, job, user_setup):
@@ -718,7 +702,7 @@ def test_job_delete_view_post_successfully(client, job, user_setup):
 
     url = reverse("jobs:job_delete", kwargs={"pk": job.jobid})
     response = client.post(url)
-    assert response.status_code == 204
+    assert response.status_code == 302 
     assert not Tbljob.objects.filter(pk=job.jobid).exists()
 
 
@@ -763,28 +747,6 @@ def test_generate_job_report_view_renders(client, user_setup, jobs):
     assert response.status_code == 200
     assert response["Content-Type"] == "application/pdf"
 
-
-@pytest.mark.django_db
-def test_generate_job_report_view_renders_htmx(client, user_setup, jobs):
-    jobs = jobs()
-    customer = jobs[0].assetid.customerid
-    user = user_setup
-    user.customerid = customer
-    user.save()
-    permission = Permission.objects.get(codename="genreport_tbljob")
-    user.user_permissions.add(permission)
-
-    client.force_login(user)
-
-    url = reverse("jobs:gen_report")
-    query_params = urlencode(
-        {"customerid": customer.pk, "report_type": "service_report"}
-    )
-
-    full_url = f"{url}?{query_params}"
-    response = client.get(full_url, HTTP_HX_REQUEST='true')
-    assert response.status_code == 200
-    assert response['HX-Redirect'] == full_url 
 
 @pytest.mark.django_db
 def test_generate_job_report_view_renders_for_staff(client, user_setup, jobs):

@@ -323,10 +323,11 @@ def test_delivery_create_view_renders(client, user, po_lines, purchase_order):
 
 
 @pytest.mark.django_db
-def test_delivery_create_view_post_successfully(client, user, part, po_line):
+def test_delivery_create_view_post_successfully(client, user, part, po_line, order_status):
     user = user()
     po_line = po_line()
     po_line.save()
+    order_status(order_status_id=2)
 
     permission = Permission.objects.get(codename="add_tbldeliveries")
     user.user_permissions.add(permission)
@@ -341,10 +342,10 @@ def test_delivery_create_view_post_successfully(client, user, part, po_line):
         "line-TOTAL_FORMS": "2",
         "line-INITIAL_FORMS": "0",
         # Formset form 0
-        "line-0-product": part().pk,
+        "line-0-item": part().pk,
         "line-0-quantity": "10",
         # Formset form 1
-        "line-1-product": part().pk,
+        "line-1-item": part().pk,
         "line-1-quantity": "5",
     }
 
@@ -445,16 +446,18 @@ def test_delivery_update_view_post_unsuccessful(client, user, delivery, part):
 
 
 @pytest.mark.django_db
-def test_delivery_update_view_post_successful(client, user, delivery):
+def test_delivery_update_view_post_successful(client, user, delivery, po_line, order_status):
     user = user()
     permission = Permission.objects.get(codename="change_tbldeliveries")
     user.user_permissions.add(permission)
     client.force_login(user)
     delivery = delivery()
     url = reverse("procurement:deliveries_update", kwargs={"pk": delivery.delivery_id})
+    po_line = po_line(po=delivery.po)
 
+    order_status(order_status_id=2)
     data = {
-        "po": delivery.po.po_id,
+        "po": po_line.po_id,
         "delivery_date": "2023-10-01",
         "delivery_note_number": "Updated Delivery Note",
         "line-TOTAL_FORMS": "1",
@@ -462,6 +465,8 @@ def test_delivery_update_view_post_successful(client, user, delivery):
         "line-MIN_NUM_FORMS": "0",
         "line-MAX_NUM_FORMS": "1000",
         # One form in the formset
+        "line-0-item": po_line.item.pk,
+        "line-0-quantity": "10",
     }
 
     response = client.post(url, data)
