@@ -666,9 +666,7 @@ class SoftwareCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
         return super().form_invalid(form)
 
     def form_valid(self, form):
-        print('form valid')
         model_ids = self.request.POST.getlist('modelid')
-        print('we are here', model_ids)
         if model_ids:
             models = Tblmodel.objects.filter(pk__in=model_ids)
         else:

@@ -41,7 +41,7 @@ from assets.models import (
 )
 from documents.mixins import TempUploadMixin
 from documents.services.documents import delete_object_document_links
-from parts.models import Tblpartslist
+from parts.models import Tblpartslist, LastestPartsPrice
 from django_filter_table.views import BulkUpdateView, FilteredTableView, TableAction
 
 from .forms import (
@@ -130,7 +130,7 @@ FORMSET_CONFIG = {
         "prefix": "parts_used",
         "row_template_name": None,
         "formset": PartsUsedFormset,
-        "model": Tblpartslist,
+        "model": LastestPartsPrice, 
         "pk_field": "partid",
         "lookup_field": "partid",
         "lookup_filter": Q(inactive=False) | Q(inactive__isnull=True),
@@ -141,7 +141,7 @@ FORMSET_CONFIG = {
         "title": "Spare Parts",
         "initial": lambda obj: {
             "partid": obj.pk,
-            "unitprice": None,
+            "unitprice": obj.price,
             "quantity": 1,
         },
     },
@@ -293,7 +293,6 @@ class JobCreateView(
                 for field, errors in e.message_dict.items():
                     for error in errors:
                         form.add_error(field, error)
-                print('form errors', form.errors)
             else:
                 form.add_error(None, f"Error while saving: {e}")
             return self.form_invalid(form)

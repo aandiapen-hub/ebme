@@ -359,7 +359,7 @@ class JobView(models.Model):
     class Meta:
         managed = False
         db_table = "jobSummary"
-        ordering = ("jobid",)
+        ordering = ("-enddate",)
 
     def __str__(self):
         return f"{self.jobid} - {self.modelid} - {self.serialnumber} - {self.jobstatusid} - {self.customerid} "

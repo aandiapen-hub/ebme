@@ -1037,7 +1037,6 @@ class HtmxPickerSearch(
     def dispatch(self, request, *args, **kwargs):
         self.field = self.get_field()
         self.picker_mode = self.get_picker_mode()
-        print('this is running')
         self.model = self.get_options_data_source()
 
 

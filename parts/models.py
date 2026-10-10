@@ -30,6 +30,24 @@ class Tblpartslist(models.Model):
         ),
     )
 
+# Create your models here.
+class LastestPartsPrice(models.Model):
+    partid = models.BigAutoField(db_column='partID', primary_key=True)  # Field name made lowercase.
+    description = models.CharField(max_length=100, blank=True, null=True)
+    part_number = models.CharField(db_column='part number', max_length=100,)  # Field renamed to remove unsuitable characters.
+    short_name = models.CharField(db_column='Short Name', max_length=100,)  # Field name made lowercase. Field renamed to remove unsuitable characters.
+    supplier_id = models.ForeignKey('procurement.TblSuppliers', models.PROTECT, blank=True, null=True,db_column='supplier_id')
+    inactive = models.BooleanField(default=False)
+    gtin = models.CharField(db_column='gtin', max_length=100,null=True,blank=True) 
+    order_unit = models.ForeignKey('procurement.TblOrderUnit',models.PROTECT,blank=True, default=0)
+    order_unit_quantity = models.IntegerField(blank=True, default=1)
+    price = models.DecimalField(max_digits=100, decimal_places=2, blank=True, null=True)
+    effectivedate = models.DateField(db_column='EffectiveDate', default=datetime.date.today)  # Field name made lowercase.
+
+    class Meta:
+        managed = False  
+        db_table = 'latest_parts_price'
+
 class SparepartView(models.Model):
     partid = models.BigIntegerField(db_column='partID', primary_key=True)  # Field name made lowercase.
     description = models.CharField(max_length=100, blank=True, null=True)

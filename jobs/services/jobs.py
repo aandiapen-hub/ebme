@@ -14,3 +14,9 @@ def save_job_service(*, job=None, **data):
 
     return job
 
+def get_parts_used_cost(part_original_price):
+    vat = 0.2
+    mark_up = 0.1
+    price_with_vat = float(part_original_price) * (1+0.2)
+    price_with_markup = price_with_vat * (1+0.1)
+    return round(price_with_markup, 2)

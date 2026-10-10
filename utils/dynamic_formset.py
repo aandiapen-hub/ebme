@@ -75,6 +75,7 @@ class AddFormsetRowView(
         if self.new_item_id is None:
             return True
 
+
         config = self.formset_config[self.get_formset_type]
         if self.request.GET:
             added_items = self.request.GET.items()
@@ -93,7 +94,6 @@ class AddFormsetRowView(
             ].objects.filter(pk=self.new_item_id)
         if config.get('lookup_filter', None):
             item = item.filter(config.get('lookup_filter'))
-
         return not item_exists and item.exists()
 
     def get(self, request, *args, **kwargs):
@@ -356,7 +356,6 @@ class FormsetMixin(UpdateView):
                 for field, errors in e.message_dict.items():
                     for error in errors:
                         form.add_error(field, error)
-                print('form errors', form.errors)
             else:
                 form.add_error(None, f"Error while saving: {e}")
             return self.form_invalid(form)
