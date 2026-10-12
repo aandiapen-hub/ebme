@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 
+
 def validate_dates(job, errors):
     if job.jobenddate and job.jobstartdate:
         if job.jobstartdate > job.jobenddate:
@@ -48,6 +49,7 @@ def validate_job_type(job, errors):
             errors.setdefault('jobtypeid', []).append('Another open job of this type already exists on this asset. Update the existing open jobs.')
 
 
+
 def validate_job(job):
     errors = {}
     validate_dates(job, errors)
@@ -58,3 +60,21 @@ def validate_job(job):
         raise ValidationError(errors)
 
 
+def validate_checklist(job_status, formsets):
+    has_error = False
+    checklist = next((formset for formset in formsets if formset.prefix=='checklist'), None)
+    if checklist and job_status.is_closed==True:
+        for form in checklist:
+            if form.cleaned_data.get('resultid', None) is None:
+                form.add_error(
+                        None,
+                        'Complete check!'
+                )
+                has_error = True
+    return has_error
+
+def validate_formsets(job, formsets):
+    has_errors = False
+    checklist_has_errors = validate_checklist(job.jobstatusid, formsets)
+    if checklist_has_errors:
+        raise ValidationError("Formset has errors")

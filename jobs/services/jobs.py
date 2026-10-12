@@ -1,7 +1,7 @@
 from assets.models import Tbljob
-from .validators import validate_job
+from .validators import validate_job, validate_formsets
 
-def save_job_service(*, job=None, **data):
+def save_job_service(*, job=None, formsets=None, **data):
     if job is None:
         job = Tbljob()
 
@@ -10,13 +10,10 @@ def save_job_service(*, job=None, **data):
 
     validate_job(job)
 
-    job.save()
 
+    if formsets:
+        validate_formsets(job, formsets)
+
+    job.save()
     return job
 
-def get_parts_used_cost(part_original_price):
-    vat = 0.2
-    mark_up = 0.1
-    price_with_vat = float(part_original_price) * (1+0.2)
-    price_with_markup = price_with_vat * (1+0.1)
-    return round(price_with_markup, 2)

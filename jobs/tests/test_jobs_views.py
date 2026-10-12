@@ -202,43 +202,43 @@ def test_job_update_view_post_integrity_error(
     permission = Permission.objects.get(codename="change_tbljob")
     user.user_permissions.add(permission)
     url = reverse("jobs:job_update", kwargs={"pk": job.jobid})
-    response = client.post(
-        url,
-        data={
-            "jobid": job.jobid,
-            "jobenddate": "2025-05-07",
-            "jobtypeid": job.jobtypeid.jobtypeid,
-            "technicianid": job.technicianid.technicianid,
-            "jobstatusid": job.jobstatusid.jobstatusid,
-            # test_eq formset
-            "test_eq-TOTAL_FORMS": "1",
-            "test_eq-INITIAL_FORMS": "0",
-            "test_eq-MIN_NUM_FORMS": "0",
-            "test_eq-MAX_NUM_FORMS": "1000",
-            "test_eq-0-id": "",
-            "test_eq-0-test_eq": test_eq.pk,
-            # checklist formset
-            "checklist-TOTAL_FORMS": "1",
-            "checklist-INITIAL_FORMS": "0",
-            "checklist-MIN_NUM_FORMS": "0",
-            "checklist-MAX_NUM_FORMS": "1000",
-            "checklist-0-testid": "",
-            "checklist-0-checkid": check.pk,
-            "checklist-0-resultid": check_result().pk,
-            # parts_used formset
-            "parts_used-TOTAL_FORMS": "1",
-            "parts_used-INITIAL_FORMS": "0",
-            "parts_used-MIN_NUM_FORMS": "0",
-            "parts_used-MAX_NUM_FORMS": "1000",
-            "parts_used-0-partsusedid": "",
-            "parts_used-0-partid": part.pk,
-            "parts_used-0-quantity": "-1",
-            "parts_used-0-unitprice": "",
-        },
-    )
-
-    assert response.status_code == 200
-    assert response.context['parts_used'].errors
+    data={
+        "jobid": job.jobid,
+        "jobenddate": "2025-05-07",
+        "jobtypeid": job.jobtypeid.jobtypeid,
+        "technicianid": job.technicianid.technicianid,
+        "jobstatusid": job.jobstatusid.jobstatusid,
+        # test_eq formset
+        "test_eq-TOTAL_FORMS": "1",
+        "test_eq-INITIAL_FORMS": "0",
+        "test_eq-MIN_NUM_FORMS": "0",
+        "test_eq-MAX_NUM_FORMS": "1000",
+        "test_eq-0-id": "",
+        "test_eq-0-test_eq": test_eq.pk,
+        # checklist formset
+        "checklist-TOTAL_FORMS": "1",
+        "checklist-INITIAL_FORMS": "0",
+        "checklist-MIN_NUM_FORMS": "0",
+        "checklist-MAX_NUM_FORMS": "1000",
+        "checklist-0-testid": "",
+        "checklist-0-checkid": check.pk,
+        "checklist-0-resultid": check_result().pk,
+        # parts_used formset
+        "parts_used-TOTAL_FORMS": "1",
+        "parts_used-INITIAL_FORMS": "0",
+        "parts_used-MIN_NUM_FORMS": "0",
+        "parts_used-MAX_NUM_FORMS": "1000",
+        "parts_used-0-partsusedid": "",
+        "parts_used-0-partid": part.pk,
+        "parts_used-0-quantity": "-1",
+        "parts_used-0-unitprice": "",
+    },
+    
+    with pytest.raises(Exception):
+        response = client.post(
+            url,
+            data=data
+        )
 
 
 @pytest.mark.django_db
@@ -249,9 +249,12 @@ def test_job_update_view_post_formset_error(
     test_eq,
     check,
     check_result,
+    active_spare_part
 ):
     job = job()
     test_eq = test_eq
+
+    part = active_spare_part
     check = check()
     user = user_setup
     user.customerid = job.assetid.customerid
@@ -284,19 +287,20 @@ def test_job_update_view_post_formset_error(
             "checklist-MAX_NUM_FORMS": "1000",
             "checklist-0-testid": "",
             "checklist-0-checkid": check.pk,
-            "checklist-0-resultid": check_result().pk,
+            "checklist-0-resultid":'' ,
             # parts_used formset
             "parts_used-TOTAL_FORMS": "1",
             "parts_used-INITIAL_FORMS": "0",
             "parts_used-MIN_NUM_FORMS": "0",
             "parts_used-MAX_NUM_FORMS": "1000",
             "parts_used-0-partsusedid": "",
-            "parts_used-0-unitprice": "",
+            "parts_used-0-partid": part.pk,
+            "parts_used-0-quantity": "1",
         },
     )
 
     assert response.status_code == 200
-    assert response.context['parts_used'].errors
+    assert response.context['checklist'].errors
 
 
 @pytest.mark.django_db

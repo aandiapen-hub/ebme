@@ -63,11 +63,10 @@
       <div id="{{ formset.prefix }}-container" class='d-flex flex-column'>
         {{ formset.media}}
         {% for form in formset %}
-
           {% partialdef form_row inline %}
           <div class='border border-2 p-2 m-2'>
               <strong>{{ form.display_label }}</strong>
-              {% bootstrap_form form layout='horizontal' %}
+              {% bootstrap_form form %}
           </div>
 
           {% endpartialdef %}

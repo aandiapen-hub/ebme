@@ -195,7 +195,6 @@ class JobUpdateView(
 
 
     def form_valid(self, form):
-        try:
             with transaction.atomic():
                 # saving of formset and form handled in FormsetMixin
 
@@ -204,9 +203,6 @@ class JobUpdateView(
                 self.after_save(form)
                 return response
 
-        except Exception as e:
-            form.add_error(None, f"Error while saving: {e}")
-            return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -338,12 +338,12 @@ class FormsetMixin(UpdateView):
 
 
         if not all(formset.is_valid() for formset in formsets):
-            raise ValidationError('Save not successful')
+            raise ValidationError('Errors found in form')
 
         try:
             with transaction.atomic():
                 if self.save_object_service:
-                    self.object = self.save_object_service(job=self.object, **form.cleaned_data)
+                    self.object = self.save_object_service(job=self.object, formsets=formsets, **form.cleaned_data)
                 else:
                     self.object = form.save()
 
@@ -351,19 +351,27 @@ class FormsetMixin(UpdateView):
                     formset.instance = self.object
                     formset.save()
 
-        except Exception as e:
+
+        except ValidationError as e:
             if hasattr(e, "message_dict"):
                 for field, errors in e.message_dict.items():
                     for error in errors:
                         form.add_error(field, error)
             else:
                 form.add_error(None, f"Error while saving: {e}")
-            return self.form_invalid(form)
+
+            formsets_dict = {fs.prefix:fs for fs in formsets}
+            return self.form_invalid(form, formsets_dict)
 
         response = HttpResponseRedirect(self.get_success_url())
         return response
 
-    def form_invalid(self, form):
+    def form_invalid(self, form, formsets=None):
         context = self.get_context_data(form=form)
-        context.update(self.get_formsets())
+        if formsets is not None:
+            context.update(formsets)
+        else:
+            context.update(self.get_formsets())
+
+
         return self.render_to_response(context)
