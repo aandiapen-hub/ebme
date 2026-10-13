@@ -74,6 +74,7 @@
       <form id='filter-form' hx-get="{{request.path}}" hx-target="#result-container" 
             hx-trigger="submit, load"
             hx-swap="innerHTML" hx-push-url='true' hx-indicator='.htmx-indicator' name="search" 
+            hx-include:inherited='#pivot_filters'
               _="on change or keyup 
                     remove @hidden from #filter_form_submit_button
                     ">

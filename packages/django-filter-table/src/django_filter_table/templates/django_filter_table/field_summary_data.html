@@ -193,10 +193,8 @@
             remove <input/> from myselect
             remove <span/> from myselect
         end
-        add @hx-include="#pivot_filters input.btn-check" to #filter-form
-        wait 50ms
-        trigger submit on #filter-form
-        remove @hx-include from #filter-form
+        set form to #filter-form
+        call form.requestSubmit() 
       '
       >Apply</button>
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

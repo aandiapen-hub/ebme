@@ -51,6 +51,10 @@
       >Stop </button>
 
 
+    <button type="button" class="position-relative top-0 start-0 btn btn-primary btn-sm update-image-btn" id='frame_upload{{ group_id }}'
+      _='on click call caputureFrame()'
+      >Capture </button>
+
     <div id="scan-indicator" class="scan-indicator">
         ✓ Scanned
         <p id='latest_code'> </p>
@@ -187,5 +191,72 @@ window.scanFrame = scanFrame;
 window.showDetection = showDetection;
 window.showIndicator = showIndicator;
 </script>
+
+<script>
+(function () {
+    async function captureFrame(groupId) {
+      const form = document.getElementById(`add_image{{group_id}}`);
+      const input = document.getElementById(`files{{group_id}}`);
+
+        if (!form || !input) {
+            console.error("Form or file input not found", { form, input });
+            return;
+        }
+
+        // Use your existing video variable if available.
+        const videoElement = video;
+
+        if (!videoElement || !videoElement.videoWidth) {
+            console.error("Video stream is not ready");
+            return;
+        }
+
+        try {
+            const canvas = document.createElement("canvas");
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+
+            const ctx = canvas.getContext("2d");
+            if (!ctx) throw new Error("Could not create canvas context");
+
+            ctx.drawImage(videoElement, 0, 0);
+
+            const blob = await new Promise((resolve, reject) => {
+                canvas.toBlob(
+                    result => result
+                        ? resolve(result)
+                        : reject(new Error("Frame capture failed")),
+                    "image/jpeg",
+                    0.9
+                );
+            });
+
+            const file = new File([blob], "live-frame.jpg", {
+                type: "image/jpeg"
+            });
+
+            const transfer = new DataTransfer();
+            transfer.items.add(file);
+            input.files = transfer.files;
+
+            console.log("Submitting captured frame:", file.size, "bytes");
+
+            form.requestSubmit();
+        } catch (error) {
+            console.error("Frame capture failed:", error);
+        }
+    }
+
+    // Event delegation also handles buttons inserted later by HTMX.
+    document.addEventListener("click", function (event) {
+        const button = event.target.closest(".update-image-btn");
+        if (!button) return;
+
+        event.preventDefault();
+        captureFrame(button.dataset.group);
+    });
+})();
+</script>
+
 </div>
 {% endif %}

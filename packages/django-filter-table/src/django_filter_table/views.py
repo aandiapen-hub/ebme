@@ -488,7 +488,7 @@ class FilteredTableView(
             #add selected values to page values
             values += list(selected_values_qs)
 
-        if result_only:
+        if page.number > 1:
             values = [
                 row for row in values
                 if row[field.name] not in selected_values
