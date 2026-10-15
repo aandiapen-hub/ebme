@@ -26,7 +26,11 @@ from documents.services.document_parser import (
     temp_group_resolver,
 )
 
-from documents.services.process_document import extract_information_from_temp_group
+from documents.services.process_document import(
+    extract_information_from_temp_group,
+    quick_group_processor_task
+)
+
 from documents.services.context.registry import build_document_context
 from django.tasks import default_task_backend
 from urllib.parse import urlencode
@@ -452,6 +456,27 @@ class ExtractTextFromImages(LoginRequiredMixin, PermissionRequiredMixin, FormVie
         self.object = get_object_or_404(TempUploadGroup, pk=group_id)
 
         task = extract_information_from_temp_group.enqueue(group_id=group_id)
+
+        self.object.task_result_id = str(task.id)
+        self.object.save()
+
+        response = HttpResponse()
+        response["HX-Redirect"] = self.get_success_url()
+        return response
+
+class QuickExtractDataFromGroup(LoginRequiredMixin, PermissionRequiredMixin, FormView):
+    form_class = EmptyForm
+    permission_required = "documents.change_tempuploadgroup"
+
+    def get_success_url(self):
+        return reverse("documents:temp_group", kwargs={"pk": self.kwargs.get("pk")})
+
+    def form_valid(self, form):
+        group_id = str(self.kwargs.get("pk"))
+
+        self.object = get_object_or_404(TempUploadGroup, pk=group_id)
+
+        task = quick_group_processor_task.enqueue(group_id=group_id)
 
         self.object.task_result_id = str(task.id)
         self.object.save()

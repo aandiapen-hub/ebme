@@ -111,6 +111,9 @@ def quick_group_processor(temporary_upload):
     group.save(update_fields=['extracted_json'])
     temp_group_resolver(group.pk)
 
+@task
+def quick_group_processor_task(temporary_upload):
+    return quick_barcode_processor(temporary_upload)
 
 def quick_barcode_processor(barcode):
     resolved_data = rapid_gs1_resolver(barcode)

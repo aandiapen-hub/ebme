@@ -14,7 +14,10 @@ from assets.models import Tbljobstatus, Tbljobtypes
 
 
 class AssetData(BaseModel):
-    GTIN: Optional[str] = None
+    GTIN: Optional[str] = Field(
+        default=None,
+        pattern=r"^01(?:\d{8}|\d{12}|\d{13}|\d{14})$"
+    )
     SERIAL: Optional[str] = None
     ASSET_NO: Optional[str] = None
     PROD_DATE: Optional[date] = None

@@ -10,10 +10,11 @@ from assets.models import (
 )
 from cap_project.models import CommissionRequest
 
+from documents.services.key_information import new_key_information
 from parts.models import Tblpartslist
 from documents.models import TempUploadGroup, DocumentTypes
 from procurement.models import TblPurchaseOrder, TblDeliveries
-
+from .key_information import new_key_information
 
 def asset_data_builder(
     gtin=None,
@@ -29,6 +30,7 @@ def asset_data_builder(
     jobs=None,
     too_many_jobs=False,
     model_id=None,
+    add_model=False,
     duplicatable_models=None,
     models_without_gtin=None,
     model_name_options=None,
@@ -39,6 +41,7 @@ def asset_data_builder(
     category_name_options=None,
     category_ids=None,
     part_id=None,
+    add_part=False,
     part_number=None,
     part_short_name=None,
     part_description=None,
@@ -48,6 +51,7 @@ def asset_data_builder(
     locationid=None,
     customerid=None,
     unitprice=None,
+    key_information=None,
 ):
     return {
         "gtin": {
@@ -75,6 +79,7 @@ def asset_data_builder(
         },
         "model": {
             "gtin": gtin,
+            "add_model":add_model,
             "modelname": model_name_options or [],
             "brandname": brand_name_options or [],
             "brand_ids": brand_ids or [],
@@ -88,6 +93,7 @@ def asset_data_builder(
         },
         "part": {
             "gtin": gtin,
+            "add_part": add_part,
             "part_id": part_id,
             "suggested_new_name": suggested_new_part_names or [],
             "part_number": part_number,
@@ -105,6 +111,7 @@ def asset_data_builder(
             "category_options": category_name_options or [],
             "category_ids": category_ids,
         },
+        'key_information': key_information,
     }
 
 
@@ -319,6 +326,7 @@ def gs1_resolver(parsed_data):
     gtin = parsed_data.get("GTIN")
     serial = parsed_data.get("SERIAL")
     prod_date = parsed_data.get("PROD DATE")
+    key_information = []
 
     # defaults
     known_model = None
@@ -343,13 +351,31 @@ def gs1_resolver(parsed_data):
     asset = find_asset_by_asset_no(asset_no)
     if asset:
         jobs = list(asset.jobs.all().values_list("pk", flat=True))
+
+        key_information.append(new_key_information(
+            name='GIAI - Asset',
+            value=asset_no,
+            comment='Found',
+            color='success'
+        ))
+
         return asset_data_builder(
             gtin=gtin,
             asset_id=asset.pk,
             jobs=jobs,
-            prod_date=prod_date
+            prod_date=prod_date,
+            key_information=key_information
         )
-    create_asset = bool(asset)
+    if asset_no and not asset:
+
+        key_information.append(new_key_information(
+            name='GIAI - Asset',
+            value='', 
+            comment='Not Found',
+            color='Danger'
+        ))
+        
+        create_asset = not bool(asset)
 
     # -------------------------
     # 2. GTIN lookup
@@ -358,6 +384,15 @@ def gs1_resolver(parsed_data):
     model_id = known_model.pk if known_model else None
     part_id = known_part.pk if known_part else None
 
+    if add_gtin:
+        key_information.append(new_key_information(
+            name='GTIN',
+            value=gtin, 
+            comment='Not Found - Add as a Model or Spare Part',
+            color='warning'
+        ))
+
+
     # -------------------------
     # 3. Exact asset match
     # -------------------------
@@ -365,6 +400,13 @@ def gs1_resolver(parsed_data):
     asset = find_asset_by_serial_and_model(serial, known_model)
 
     if asset:
+        key_information.append(new_key_information(
+            name='GS1 - Asset',
+            value='', 
+            comment='Found',
+            color='success'
+        ))
+
         if asset.prod_date and prod_date:
             prod_date_missing = asset.prod_date.strftime("%y%m%d")  != prod_date
         else:
@@ -377,9 +419,19 @@ def gs1_resolver(parsed_data):
             model_id=model_id,
             jobs=jobs,
             prod_date=prod_date,
-            prod_date_missing = prod_date_missing
+            prod_date_missing = prod_date_missing,
+            key_information=key_information
         )
-    create_asset = not bool(asset) and bool(serial and known_model)
+
+
+    if not bool(asset) and bool(serial and known_model):
+        key_information.append(new_key_information(
+            name='GS1 - Asset',
+            value='', 
+            comment='Asset Not found - Create Asset',
+            color='warning'
+        ))
+        create_asset = True
 
 
     # -------------------------
@@ -394,12 +446,30 @@ def gs1_resolver(parsed_data):
         models_without_gtin = result["models_without_gtin"]
         jobs += result['jobs']
 
+        if assets:
+
+            key_information.append(new_key_information(
+                name='Serial Number',
+                value=serial, 
+                comment='Partial Asset Matches',
+                color='warning'
+            ))
+
         create_asset = True
 
     # -------------------------
     # 5. Model
     # -------------------------
     model_name_options = parsed_data.get("model_name_options", [])
+    if model_id:
+        key_information.append(new_key_information(
+            name='GTIN-Model',
+            value=gtin, 
+            comment=f'Model Found - {known_model}',
+            color='success'
+        ))
+    add_model = gtin and not model_id
+
 
     # -------------------------
     # 6. Brand
@@ -435,6 +505,17 @@ def gs1_resolver(parsed_data):
     # -------------------------
     part_number = parsed_data.get("model")
     part_short_name = parsed_data.get("description")
+    part_number = parsed_data.get("model")
+    part_short_name = parsed_data.get("description")
+    
+    if part_id:
+        key_information.append(new_key_information(
+            name='GTIN-Spare Part',
+            value=gtin, 
+            comment='Spare Part Found',
+            color='success'
+        ))
+    add_part = gtin and not part_id
 
     # -------------------------
     # 9. Commission Requset 
@@ -452,9 +533,14 @@ def gs1_resolver(parsed_data):
             customerid = com_request.customerid
             unitprice = com_request.unitprice
 
-    part_number = parsed_data.get("model")
+        key_information.append(new_key_information(
+            name='Commission Request',
+            value='', 
+            comment='Found',
+            color='success'
+        ))
+    
 
-    part_short_name = parsed_data.get("description")
     # -------------------------
     # FINAL OUTPUT
     # -------------------------
@@ -470,6 +556,7 @@ def gs1_resolver(parsed_data):
         too_many_assets=too_many_assets,
         jobs=jobs,
         model_id=model_id,
+        add_model=add_model,
         duplicatable_models=models_with_gtin,
         models_without_gtin=models_without_gtin,
         model_name_options=model_name_options,
@@ -480,12 +567,14 @@ def gs1_resolver(parsed_data):
         category_name_options=category_name_options,
         category_ids=category_ids,
         part_id=part_id,
+        add_part=add_part,
         part_number=part_number,
         part_short_name=part_short_name,
         ordernumber=ordernumber,
         locationid=locationid,
         customerid=customerid,
         unitprice=unitprice,
+        key_information=key_information,
     )
 
 
@@ -514,7 +603,7 @@ def job_resolver(parsed_data):
     asset = find_asset_by_asset_no(asset_no)
     if asset:
         jobs = list(asset.jobs.values_list("pk", flat=True))
-    create_asset = bool(asset)
+    create_asset = not bool(asset)
 
     # -------------------------
     # 2. GTIN lookup

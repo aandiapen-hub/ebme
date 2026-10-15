@@ -25,6 +25,7 @@ from .views import (
     BulkLinkDocument,
     BulkDeleteLink,
     ExtractTextFromImages,
+    QuickExtractDataFromGroup,
     TempUploadMergedDataUpdate,
     GetTaskResult,
 )
@@ -138,6 +139,11 @@ urlpatterns = [
         "documents/<uuid:pk>/extract_text",
         ExtractTextFromImages.as_view(),
         name="extract_text",
+    ),
+    path(
+        "documents/<uuid:pk>/extract_text",
+        QuickExtractDataFromGroup.as_view(),
+        name="quick_extract_data",
     ),
     path(
         "documents/<uuid:pk>/update_data",

@@ -250,12 +250,10 @@ def get_create_asset(data, temp_group_id=None):
     items = []
 
     asset_data = data.get("asset", {})
-    has_no_asset_id = not asset_data.get("asset_id")
-    has_serial = bool(asset_data.get("serialnumber"))
     model_id = bool(asset_data.get("model_id"))
     gtin = data.get("gtin", {}).get("add_gtin", None)
 
-    if gtin and not model_id:
+    if data.get('model',{}).get('add_model'):
         enabled = False
         description = 'New asset cannot be created. Create a new Model or add GTIN to an existing model.'
     else:
@@ -263,7 +261,7 @@ def get_create_asset(data, temp_group_id=None):
         description = "Create Asset using the extracted information"
     
 
-    if has_no_asset_id and has_serial:
+    if asset_data.get('create_asset'):
 
         action = Action(
                 label='Create',
@@ -280,26 +278,6 @@ def get_create_asset(data, temp_group_id=None):
         ) ]
     return items
 
-def get_key_information(data):
-    output = {}
-    serialno = data.get('asset',{}).get('serialnumber')
-    if serialno:
-        output.update({
-            'Serial no': serialno 
-            })
-
-    gtin = data.get('gtin',{}).get('value')
-    if gtin: 
-        output.update({
-            'GTIN': gtin 
-            })
-
-    customerassetnumber = data.get('asset',{}).get('customerassetnumber')
-    if gtin: 
-        output.update({
-            'Cust Asset No': customerassetnumber 
-            })
-    return output
 
 class AssetDataContext(
     BaseDocumentContextBuilder
@@ -360,7 +338,6 @@ class AssetDataContext(
         
 
         return {
-            'key_data_extracted': get_key_information(self.resolved_data),
             'groups': [
                 suggested_actions,
                 exact_match_group,

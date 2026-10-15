@@ -19,10 +19,12 @@ class BaseDocumentContextBuilder(ABC):
         )
 
     def build(self):
-        return {
+        context = {
             'template_name': self.template_name(),
             **self.get_extra_context(),
         }
+        context['key_information'] = self.resolved_data.get('key_information', [])
+        return context
 
     def group_pk_params(self):
         if self.temp_group and self.temp_group.pk:
