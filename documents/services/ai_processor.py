@@ -31,6 +31,10 @@ class AssetData(BaseModel):
     category_name_options: list[str] = Field(default_factory=list)
     description: Optional[str] = None
 
+    id_label_photo: bool
+    product_photo: bool
+
+
 
 class JobData(BaseModel):
     job_ref: Optional[str] = None
@@ -87,7 +91,8 @@ PROMPT_CONTENT = {
     'asset_data': {
         "user_prompt": """Get information about the medical equipment from the images
                             and decoded text and gs1 decoded informations. gs1 decoded information is always acurate. If the information
-                            is not clear, return none, do not guess.
+                            is not clear, return none, do not guess. Confirm if the the images contain an iec60601 compliant equipment identification label
+                            and a Photo showing the equipment's complete physical appearance from the front.
                             Give name options that can be used for keyword lookup in a database.""",
         "system_prompt": """You are a biomedical equipment administrator with expertise in cataloging
                         medical equipment and devices on a database.""",

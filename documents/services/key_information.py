@@ -11,7 +11,8 @@ class KeyInformation:
 ICON_MAP = {
     'success': 'bi-check2',
     'warning': 'bi-exclamation-triangle',
-    'danger': 'bi-exclamation-octagon-fill'
+    'danger': 'bi-exclamation-octagon-fill',
+    'secondary':'bi-exclamation-triangle' 
 }
 
 def new_key_information(name, color, value=None, comment=None):

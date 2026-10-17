@@ -197,12 +197,12 @@
                 </a>
                 {% endif %}
 
-                <button class="btn btn-sm btn-outline-primary"
+                <button class="btn btn-sm  btn-outline-primary "
                     {% if not group.processable %}disabled{% endif %}
                     hx-post="{% url "documents:extract_text" pk=group.pk %}"
                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                     hx-swap="none">
-                    Process 
+                    Process {% if group.extracted_json.resolved.ai_required %} <i class="bi bi-patch-exclamation-fill"></i>{% endif %}
                 </button>
                 <button class="btn btn-sm btn-outline-primary"
                     {% if not group.processable %}disabled{% endif %}
@@ -391,11 +391,16 @@
       <div class='border border-secondary mb-2 p-2'>
         <small>Key information:</small>
           <ul class="list-group">
-            {% for item in key_information %}
-            <li class="list-group-item">
-              <i class='bi {{item.icon}} text-{{item.color}}'></i> {{item.name}} <small class='text-muted'> {{item.value}} ({{item.comment}})</small>
-            </li> 
-        {% endfor %}
+            {% for info_group,items in key_information.items %}
+              {% if items %}
+              <h6>{{info_group}}</h6>
+              {% for item in items %} 
+                <li class="list-group-item">
+                  <i class='bi {{item.icon}} text-{{item.color}}'></i> {{item.name}} <small class='text-muted'> {{item.value}} {{item.comment}}</small>
+                </li> 
+              {% endfor %}
+              {% endif %}
+            {% endfor %}
           </ul>
       </div>
       {% include template_name %}

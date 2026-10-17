@@ -52,6 +52,9 @@ def asset_data_builder(
     customerid=None,
     unitprice=None,
     key_information=None,
+    id_label_photo=False,
+    product_photo=False,
+    ai_required=False,
 ):
     return {
         "gtin": {
@@ -72,6 +75,8 @@ def asset_data_builder(
             "customerid":customerid,
             "unitprice":unitprice,
             "prod_date_missing": prod_date_missing,
+            "id_label_photo": id_label_photo,
+            "product_photo":product_photo
         },
         "job": {
             "jobs": jobs or [],
@@ -90,6 +95,8 @@ def asset_data_builder(
             "model_id": model_id,
             "duplicatable_models": duplicatable_models or [],
             "models_without_gtin": models_without_gtin or [],
+            "id_label_photo": id_label_photo,
+            "product_photo":product_photo
         },
         "part": {
             "gtin": gtin,
@@ -112,6 +119,7 @@ def asset_data_builder(
             "category_ids": category_ids,
         },
         'key_information': key_information,
+        'ai_required': ai_required,
     }
 
 
@@ -326,7 +334,12 @@ def gs1_resolver(parsed_data):
     gtin = parsed_data.get("GTIN")
     serial = parsed_data.get("SERIAL")
     prod_date = parsed_data.get("PROD DATE")
-    key_information = []
+    ai_used = parsed_data.get("ai_used", False)
+    key_information = {
+        'GS1':[],
+        'asset':[],
+        'photos':[],
+    }
 
     # defaults
     known_model = None
@@ -346,36 +359,40 @@ def gs1_resolver(parsed_data):
     add_gtin = False
 
     # -------------------------
-    # 1. Asset Number lookup (strongest)
+    # 1. GIAI Asset Number lookup (strongest)
     # -------------------------
-    asset = find_asset_by_asset_no(asset_no)
-    if asset:
-        jobs = list(asset.jobs.all().values_list("pk", flat=True))
+    giai_asset = find_asset_by_asset_no(asset_no)
+    if giai_asset:
+        jobs = list(giai_asset.jobs.all().values_list("pk", flat=True))
 
-        key_information.append(new_key_information(
+    key_information['GS1'].append(new_key_information(
+        name='GIAI - Asset Number',
+        value=asset_no or 'Missing', 
+        comment='' if asset_no else 'Scan or enter asset number',
+        color='success' if asset_no else 'secondary'
+    ))
+    
+    if asset_no:
+        key_information['GS1'].append(new_key_information(
             name='GIAI - Asset',
-            value=asset_no,
-            comment='Found',
-            color='success'
+            value=giai_asset or '', 
+            comment='' if giai_asset else 'Not Found',
+            color='success' if giai_asset else 'danger'
         ))
-
+    
+    create_asset = not bool(giai_asset)
+    
+    # return if only a giai code was
+    # else continut to compare giai vs gs1 asset
+    # to raise conflict error
+    if giai_asset and not serial: 
         return asset_data_builder(
             gtin=gtin,
-            asset_id=asset.pk,
+            asset_id=giai_asset.pk,
             jobs=jobs,
             prod_date=prod_date,
             key_information=key_information
         )
-    if asset_no and not asset:
-
-        key_information.append(new_key_information(
-            name='GIAI - Asset',
-            value='', 
-            comment='Not Found',
-            color='Danger'
-        ))
-        
-        create_asset = not bool(asset)
 
     # -------------------------
     # 2. GTIN lookup
@@ -385,37 +402,45 @@ def gs1_resolver(parsed_data):
     part_id = known_part.pk if known_part else None
 
     if add_gtin:
-        key_information.append(new_key_information(
+        key_information['GS1'].append(new_key_information(
             name='GTIN',
             value=gtin, 
-            comment='Not Found - Add as a Model or Spare Part',
+            comment='Not on database- Add as a Model or Spare Part',
             color='warning'
         ))
-
 
     # -------------------------
     # 3. Exact asset match
     # -------------------------
 
-    asset = find_asset_by_serial_and_model(serial, known_model)
+    gs1_asset = find_asset_by_serial_and_model(serial, known_model)
 
-    if asset:
-        key_information.append(new_key_information(
+    if gs1_asset:
+        key_information['GS1'].append(new_key_information(
             name='GS1 - Asset',
             value='', 
             comment='Found',
             color='success'
         ))
 
-        if asset.prod_date and prod_date:
-            prod_date_missing = asset.prod_date.strftime("%y%m%d")  != prod_date
+        if gs1_asset.prod_date and prod_date:
+            prod_date_missing = gs1_asset.prod_date.strftime("%y%m%d")  != prod_date
         else:
             prod_date_missing = False
         
-        jobs = list(asset.jobs.values_list("pk", flat=True))
+        jobs = list(gs1_asset.jobs.values_list("pk", flat=True))
+
+        if giai_asset and giai_asset != gs1_asset:
+            key_information['GS1'].append(new_key_information(
+                name='GS1 - Asset',
+                value='', 
+                comment='Asset Number does not match Serial Number. Update asset number of equipment!',
+                color='danger'
+            ))
+
         return asset_data_builder(
             gtin=gtin,
-            asset_id=asset.pk,
+            asset_id=gs1_asset.pk,
             model_id=model_id,
             jobs=jobs,
             prod_date=prod_date,
@@ -424,8 +449,8 @@ def gs1_resolver(parsed_data):
         )
 
 
-    if not bool(asset) and bool(serial and known_model):
-        key_information.append(new_key_information(
+    if not bool(gs1_asset) and bool(serial and known_model):
+        key_information['GS1'].append(new_key_information(
             name='GS1 - Asset',
             value='', 
             comment='Asset Not found - Create Asset',
@@ -437,7 +462,7 @@ def gs1_resolver(parsed_data):
     # -------------------------
     # 4. Partial match
     # -------------------------
-    if serial and not asset:
+    if serial and not gs1_asset:
         result = find_partial_matches(serial, model_id, part_id)
 
         assets = result["assets"]
@@ -448,10 +473,10 @@ def gs1_resolver(parsed_data):
 
         if assets:
 
-            key_information.append(new_key_information(
+            key_information['asset'].append(new_key_information(
                 name='Serial Number',
                 value=serial, 
-                comment='Partial Asset Matches',
+                comment='Multiple Assets found',
                 color='warning'
             ))
 
@@ -462,7 +487,7 @@ def gs1_resolver(parsed_data):
     # -------------------------
     model_name_options = parsed_data.get("model_name_options", [])
     if model_id:
-        key_information.append(new_key_information(
+        key_information['GS1'].append(new_key_information(
             name='GTIN-Model',
             value=gtin, 
             comment=f'Model Found - {known_model}',
@@ -509,7 +534,7 @@ def gs1_resolver(parsed_data):
     part_short_name = parsed_data.get("description")
     
     if part_id:
-        key_information.append(new_key_information(
+        key_information['GS1'].append(new_key_information(
             name='GTIN-Spare Part',
             value=gtin, 
             comment='Spare Part Found',
@@ -518,7 +543,30 @@ def gs1_resolver(parsed_data):
     add_part = gtin and not part_id
 
     # -------------------------
-    # 9. Commission Requset 
+    # 9. Photo IDs
+    # -------------------------
+
+    # if key gs1 information or model not found on database:
+    if not model_id or not serial:
+        id_label_photo = parsed_data.get('id_label_photo')
+        product_photo = parsed_data.get('product_photo')
+
+        key_information['photos'].append(new_key_information(
+            name='ID Label',
+            value='', 
+            comment='' if id_label_photo else 'Required to add new model or part',
+            color='success' if id_label_photo else 'danger'
+        ))
+
+        key_information['photos'].append(new_key_information(
+            name='Product Photo',
+            value='', 
+            comment='' if product_photo else 'Required to add new model or part',
+            color='success' if product_photo else 'danger'
+        ))
+
+    # -------------------------
+    # 10. Commission Requset 
     # -------------------------
     com_request_code = parsed_data.get('com_request')
     ordernumber = None
@@ -533,13 +581,32 @@ def gs1_resolver(parsed_data):
             customerid = com_request.customerid
             unitprice = com_request.unitprice
 
-        key_information.append(new_key_information(
+        key_information['Acceptance'].append(new_key_information(
             name='Commission Request',
             value='', 
             comment='Found',
             color='success'
         ))
     
+
+    # -------------------------
+    # 11. Use AI
+    # -------------------------
+    if not gs1_asset or giai_asset:
+        basic_asset_info_missing = (
+                not bool(asset_no) and not bool(serial)
+        )
+        print('basic_asset_info_missing')
+    else:
+        basic_asset_info_missing = False
+
+    if ai_used == False:
+        print('ai not used')
+        ai_required = basic_asset_info_missing or add_gtin
+    else:
+        print('ai already used')
+        ai_required = False 
+
 
     # -------------------------
     # FINAL OUTPUT
@@ -575,6 +642,9 @@ def gs1_resolver(parsed_data):
         customerid=customerid,
         unitprice=unitprice,
         key_information=key_information,
+        id_label_photo=id_label_photo,
+        product_photo=product_photo,
+        ai_required=ai_required
     )
 
 

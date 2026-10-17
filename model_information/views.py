@@ -1,4 +1,5 @@
 from django.db import transaction
+import re
 from django.forms import ValidationError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy, reverse
@@ -302,7 +303,10 @@ class ExistingModelListView(LoginRequiredMixin, PermissionRequiredMixin, ListVie
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["temp_group_id"] = self.request.GET.get("temp_group_id")
-        context['search_term'] = self.request.GET.get("modelname")
+        search_term = self.request.GET.get("modelname")
+        context['search_term'] = search_term
+
+        context['src_re_obj'] = re.compile(re.escape(search_term), re.IGNORECASE)
         return context
 
     def get_queryset(self):

@@ -4,7 +4,7 @@
 <h6>Similar Models found</h6>
     {% for model in models  %}
     <div class='d-flex gap-1 flex-row align-items-center'>
-      <p>{{model.modelid}}: {{model.brandid}} {{model.modelname|highlight:search_term}} - {{model.categoryid}}</p>
+      <p>{{model.modelid}}: {{model.brandid}} {{model.modelname|highlight:src_re_obj}} - {{model.categoryid}}</p>
       {% if model.gtin %}
         <a
             type='button'

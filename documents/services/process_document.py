@@ -49,6 +49,7 @@ def merge_gs1_ai_data(group, ai_data):
     merged_parsed_barcode = group.extracted_json['merged_parsed_barcode']
     for k, v in merged_parsed_barcode.get('values', {}).items():
         ai_data[k] = v
+    ai_data['ai_used'] = True
     return ai_data
 
 
