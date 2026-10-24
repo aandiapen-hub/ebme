@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+  <div class='container'>
+    <form method='post' action=''>
+      {% csrf_token %} 
+    {% bootstrap_form form %}
+    {% include 'partials/form_buttons.html' %}
+    </form>
+  </div>
+{% endblock %}

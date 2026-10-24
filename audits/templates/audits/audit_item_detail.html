@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+  <div class='container'>
+    <small>Audit Item</small>
+    <h2>{{audit_item}}<h2>
+
+    <div class="row  bg-white p-4 rounded"> 
+      <div class="col">
+        <p><small class="text-muted">Status: </small>{{audit_item.status}}</p>
+        <p><small class="text-muted">Customer Asset No: </small>{{audit_item.original_asset_number}}</p>
+        <p><small class="text-muted">Serial No: </small>{{audit_item.original_serial_number}}</p>
+        <p><small class="text-muted">Model: </small>{{audit_item.original_model}}</p>
+        <p><small class="text-muted">Brand: </small>{{audit_item.original_model.brandid}}</p>
+        <p><small class="text-muted">Category: </small>{{audit_item.original_model.categoryid}}</p>
+
+      </div>
+    </div>
+
+    {% if not audit_item.is_complete %}
+      <form method='post' action='{% url "audits:audit_item_verified" audit_item.pk %}'>
+        {% csrf_token %}
+        <button type='submit' class='btn btn-primary'>Verified: No changes required</button>
+      </form>
+
+
+      <a class='btn btn-warning' href="{% url 'audits:asset_change_create' audit_item.pk %}">Changes Required</a>
+
+    {% endif %}
+
+
+{% endblock %}

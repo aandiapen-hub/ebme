@@ -106,7 +106,23 @@
                     </ul>
                   </li>
                 <li>
-                  
+                <!--Audits-->
+                  <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle {% if '/audit' in request.path %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                   Audits 
+                  </a>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="{% url 'audits:audit_list' %}">Audits</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="{% url 'audits:audit_location_list' %}">Locations</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="{% url 'audits:audit_item_list' %}">Items</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="{% url 'audits:catalog_proposal_list' %}">Catalog Proposals</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                    </ul>
+                  </li>
+                <li>
 
                 {% endif %}           
                 <!--user logged in-->

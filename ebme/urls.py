@@ -36,6 +36,7 @@ urlpatterns = [
     path("dashboards/", include("dashboard.urls")),
     path("parts/", include("parts.urls")),
     path("capital_project/", include("cap_project.urls")),
+    path("audits/", include("audits.urls")),
     path("procurement/", include('procurement.urls')),
     # htmx search url
     path('filter_table/', include('django_filter_table.urls')),

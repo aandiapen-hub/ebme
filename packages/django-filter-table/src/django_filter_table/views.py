@@ -1003,7 +1003,7 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
         user = User.objects.get(pk=user_id)
         UserProfiles = get_user_profile_model()
         profile, created = UserProfiles.objects.get_or_create(
-            user_id=user, defaults={"table_settings": {}}
+            user_id=user.pk, defaults={"table_settings": {}}
         )
 
         columns = request.POST.getlist('columns', None)

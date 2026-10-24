@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+  <div class='container'>
+    <h4>Propose new model</h4>
+    <form method='post' action=''>
+      {% csrf_token %} 
+    {% bootstrap_form form %}
+    {% include 'partials/form_buttons.html' %}
+    </form>
+
+    <a class='btn btn-outline-secondary' href="{% url 'audits:brand_proposal_create' %}">Add New Brand</a>
+    <a class='btn btn-outline-secondary' href="{% url 'audits:category_proposal_create' %}">Add New Category</a>
+  </div>
+{% endblock %}

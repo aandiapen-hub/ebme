@@ -304,9 +304,9 @@ class ExistingModelListView(LoginRequiredMixin, PermissionRequiredMixin, ListVie
         context = super().get_context_data(**kwargs)
         context["temp_group_id"] = self.request.GET.get("temp_group_id")
         search_term = self.request.GET.get("modelname")
-        context['search_term'] = search_term
-
-        context['src_re_obj'] = re.compile(re.escape(search_term), re.IGNORECASE)
+        if search_term:
+            context['search_term'] = search_term
+            context['src_re_obj'] = re.compile(re.escape(search_term), re.IGNORECASE)
         return context
 
     def get_queryset(self):

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+  <div class='container'>
+    <small>Audit</small>
+    <h1>{{audit}}</h1>
+
+    <h4>Location List</h4>
+      <ul>
+        {% for audit_location in audit.audit_locations.all %}
+        <li> <a href='{% url "audits:audit_location_detail" audit_location.pk %}'>
+            {{audit_location}}-{{audit_location.status}}</li>
+            </a>
+        {% endfor %}
+      </ul>
+  </div>
+{% endblock %}

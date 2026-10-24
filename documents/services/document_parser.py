@@ -547,6 +547,8 @@ def gs1_resolver(parsed_data):
     # -------------------------
 
     # if key gs1 information or model not found on database:
+    id_label_photo = False
+    product_photo = False
     if not model_id or not serial:
         id_label_photo = parsed_data.get('id_label_photo')
         product_photo = parsed_data.get('product_photo')
@@ -596,15 +598,12 @@ def gs1_resolver(parsed_data):
         basic_asset_info_missing = (
                 not bool(asset_no) and not bool(serial)
         )
-        print('basic_asset_info_missing')
     else:
         basic_asset_info_missing = False
 
     if ai_used == False:
-        print('ai not used')
         ai_required = basic_asset_info_missing or add_gtin
     else:
-        print('ai already used')
         ai_required = False 
 
 

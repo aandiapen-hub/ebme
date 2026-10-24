@@ -27,8 +27,8 @@ def set_preference(profile, table_name, key, value):
     profile.table_settings[table_name] = settings
     profile.save(update_fields=['table_settings', 'updated_at'])
 
-def get_preference(profile, table_name, key, default=None):
-    return profile.table_settings.get(table_name, {}).get(key, default)
+def get_preference(profile, table_name, key):
+    return profile.table_settings.get(table_name, {}).get(key, {})
 
 
 def add_htmx_message(

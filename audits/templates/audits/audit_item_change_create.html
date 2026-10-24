@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+  <div class='container'>
+
+    <a class='btn btn-outline-secondary' href="{%url 'audits:model_proposal_create' %}">Add New Model</a>
+
+    <form method='post' action=''>
+      {% csrf_token %} 
+      <input type='hidden' name='audit_item' value={{audit_item.pk}}>
+
+    {% bootstrap_form form %}
+    {% include 'partials/form_buttons.html' %}
+    </form>
+  </div>
+{% endblock %}

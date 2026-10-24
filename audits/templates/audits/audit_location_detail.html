@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+  <div class='container'>
+    <small>Audit</small>
+    <h1>{{audit_location}}</h1>
+
+    <h4>Items</h4>
+      <ul>
+        {% for item in audit_locations.items %}
+          <li> {{item}} </li>
+        {% endfor %}
+      </ul>
+  </div>
+{% endblock %}
