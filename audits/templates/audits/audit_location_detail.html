@@ -6,11 +6,8 @@
     <small>Audit</small>
     <h1>{{audit_location}}</h1>
 
-    <h4>Items</h4>
-      <ul>
-        {% for item in audit_locations.items %}
-          <li> {{item}} </li>
-        {% endfor %}
-      </ul>
+    <a class='btn btn-outline-secondary' href='{% url "audits:audit_item_list" %}?audit_location__iexact={{audit_location.pk}}'>View Items</a>
+    <a class='btn btn-outline-secondary' href='{% url "audits:new_asset_create" audit_location.pk %}'>Add New Asset</a>
+
   </div>
 {% endblock %}

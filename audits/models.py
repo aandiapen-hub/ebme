@@ -1,3 +1,5 @@
+from abc import get_cache_token
+
 from django.db import models
 from django.urls import reverse
 from django_filter_table.utils import HtmxPicker
@@ -121,6 +123,9 @@ class AuditLocation(models.Model):
     def __str__(self):
         return f"{self.audit.name} - {self.location}"
 
+    def get_absolute_url(self):
+        return reverse('audits:audit_location_detail', kwargs={'pk':self.pk})
+
 
 class CatalogProposal(models.Model):
 
@@ -166,7 +171,7 @@ class CatalogProposal(models.Model):
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name="category_proposals",
+        related_name="model_proposals",
     )
 
     # For model proposals: select an existing category.
@@ -388,8 +393,15 @@ class AuditItem(models.Model):
     def __str__(self):
         return f"{self.audit.name} - {self.pk}"
 
+    @property
     def is_complete(self):
         return self.status in ['verified', 'not_found', 'resolved']
+
+    @property
+    def can_create_change_proposal(self):
+        change_proposal_exisits = self.change_proposals.exists()
+        return self.is_complete or change_proposal_exisits
+
 
     def get_absolute_url(self):
         return reverse('audits:audit_item_detail', kwargs={'pk':self.pk})
@@ -400,10 +412,6 @@ class AssetChangeProposal(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending review"
         APPROVED = "approved", "Approved"
-        PARTIALLY_APPROVED = (
-            "partially_approved",
-            "Partially approved",
-        )
         REJECTED = "rejected", "Rejected"
         APPLIED = "applied", "Applied"
         NEEDS_REVIEW = "needs_review", "Needs re-review"
@@ -464,14 +472,17 @@ class AssetChangeProposal(models.Model):
     def __str__(self):
         return f"Asset change {self.reference}"
 
+    @property
+    def review_possible(self):
+        return self.status == 'pending'
 
 class AssetFieldChange(models.Model):
 
     class FieldName(models.TextChoices):
         LOCATION = "location", "Location"
-        MODEL = "model", "Model"
-        ASSET_NUMBER = "asset_number", "Asset number"
-        SERIAL_NUMBER = "serial_number", "Serial number"
+        MODEL = "modelid", "Model"
+        ASSET_NUMBER = "customerassetnumber", "Asset number"
+        SERIAL_NUMBER = "serialnumber", "Serial number"
 
     class Decision(models.TextChoices):
         PENDING = "pending", "Pending"
@@ -527,6 +538,56 @@ class AssetFieldChange(models.Model):
     def __str__(self):
         return f"{self.proposal.reference}: {self.field_name}"
 
+    @property
+    def old_display_value(self):
+        return self._display_value(self.old_value)
+
+    @property
+    def proposed_display_value(self):
+        return self._display_value(self.proposed_value)
+
+    def _display_value(self, stored_value):
+        if stored_value is None:
+            return "—"
+
+        if not isinstance(stored_value, dict):
+            return str(stored_value)
+
+
+        object_id = stored_value.get("value")
+
+        if object_id in ['', None]:
+            return "—"
+
+        field_name = self.field_name
+
+        if field_name == "locationid":
+            print('stored_value', stored_value, self.field_name)
+            from assets.models import Tbllocations
+            model_class = Tbllocations
+
+        elif field_name == "modelid":
+
+            model_class = CombinedModels 
+
+
+        else:
+            return str(stored_value.get('value'))
+
+        try:
+            return str(model_class.objects.get(pk=object_id))
+
+        except model_class.DoesNotExist:
+            return f"Unknown item (ID: {object_id})"
+
+    @staticmethod
+    def _get_proposal_name(proposal_model, proposal_id):
+        try:
+            proposal = proposal_model.objects.get(pk=proposal_id)
+        except proposal_model.DoesNotExist:
+            return f"Unknown proposal (ID: {proposal_id})"
+
+        return f"{proposal.proposed_name} (Proposed)"
 
 class CombinedBrands(models.Model):
     id = models.CharField(
@@ -636,3 +697,10 @@ class CombinedModels(models.Model):
             'brand_name__icontains',
         ),
     )
+
+    def __str__(self):
+        if self.existing:
+            proposed = ''
+        else:
+            proposed = '(proposed)'
+        return f"{self.model_name} - {self.brand_name} - {self.category_name} {proposed}"

@@ -20,6 +20,9 @@ from django_filter_table.utils import add_htmx_message
 
 from .models import (
     AuditLocation,
+    CombinedBrands,
+    CombinedCategories,
+    CombinedModels,
     InventoryAudit,
     AuditItem,
     CatalogProposal,
@@ -31,7 +34,8 @@ from .forms import (
     BrandProposalForm,
     CategoryProposalForm,
     AssetChangeProposalForm,
-    EmptyForm
+    EmptyForm,
+    NewAssetProposalForm,
 )
 from . import services
 
@@ -112,7 +116,7 @@ class AuditLocationListView(
 ):
     title = 'Audit Locations'
     model = AuditLocation
-    open_column = 'Location'
+    open_column = 'location'
     permission_required = "audits.view_auditlocation"
     universal_search_fields = [
         'audit__name__icontains',
@@ -126,7 +130,7 @@ class AuditItemListView(
 ):
     title = 'Audit Items'
     model = AuditItem
-    open_column = 'asset'
+    open_column = 'id'
     permission_required = "audits.view_audititem"
     universal_search_fields = [
         'original_serial_number__icontains',
@@ -196,6 +200,64 @@ class ModelProposalCreateView(
         )
 
         return redirect("audits:catalog_proposal_detail", pk=proposal.pk)
+
+class ModelProposalUpdateView(
+    LoginRequiredMixin,
+    FormView,
+):
+    form_class = ModelProposalForm
+    template_name = "audits/model_proposal_create.html"
+    permission_required = "audits.change_catalogproposal"
+
+    def get_initial(self):
+        initial = super().get_initial()
+        proposal_id = self.kwargs['pk']
+        initial['proposal_id'] = proposal_id
+        proposal = CatalogProposal.objects.get(pk=proposal_id)
+
+        if proposal.proposed_brand:
+            combined_brand = CombinedBrands.objects.get(existing=proposal.proposed_brand.pk)
+        else:
+            combined_brand = CombinedBrands.objects.get(proposed=proposal.brand_proposal.pk)
+
+
+        if proposal.proposed_category:
+            combined_category = CombinedCategories.objects.get(existing=proposal.proposed_category.pk)
+        else:
+            combined_category = CombinedCategories.objects.get(proposed=proposal.category_proposal.pk)
+        initial['proposed_name'] = proposal.proposed_name
+        initial['proposed_model_number'] = proposal.proposed_model_number
+        initial['proposed_model_gtin']  = proposal.proposed_model_gtin
+        initial['brand']  = combined_brand.pk 
+        initial['category']  = combined_category.pk 
+        return initial
+
+    def form_valid(self, form):
+        data = form.cleaned_data
+        print('data', data)
+
+        try:
+            proposal = services.submit_model_proposal(
+                proposal_id=data['proposal_id'],
+                proposed_name=data["proposed_name"],
+                proposed_model_number=data.get("proposed_model_number"),
+                proposed_model_gtin=data.get("proposed_model_gtin"),
+                brand=data.get("brand"),
+                category=data.get("category"),
+                discovered_in=data.get("discovered_in"),
+                proposed_by=self.request.user,
+            )
+        except ValidationError as e:
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
+
+        messages.success(
+            self.request,
+            "Model proposal updated. It is available to other auditors.",
+        )
+
+        return redirect("audits:catalog_proposal_detail", pk=proposal.pk)
+
 
 class BrandProposalCreateView(
     LoginRequiredMixin,
@@ -270,10 +332,12 @@ class CatalogProposalDetailView(
     template_name = 'audits/catalog_proposal_detail.html'
     context_object_name = 'proposal'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
 
 class CatalogProposalReviewView(
     LoginRequiredMixin,
-    PermissionRequiredMixin,
     View,
 ):
     permission_required = "audits.change_catalogproposal"
@@ -314,7 +378,7 @@ class AssetChangeProposalCreateView(
     def form_valid(self, form):
         try:
             proposal = services.create_asset_change_proposal(
-                audit_item_id=form.cleaned_data["audit_item"].pk,
+                audit_item=form.cleaned_data["audit_item"],
                 proposed_by=self.request.user,
                 reason=form.cleaned_data["reason"],
                 changes=form.cleaned_data["changes"],
@@ -328,23 +392,75 @@ class AssetChangeProposalCreateView(
             "Asset change proposal submitted for review.",
         )
 
-        return redirect("audits:asset_change_detail", pk=proposal.pk)
+        return redirect("audits:audit_item_detail", pk=proposal.audit_item.pk)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['audit_item'] = get_object_or_404(AuditItem, pk=self.kwargs['pk'])
+        audit_item_pk = self.kwargs['pk']
+        context['audit_item'] = AuditItem.objects.get(pk=audit_item_pk)
         return context
 
+    def form_invalid(self, form):
+        print('form errors', form.errors)
+        return super().form_invalid(form)
+
+class AssetChangeProposalUpdateView(
+    LoginRequiredMixin,
+    FormView,
+):
+    form_class = AssetChangeProposalForm
+    template_name = "audits/audit_item_change_create.html"
+    permission_required = "audits.add_assetchangeproposal"
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['proposal_id'] = self.kwargs['pk']
+        proposal = AssetChangeProposal.objects.get(pk=self.kwargs['pk'])
+        initial['reason'] = proposal.reason
+        for changes in proposal.changes.all():
+            change_fieldname = f"change_{changes.field_name}"
+            initial[changes.field_name] = changes.proposed_value.get('value')
+            initial[change_fieldname] = True
+        return initial
+
+
+    def form_valid(self, form):
+        try:
+            proposal = services.create_asset_change_proposal(
+                proposal=form.cleaned_data['proposal'],
+                proposed_by=self.request.user,
+                reason=form.cleaned_data["reason"],
+                changes=form.cleaned_data["changes"],
+            )
+
+        except ValidationError as exc:
+            form.add_error(None, exc)
+            return self.form_invalid(form)
+
+        messages.success(
+            self.request,
+            "Asset change proposal submitted for review.",
+        )
+
+        return redirect("audits:audit_item_detail", pk=proposal.audit_item.pk)
+
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        audit_item_pk = self.kwargs['pk']
+        return context
 
 class AssetChangeProposalReviewView(
     LoginRequiredMixin,
-    PermissionRequiredMixin,
     View,
 ):
     permission_required = "audits.change_assetchangeproposal"
+    
 
     def post(self, request, pk):
+        proposal = get_object_or_404(AssetChangeProposal, pk=pk)
         decision = request.POST.get("decision")
+        print(self.request.POST.dict())
 
         try:
             services.review_asset_change_proposal(
@@ -364,6 +480,46 @@ class AssetChangeProposalReviewView(
                 messages.success(request, "Asset changes rejected.")
 
         return redirect(
-            "audits:asset_change_detail",
-            pk=pk,
+            "audits:audit_item_detail",
+            pk=proposal.audit_item.pk,
         )
+
+
+class NewAssetProposalCreateView(
+    LoginRequiredMixin,
+    FormView,
+):
+    form_class = NewAssetProposalForm
+    template_name = "audits/audit_location_new_asset.html"
+    permission_required = "audits.add_assetchangeproposal"
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial['audit_location_id'] = self.kwargs['pk']
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        audit_location_id = self.kwargs['pk']
+        context['audit_location'] = AuditLocation.objects.get(pk=audit_location_id)
+        return context
+        
+
+
+    def form_valid(self, form):
+        audit_location_id = form.cleaned_data['audit_location_id']
+        try:
+            proposal = services.record_discovered_asset(
+                audit_location_id = audit_location_id,
+                proposed_by=self.request.user,
+                changes=form.cleaned_data["changes"],
+            )
+        except ValidationError as exc:
+            form.add_error(None, exc)
+            return self.form_invalid(form)
+
+        messages.success(
+            self.request,
+            "New Asset proposal submitted for review.",
+        )
+        return redirect("audits:audit_item_detail", pk=proposal.audit_item.pk)

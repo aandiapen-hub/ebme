@@ -11,13 +11,16 @@ from .views import (
     AuditItemDetailView,
     AuditItemVerifiedView,
     ModelProposalCreateView,
+    ModelProposalUpdateView,
     BrandProposalCreateView,
     CategoryProposalCreateView,
     CatalogProposalListView,
     CatalogProposalDetailView,
     CatalogProposalReviewView,
     AssetChangeProposalCreateView,
+    AssetChangeProposalUpdateView,
     AssetChangeProposalReviewView,
+    NewAssetProposalCreateView,
 )
 
 app_name = "audits"
@@ -62,6 +65,11 @@ urlpatterns = [
         name="catalog_proposal_detail",
     ),
     path(
+        "catalogue/proposals/model/<int:pk>/update",
+        ModelProposalUpdateView.as_view(),
+        name="model_proposal_update",
+    ),
+    path(
         "catalogue/proposals/<int:pk>/review/",
         CatalogProposalReviewView.as_view(),
         name="catalog_proposal_review",
@@ -72,6 +80,16 @@ urlpatterns = [
         "asset_changes/<int:pk>/create/",
         AssetChangeProposalCreateView.as_view(),
         name="asset_change_create",
+    ),
+    path(
+        "audit_location/<int:pk>/new_asset/",
+        NewAssetProposalCreateView.as_view(),
+        name="new_asset_create",
+    ),
+    path(
+        "asset_changes/<int:pk>/update/",
+        AssetChangeProposalUpdateView.as_view(),
+        name="asset_change_update",
     ),
     path(
         "asset-changes/<int:pk>/review/",

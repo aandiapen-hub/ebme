@@ -5,6 +5,66 @@
   <div class='container'>
     <small>Catalog Proposal</small>
     <h1>{{proposal}}</h1>
+    <p>Status: {{proposal.get_status_display}}
+
+    {% if proposal.get_entity_type_display == 'Model' %}
+      <div class="row  bg-white p-4 rounded"> 
+        <div class="col">
+          <p><small class="text-muted">Model Number: </small>{{proposal.proposed_model_number}}</p>
+          <p><small class="text-muted">Gtin: </small>{{proposal.proposed_model_gtin}}</p>
+
+          <div class='border'>
+            <h6 class="text-muted">Brand </h6>
+            {% if proposal.proposed_brand %}
+              <p>{{proposal.proposed_brand}}</p>
+            {% else %}
+            <a href="{% url 'audits:catalog_proposal_detail' proposal.brand_proposal.pk %}">
+             {{proposal.brand_proposal.proposed_name}} - {{proposal.brand_proposal.status}}
+            </a>
+            {% endif %}
+
+          </div>
+
+          <div class='border'>
+            <small class="text-muted">Category </small>
+            {% if proposal.proposed_category %}
+              <p>{{proposal.proposed_category}}</p>
+            {% else %}
+
+            <a href="{% url 'audits:catalog_proposal_detail' proposal.category_proposal.pk %}">
+              {{proposal.category_proposal.proposed_name}} - {{proposal.category_proposal.status}}
+            </a>
+            {% endif %}
+
+          </div>
+
+        </div>
+      </div>
+
+
+    {% else %}
+      <h5>Dependent Models</h5>
+      <ul class='list-group'>
+        {% for model in proposal.dependent_brand_proposals.all %}
+            <a class='list-group-item list-group-item-action' href='{% url "audits:catalog_proposal_detail" model.pk %}'>{{model}}</a>
+        {% endfor %}
+        {% for model in proposal.dependent_category_proposals.all %}
+          <li>{{model}}</li>
+        {% endfor %}
+      </ul>
+
+    {% endif %}
+
+
+
+    {% if proposal.status == 'proposed' %}
+        <form method='post' action="{% url 'audits:catalog_proposal_review' proposal.pk %}">
+          {% csrf_token %}
+          <button type='submit' name='decision' value='approve' class='btn btn-outline-primary'>Approve</button>
+          <button type='submit' name='decision' value='reject' class='btn btn-outline-danger'>Reject</button>
+        <a class='btn btn-outline-secondary' type='button' href="{% url 'audits:model_proposal_update' proposal.pk %}">Update</a>
+        </form>
+    {% endif %}
 
   </div>
 {% endblock %}

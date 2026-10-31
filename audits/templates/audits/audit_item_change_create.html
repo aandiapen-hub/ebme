@@ -4,14 +4,30 @@
 {% block content %}
   <div class='container'>
 
-    <a class='btn btn-outline-secondary' href="{%url 'audits:model_proposal_create' %}">Add New Model</a>
+    <div class='row'>
+      <div class='col'>
+          <h3>Change request for {{audit_item}}</h3>
+          
+          Location:<p class='fs-2'>{{audit_item.asset.locationid}}</p>
+          Model:<p class='fs-2'>{{audit_item.asset.modelid}}</p>
+          Serial Number:<p class='fs-2'>{{audit_item.asset.serialnumber}}</p>
+      </div>
+    <div>
 
-    <form method='post' action=''>
-      {% csrf_token %} 
-      <input type='hidden' name='audit_item' value={{audit_item.pk}}>
+    <div class='row'>
+      <div class='col'>
 
-    {% bootstrap_form form %}
-    {% include 'partials/form_buttons.html' %}
-    </form>
+        <form method='post' action=''>
+          {% csrf_token %} 
+          <input type='hidden' name='audit_item' value={{audit_item.pk}}>
+
+        <input type='hidden' value={{audit_item.pk}} name='audit_item'>
+        {% bootstrap_form form exclude="audit_item"%}
+        {% include 'partials/form_buttons.html' %}
+        <a type='button' class='btn btn-outline-secondary' href="{%url 'audits:model_proposal_create' %}">Add New Model</a>
+        </form>
+      </div>
+    </div>
   </div>
 {% endblock %}
+

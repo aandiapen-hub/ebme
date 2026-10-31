@@ -11,6 +11,7 @@ from .models import (
     CatalogProposal,
     AssetChangeProposal,
     AssetFieldChange,
+    CombinedModels
 )
 
 
@@ -185,23 +186,40 @@ def submit_model_proposal(
     category,
     proposed_model_number=None,
     proposed_model_gtin=None,
+    proposal_id=None
 ):
 
     entity_type = CatalogProposal.EntityType.MODEL
     proposed_name = (proposed_name or "").strip()
 
-    return CatalogProposal.objects.create(
-        entity_type=entity_type,
-        proposed_name=proposed_name,
-        proposed_model_number=proposed_model_number,
-        proposed_brand=brand.existing,
-        proposed_category=category.existing,
-        brand_proposal=brand.proposed,
-        category_proposal=category.proposed,
-        discovered_in=discovered_in,
-        proposed_by=proposed_by,
-        status=CatalogProposal.Status.PROPOSED,
-    )
+    if proposal_id:
+        proposal = CatalogProposal.objects.get(pk=proposal_id)
+        proposal.proposed_name=proposed_name
+        proposal.proposed_model_number=proposed_model_number
+        proposal.proposed_model_gtin=proposed_model_gtin
+        proposal.proposed_brand=brand.existing
+        proposal.proposed_category=category.existing
+        proposal.brand_proposal=brand.proposed
+        proposal.category_proposal=category.proposed
+        proposal.discovered_in=discovered_in
+        proposal.proposed_by=proposed_by
+        proposal.status=CatalogProposal.Status.PROPOSED
+        proposal.save()
+        return proposal
+    else:
+        return CatalogProposal.objects.create(
+            entity_type=entity_type,
+            proposed_name=proposed_name,
+            proposed_model_number=proposed_model_number,
+            proposed_model_gtin=proposed_model_gtin,
+            proposed_brand=brand.existing,
+            proposed_category=category.existing,
+            brand_proposal=brand.proposed,
+            category_proposal=category.proposed,
+            discovered_in=discovered_in,
+            proposed_by=proposed_by,
+            status=CatalogProposal.Status.PROPOSED,
+        )
     
 def submit_brand_proposal(
     proposed_by,
@@ -238,10 +256,10 @@ def submit_category_proposal(
     )
 
 ALLOWED_ASSET_FIELDS = {
-    "location",
-    "model",
-    "asset_number",
-    "serial_number",
+    "locationid",
+    "modelid",
+    "customerassetnumber",
+    "serialnumber",
 }
 
 
@@ -303,28 +321,14 @@ def _apply_catalog_proposal(proposal, reviewer):
 
     if proposal.entity_type == CatalogProposal.EntityType.BRAND:
         brand, _ = Tblbrands.objects.get_or_create(
-            name=proposal.proposed_name,
+            brandname=proposal.proposed_name,
         )
         proposal.approved_brand = brand
 
     elif proposal.entity_type == CatalogProposal.EntityType.CATEGORY:
-        if proposal.brand_proposal_id:
-            brand_proposal = _apply_catalog_proposal(
-                proposal.brand_proposal,
-                reviewer,
-            )
-            brand = brand_proposal.approved_brand
-        else:
-            brand = proposal.proposed_brand
-
-        if brand is None:
-            raise ValidationError(
-                "The category requires a valid brand."
-            )
 
         category, _ = Tblcategories.objects.get_or_create(
-            name=proposal.proposed_name,
-            brand=brand,
+            categoryname=proposal.proposed_name,
         )
         proposal.approved_category = category
 
@@ -353,10 +357,10 @@ def _apply_catalog_proposal(proposal, reviewer):
             )
 
         model, _ = Tblmodel.objects.get_or_create(
-            name=proposal.proposed_name,
-            model_number=proposal.proposed_model_number,
-            brand=brand,
-            category=category,
+            modelname=proposal.proposed_name,
+            brandid=brand,
+            categoryid=category,
+            gtin=proposal.proposed_model_gtin
         )
         proposal.approved_model = model
 
@@ -383,25 +387,27 @@ def _apply_catalog_proposal(proposal, reviewer):
 @transaction.atomic
 def create_asset_change_proposal(
     *,
-    audit_item_id,
     proposed_by,
     reason,
     changes,
+    audit_item=None,
+    proposal=None,
 ):
     """
     changes example:
     {
-        "location":  {"id": 5},
-        "model":     {"source": "proposed", "id": 37},
+        "location": 5,
+        "model": 37,
         "serial_number": "SN-NEW-001",
     }
 
     Adapt the old-value extraction to your Asset model.
     """
-    item = AuditItem.objects.select_related(
-        "asset",
-        "audit_location__location",
-    ).get(pk=audit_item_id)
+    if audit_item:
+        item = audit_item
+    else:
+        item = proposal.audit_item
+
 
     if not item.asset_id:
         raise ValidationError(
@@ -419,60 +425,36 @@ def create_asset_change_proposal(
 
     asset = item.asset
 
-    proposal = AssetChangeProposal.objects.create(
-        audit_item=item,
-        reason=reason,
-        proposed_by=proposed_by,
-        status="proposed",
-    )
+    if proposal:
+        proposal.changes.all().delete()
+
+    else:
+        proposal = AssetChangeProposal.objects.create(
+            audit_item=item,
+            reason=reason,
+            proposed_by=proposed_by,
+            status="pending",
+        )
+    
 
     for field_name, proposed_value in changes.items():
-        if field_name == "location":
-            proposed_id = proposed_value.get("id")
-            if not proposed_id:
-                raise ValidationError("A proposed location is required.")
-
-            from locations.models import Location
-
-            location = Tbllocations.objects.filter(pk=proposed_id).first()
-            if location is None:
+        if field_name == "locationid":
+            if proposed_value is None:
                 raise ValidationError("The proposed location does not exist.")
 
-            proposed_value = {"id": location.pk}
-            old_value = {"id": asset.location_id}
+            proposed_value = {"value": proposed_value.pk}
+            old_value = {"value": asset.locationid.pk}
 
-        elif field_name == "model":
-            source = proposed_value.get("source")
-            model_id = proposed_value.get("id")
-
-            if source == "existing":
-                if not Tblmodel.objects.filter(pk=model_id).exists():
-                    raise ValidationError("The selected model does not exist.")
-
-            elif source == "proposed":
-                catalog_proposal = CatalogProposal.objects.filter(
-                    pk=model_id,
-                    entity_type=CatalogProposal.EntityType.MODEL,
-                    status__in=[
-                        CatalogProposal.Status.PROPOSED,
-                        CatalogProposal.Status.APPROVED,
-                        CatalogProposal.Status.APPLIED,
-                    ],
-                ).first()
-
-                if catalog_proposal is None:
-                    raise ValidationError(
-                        "The selected model proposal is unavailable."
-                    )
-
-            else:
-                raise ValidationError("Invalid model source.")
+        elif field_name == "modelid":
+            if proposed_value is None:
+                raise ValidationError("The proposed model or model proposal does not exist.")
 
             proposed_value = {
-                "source": source,
-                "id": model_id,
+                "value": proposed_value.pk
             }
-            old_value = {"id": asset.model_id}
+
+            current_model_id = asset.modelid.pk
+            old_value = {"value" : CombinedModels.objects.filter(existing=current_model_id).first().pk}
 
         else:
             # Scalar fields such as asset_number or serial_number.
@@ -521,7 +503,7 @@ def review_asset_change_proposal(
         pk=proposal_id
     )
 
-    if proposal.status != "proposed":
+    if proposal.status != "pending":
         raise ValidationError(
             "This asset change proposal has already been reviewed."
         )
@@ -548,7 +530,7 @@ def review_asset_change_proposal(
     )
 
     changes = list(
-        proposal.field_changes.select_for_update().all()
+        proposal.changes.select_for_update().all()
     )
 
     if not changes:
@@ -567,10 +549,10 @@ def review_asset_change_proposal(
         field_name = change.field_name
 
         if field_name not in {
-            "location",
-            "model",
-            "asset_number",
-            "serial_number",
+            "locationid",
+            "modelid",
+            "customerassetnumber",
+            "serialnumber",
         }:
             raise ValidationError(
                 f"Unsupported asset field: {field_name}"
@@ -586,7 +568,7 @@ def review_asset_change_proposal(
                     "was created. Please review the changes again."
                 )
 
-            from locations.models import Location
+            from assets.models import Tbllocations
 
             location = Tbllocations.objects.filter(
                 pk=proposed_value.get("id")
@@ -595,21 +577,24 @@ def review_asset_change_proposal(
             if location is None:
                 raise ValidationError("The proposed location is invalid.")
 
-            updates.append((change, field_name, location))
+            updates.append((change, field_name, location.pk))
 
-        elif field_name == "model":
-            if asset.model_id != old_value.get("id"):
+        elif field_name == "modelid":
+
+            current_combined_model_id = CombinedModels.objects.filter(
+                existing=asset.modelid).first().pk
+            print('models', current_combined_model_id, old_value.get('id'))
+            if current_combined_model_id != old_value.get("id"):
                 raise ValidationError(
                     "The asset model has changed since the proposal "
                     "was created. Please review the changes again."
                 )
 
-            source = proposed_value.get("source")
-            reference_id = proposed_value.get("id")
 
-            if source == "existing":
+            combined_model = CombinedModels.objects.get(pk=proposed_value.get('id'))
+            if combined_model.existing:
                 model = Tblmodel.objects.filter(
-                    pk=reference_id
+                    pk=combined_model.existing.pk
                 ).first()
 
                 if model is None:
@@ -617,9 +602,9 @@ def review_asset_change_proposal(
                         "The selected official model does not exist."
                     )
 
-            elif source == "proposed":
+            elif combined_model.proposed:
                 catalog_proposal = CatalogProposal.objects.filter(
-                    pk=reference_id,
+                    pk=combined_model.proposed.pk,
                     entity_type=CatalogProposal.EntityType.MODEL,
                     status=CatalogProposal.Status.APPLIED,
                 ).first()
@@ -629,7 +614,7 @@ def review_asset_change_proposal(
                     or catalog_proposal.approved_model_id is None
                 ):
                     raise ValidationError(
-                        "The proposed model must be approved and applied "
+                        "The proposed model must be approved"
                         "before it can be assigned to an asset."
                     )
 
@@ -658,12 +643,7 @@ def review_asset_change_proposal(
 
     # All validation passed. Apply all changes.
     for change, field_name, value in updates:
-        if field_name == "location":
-            asset.location = value
-        elif field_name == "model":
-            asset.model = value
-        else:
-            setattr(asset, field_name, value)
+        setattr(asset, field_name, value)
 
         change.decision = "approved"
 
@@ -678,6 +658,9 @@ def review_asset_change_proposal(
     proposal.reviewed_by = reviewer
     proposal.save(update_fields=["status", "reviewed_by"])
 
+    item.status = 'resolved'
+    item.save(update_fields=['status'])
+
     return proposal
 
 
@@ -685,27 +668,73 @@ def review_asset_change_proposal(
 def record_discovered_asset(
     *,
     audit_location_id,
-    audited_by,
-    observed_model=None,
-    observed_model_proposal=None,
+    proposed_by,
+    changes,
     notes="",
+    proposal_id=None,
+    audit_item=None,
 ):
     audit_location = AuditLocation.objects.select_related(
         "audit"
     ).get(pk=audit_location_id)
 
-    if bool(observed_model) and bool(observed_model_proposal):
-        raise ValidationError(
-            "Select an existing model or a proposed model, not both."
+
+    if not audit_item: 
+        audit_item = AuditItem.objects.create(
+            audit=audit_location.audit,
+            audit_location=audit_location,
+            notes=notes,
+            audited_by=proposed_by,
+            status="pending",
         )
 
-    return AuditItem.objects.create(
-        audit=audit_location.audit,
-        audit_location=audit_location,
-        asset=None,
-        observed_model=observed_model,
-        observed_model_proposal=observed_model_proposal,
-        notes=notes,
-        audited_by=audited_by,
+
+    proposal = AssetChangeProposal.objects.create(
+        audit_item=audit_item,
+        reason='New asset found',
+        proposed_by=proposed_by,
         status="pending",
     )
+    
+    AssetFieldChange.objects.create(
+        proposal=proposal,
+        field_name='locationid',
+        old_value={'value':''},
+        proposed_value={'value': audit_location.location.pk},
+        decision="pending",
+    )
+
+    for field_name, proposed_value in changes.items():
+
+        if field_name == "modelid":
+            if proposed_value is None:
+                raise ValidationError("The proposed model or model proposal does not exist.")
+
+            proposed_value = {
+                "value": proposed_value.pk
+            }
+
+            old_value = {"value" : ''}
+
+        else:
+            # Scalar fields such as asset_number or serial_number.
+            if not isinstance(proposed_value, str):
+                raise ValidationError(
+                    f"{field_name} must be provided as text."
+                )
+
+            old_value = {
+                "value": '',
+            }
+            proposed_value = {"value": proposed_value.strip()}
+
+        AssetFieldChange.objects.create(
+            proposal=proposal,
+            field_name=field_name,
+            old_value=old_value,
+            proposed_value=proposed_value,
+            decision="pending",
+        )
+
+    return proposal
+

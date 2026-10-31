@@ -2,8 +2,10 @@ from django import forms
 from  django_filter_table.forms  import HTMXMultiPickerWidget
 from assets.models import Tblmodel, Tbllocations
 from .models import (
+    AssetChangeProposal,
     CombinedBrands,
     CombinedCategories,
+    CombinedModels,
     InventoryAudit,
     AuditItem,
     CatalogProposal,
@@ -24,6 +26,7 @@ class InventoryAuditForm(forms.ModelForm):
 
 
 class ModelProposalForm(forms.ModelForm):
+    proposal_id = forms.CharField(widget=forms.HiddenInput(), required=False)
     brand = forms.ModelChoiceField(
         queryset=CombinedBrands.objects.all(),
         required=True,
@@ -68,7 +71,8 @@ class CategoryProposalForm(forms.ModelForm):
 
 
 class AssetChangeProposalForm(forms.Form):
-    audit_item = forms.HiddenInput()
+    audit_item = forms.CharField(widget=forms.HiddenInput(), required=False)
+    proposal_id = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     reason = forms.CharField(
         label="Reason for change",
@@ -76,11 +80,12 @@ class AssetChangeProposalForm(forms.Form):
         required=True,
     )
 
-    change_location = forms.BooleanField(
+    change_locationid = forms.BooleanField(
         label="Change location",
         required=False,
     )
-    location = forms.ChoiceField(
+    locationid = forms.ModelChoiceField(
+        queryset=Tbllocations.objects.all(),
         required=False,
         label="New official location",
         widget=HTMXMultiPickerWidget(
@@ -90,62 +95,59 @@ class AssetChangeProposalForm(forms.Form):
 
     )
 
-    change_model = forms.BooleanField(
+    change_modelid = forms.BooleanField(
         label="Change model",
         required=False,
     )
-    model = forms.ModelChoiceField(
-        queryset=Tblmodel.objects.none(),
+    modelid = forms.ModelChoiceField(
+        queryset=CombinedModels.objects.all(),
         required=False,
         label="New official model",
         widget=HTMXMultiPickerWidget(
-            model=Tblmodel,
-            fieldname='modelid'
+            model=CombinedModels,
+            fieldname='id'
         )
     )
-    proposed_model = forms.ModelChoiceField(
-        queryset=CatalogProposal.objects.filter(
-            entity_type=CatalogProposal.EntityType.MODEL,
-            status=CatalogProposal.Status.PROPOSED,
-        ),
-        required=False,
-        label="New proposed model",
-    )
 
-    change_serial_number = forms.BooleanField(
+    change_serialnumber = forms.BooleanField(
         label="Change serial number",
         required=False,
     )
-    serial_number = forms.CharField(
+    serialnumber = forms.CharField(
         label="New serial number",
         required=False,
     )
 
-    change_asset_number = forms.BooleanField(
+    change_customerassetnumber = forms.BooleanField(
         label="Change asset number",
         required=False,
     )
-    asset_number = forms.CharField(
+    customerassetnumber = forms.CharField(
         label="New asset number",
         required=False,
     )
 
-    widget = {
-            }
 
     def clean(self):
         cleaned = super().clean()
-
         
-        cleaned['audit_item'] = AuditItem.objects.filter(
-            asset__isnull=False, pk=cleaned.get('audit_item')
-        ).select_related("asset").first(),
+        audit_item_id = cleaned.get('audit_item')
+        if audit_item_id:
+            cleaned['audit_item'] = AuditItem.objects.filter(
+                asset__isnull=False, pk=audit_item_id
+            ).select_related("asset").first()
+
+        proposal_id = cleaned.get('proposal_id')
+        if proposal_id:
+            cleaned['proposal'] = AssetChangeProposal.objects.filter(
+                pk=proposal_id
+            ).first()
 
         selected_fields = [
-            "location",
-            "model",
-            "serial_number",
-            "asset_number",
+            "locationid",
+            "modelid",
+            "serialnumber",
+            "customerassetnumber",
         ]
 
         selected_changes = [
@@ -166,11 +168,65 @@ class AssetChangeProposalForm(forms.Form):
                 cleaned.get("model"),
                 cleaned.get("proposed_model"),
             ]
-
             if sum(value is not None for value in selected_models) != 1:
                 raise forms.ValidationError(
                     "For a model change, select exactly one existing "
                     "model or proposed model."
                 )
 
+        changes = {}
+        for fieldname in selected_fields:
+            change_fieldname = f'change_{fieldname}'
+            if cleaned.get(change_fieldname, False):
+                changes[fieldname] = cleaned.get(fieldname)
+            
+        cleaned['changes'] = changes
+        
+        return cleaned
+
+
+
+class NewAssetProposalForm(forms.Form):
+    audit_location_id = forms.CharField(widget=forms.HiddenInput(), required=False)
+
+
+    modelid = forms.ModelChoiceField(
+        queryset=CombinedModels.objects.all(),
+        required=False,
+        label="Model",
+        widget=HTMXMultiPickerWidget(
+            model=CombinedModels,
+            fieldname='id',
+        )
+    )
+
+    serialnumber = forms.CharField(
+        label="Serial number",
+        required=False,
+    )
+
+    customerassetnumber = forms.CharField(
+        label="Asset number",
+        required=False,
+    )
+
+
+    def clean(self):
+        cleaned = super().clean()
+        
+
+        selected_fields = [
+            "modelid",
+            "serialnumber",
+            "customerassetnumber",
+        ]
+
+        changes = {}
+        for fieldname in selected_fields:
+            change_fieldname = f'change_{fieldname}'
+            if cleaned.get(change_fieldname, False):
+                changes[fieldname] = cleaned.get(fieldname)
+            
+        cleaned['changes'] = changes
+        
         return cleaned

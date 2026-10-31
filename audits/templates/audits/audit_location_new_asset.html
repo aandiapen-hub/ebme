@@ -1,0 +1,31 @@
+
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+  <div class='container'>
+
+    <div class='row'>
+      <div class='col'>
+          <h3>Audit Location: {{audit_location}}</h3>
+          <h5>Create New asset </h5>
+      </div>
+    <div>
+
+    <div class='row'>
+      <div class='col'>
+
+        <form method='post' action=''>
+          {% csrf_token %} 
+          <input type='hidden' name='audit_item' value={{audit_item.pk}}>
+
+        <input type='hidden' value={{audit_item.pk}} name='audit_item'>
+        {% bootstrap_form form exclude="audit_item"%}
+        {% include 'partials/form_buttons.html' %}
+        <a type='button' class='btn btn-outline-secondary' href="{%url 'audits:model_proposal_create' %}">Add New Model</a>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+

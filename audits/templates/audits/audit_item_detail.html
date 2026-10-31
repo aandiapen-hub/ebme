@@ -4,7 +4,7 @@
 {% block content %}
   <div class='container'>
     <small>Audit Item</small>
-    <h2>{{audit_item}}<h2>
+    <h2>{{audit_item}}</h2>
 
     <div class="row  bg-white p-4 rounded"> 
       <div class="col">
@@ -18,16 +18,52 @@
       </div>
     </div>
 
-    {% if not audit_item.is_complete %}
-      <form method='post' action='{% url "audits:audit_item_verified" audit_item.pk %}'>
-        {% csrf_token %}
-        <button type='submit' class='btn btn-primary'>Verified: No changes required</button>
-      </form>
+    {% bootstrap_messages %}
 
 
-      <a class='btn btn-warning' href="{% url 'audits:asset_change_create' audit_item.pk %}">Changes Required</a>
+    <div class="row bg-white border border-3 p-4 rounded"> 
+      <h4>Verify Asset</h4>
+    <div class='col d-flex gap-2'>
+      {% if not audit_item.can_create_change_proposal %}
+        <form method='post' action='{% url "audits:audit_item_verified" audit_item.pk %}'>
+          {% csrf_token %}
+          <button type='submit' class='btn btn-primary'>No changes required</button>
+        </form>
+        <a class='btn btn-warning' href="{% url 'audits:asset_change_create' audit_item.pk %}">Changes Required</a>
+      {% endif %}
+      </div>
+    </div>
 
-    {% endif %}
+    <div class="row bg-white border border-3 p-4 rounded"> 
+      <h4>Change Proposal</h4>
+      <div class='col'>
+       {% if audit_item.change_proposals.all %}
+          {% for proposal in audit_item.change_proposals.all %}
+          {{proposal.status}}
+            <a class='btn btn-secondary' href="{% url 'audits:asset_change_update' proposal.pk %}">Update Proposal</a>
+            {% for change in proposal.changes.all %}
+            <ul>
+              <li>{{change.field_name}}: {{change.old_display_value}} --> {{change.proposed_display_value}}</li>
+            </ul>
+            {% endfor %}
+          
+            {% if proposal.review_possible %}
+              <form method='post' action='{% url "audits:asset_change_review" proposal.pk %}'>
+                {% csrf_token %}
+                <button type='submit' name='decision' value='approve' class='btn btn-outline-primary'>Approve</button>
+                <button type='submit' name='decision' value='reject' class='btn btn-outline-danger'>Reject</button>
+              </form>
+            {% endif %}
+
+          {% endfor %}
+        {% else %}
+            <p>No changes proposed</p>
+        {% endif %}
+      </div>
+    </div>
+
+
+
 
 
 {% endblock %}
