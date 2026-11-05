@@ -57,14 +57,24 @@
 
 
 
-    {% if proposal.status == 'proposed' %}
-        <form method='post' action="{% url 'audits:catalog_proposal_review' proposal.pk %}">
-          {% csrf_token %}
-          <button type='submit' name='decision' value='approve' class='btn btn-outline-primary'>Approve</button>
-          <button type='submit' name='decision' value='reject' class='btn btn-outline-danger'>Reject</button>
-        <a class='btn btn-outline-secondary' type='button' href="{% url 'audits:model_proposal_update' proposal.pk %}">Update</a>
-        </form>
-    {% endif %}
+    <div class='border border-warning border 3 p-3 gap-3'>
+      <h3>Review Proposal</h3>
+      {% if proposal.status == 'proposed' %}
+          <form method='post' action="{% url 'audits:catalog_proposal_review' proposal.pk %}">
+            {% csrf_token %}
+            {{message}}
+            <div class='d-flex align-items-center'>
+              <button type='submit' name='decision' value='approve' class='btn btn-outline-{{approve_button_color}} {{approve_button_status}}'>Approve</button>
+            </div>
+
+            <div class='d-flex align-items-center justify-content-between'>
+              <button type='submit' name='decision' value='reject' class='btn btn-outline-danger'>Reject</button>
+              {% bootstrap_form form %}
+            </div>
+          <a class='btn btn-outline-secondary' type='button' href="{% url 'audits:model_proposal_update' proposal.pk %}">Update</a>
+          </form>
+      {% endif %}
+    </div>
 
   </div>
 {% endblock %}

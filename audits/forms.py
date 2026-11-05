@@ -1,6 +1,6 @@
 from django import forms
 from  django_filter_table.forms  import HTMXMultiPickerWidget
-from assets.models import Tblmodel, Tbllocations
+from assets.models import Tblcustomer, Tblmodel, Tbllocations
 from .models import (
     AssetChangeProposal,
     CombinedBrands,
@@ -188,6 +188,7 @@ class AssetChangeProposalForm(forms.Form):
 
 class NewAssetProposalForm(forms.Form):
     audit_location_id = forms.CharField(widget=forms.HiddenInput(), required=False)
+    proposal_id = forms.CharField(widget=forms.HiddenInput(), required=False)
 
 
     modelid = forms.ModelChoiceField(
@@ -205,6 +206,16 @@ class NewAssetProposalForm(forms.Form):
         required=False,
     )
 
+    customerid = forms.ModelChoiceField(
+        queryset=Tblcustomer.objects.all(),
+        required=False,
+        label="Customer",
+        widget=HTMXMultiPickerWidget(
+            model=Tblcustomer,
+            fieldname='customerid',
+        )
+    )
+
     customerassetnumber = forms.CharField(
         label="Asset number",
         required=False,
@@ -219,14 +230,47 @@ class NewAssetProposalForm(forms.Form):
             "modelid",
             "serialnumber",
             "customerassetnumber",
+            "customerid",
         ]
 
         changes = {}
         for fieldname in selected_fields:
-            change_fieldname = f'change_{fieldname}'
-            if cleaned.get(change_fieldname, False):
-                changes[fieldname] = cleaned.get(fieldname)
+            changes[fieldname] = cleaned.get(fieldname)
             
         cleaned['changes'] = changes
         
         return cleaned
+
+class ReplacementBrand(forms.Form):
+    replacement = forms.ModelChoiceField(
+        queryset=CombinedBrands.objects.all(),
+        required=True,
+        label="Reject and replace with exisiting Brand",
+        widget=HTMXMultiPickerWidget(
+            model=CombinedBrands, 
+            fieldname='id',
+        ),
+    )
+
+
+class ReplacementCategory(forms.Form):
+    replacement = forms.ModelChoiceField(
+        queryset=CombinedCategories.objects.all(),
+        required=True,
+        label="Reject and replace with exisiting Category",
+        widget=HTMXMultiPickerWidget(
+                model=CombinedCategories, 
+                fieldname='id',
+        ),
+    )
+
+class ReplacementModel(forms.Form):
+    replacement = forms.ModelChoiceField(
+        queryset=CombinedModels.objects.all(),
+        required=False,
+        label="Reject and replace with exisiting Model",
+        widget=HTMXMultiPickerWidget(
+            model=CombinedModels,
+            fieldname='id'
+        )
+    )

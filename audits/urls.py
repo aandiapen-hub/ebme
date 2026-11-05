@@ -21,6 +21,7 @@ from .views import (
     AssetChangeProposalUpdateView,
     AssetChangeProposalReviewView,
     NewAssetProposalCreateView,
+    NewAssetProposalUpdateView,
 )
 
 app_name = "audits"
@@ -85,6 +86,11 @@ urlpatterns = [
         "audit_location/<int:pk>/new_asset/",
         NewAssetProposalCreateView.as_view(),
         name="new_asset_create",
+    ),
+    path(
+        "new_asset/<int:pk>/update/",
+        NewAssetProposalUpdateView.as_view(),
+        name="new_asset_update",
     ),
     path(
         "asset_changes/<int:pk>/update/",

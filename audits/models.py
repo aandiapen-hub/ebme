@@ -289,6 +289,36 @@ class CatalogProposal(models.Model):
     def __str__(self):
         return f"{self.get_entity_type_display()}: {self.proposed_name}"
 
+    def can_be_approved(self):
+        if self.status != 'proposed':
+            return False
+        
+        # if status is prososed
+        if self.entity_type == 'model':
+            has_brand = False
+            has_category = False
+            if self.proposed_brand:
+                has_brand = True
+            else:
+                if self.brand_proposal.status == 'applied':
+                    has_brand = True
+
+
+            if self.proposed_category:
+                has_category = True
+            else:
+                if self.category_proposal.status == 'applied':
+                    has_category = True
+            print('category', has_category)
+            print('brand', has_brand)
+            return has_category and has_brand
+
+        else:
+            return True
+
+
+
+
 class AuditItem(models.Model):
 
     class Status(models.TextChoices):

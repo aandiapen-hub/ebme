@@ -5,6 +5,8 @@ from django.utils import timezone
 from assets.models import Tblbrands, Tblcategories, Tblmodel, Tblassets, Tbllocations
 
 from .models import (
+    CombinedBrands,
+    CombinedCategories,
     InventoryAudit,
     AuditLocation,
     AuditItem,
@@ -265,7 +267,7 @@ ALLOWED_ASSET_FIELDS = {
 
 
 @transaction.atomic
-def review_catalog_proposal(*, proposal_id, reviewer, decision):
+def review_catalog_proposal(*, proposal_id, reviewer, decision, replacement):
     """
     One-step review for a catalogue proposal.
 
@@ -285,14 +287,7 @@ def review_catalog_proposal(*, proposal_id, reviewer, decision):
         raise ValidationError("This proposal has already been reviewed.")
 
     if decision == "reject":
-        proposal.status = CatalogProposal.Status.REJECTED
-        proposal.reviewed_by = reviewer
-        proposal.reviewed_at = timezone.now()
-        proposal.save(update_fields=[
-            "status",
-            "reviewed_by",
-            "reviewed_at",
-        ])
+        _reject_catalog_proposal(proposal, reviewer, replacement)
         return proposal
 
     # Approve and apply, including any proposed dependencies.
@@ -300,6 +295,49 @@ def review_catalog_proposal(*, proposal_id, reviewer, decision):
 
     return proposal
 
+def _reject_catalog_proposal(proposal, reviewer, replacement):
+
+    if replacement is None:
+        raise ValidationError('A replacement candidate is required for rejecting a proposal')
+
+    if proposal.entity_type == 'brand':
+        combined_brand = CombinedBrands.objects.get(pk=replacement)
+        dependent_proposals = CatalogProposal.objects.filter(
+            brand_proposal=proposal.pk
+        )
+
+        dependent_proposals.update(
+            proposed_brand=combined_brand.existing,
+            brand_proposal=combined_brand.proposed
+        )
+
+    if proposal.entity_type == 'category':
+        combined_brand = CombinedCategories.objects.get(pk=replacement)
+        dependent_proposals = CatalogProposal.objects.filter(
+            category_proposal=proposal.pk
+        )
+
+        dependent_proposals.update(
+            proposed_category=combined_brand.existing,
+            category_proposal=combined_brand.proposed
+        )
+
+    if proposal.entity_type == 'model':
+        proposed_asset_changes = AssetFieldChange.objects.filter(
+            field_name='modelid',
+            proposed_value=proposal.pk
+        )
+        proposed_asset_changes.update(proposed_value=replacement.pk)
+        
+
+    proposal.status = CatalogProposal.Status.REJECTED
+    proposal.reviewed_by = reviewer
+    proposal.reviewed_at = timezone.now()
+    proposal.save(update_fields=[
+        "status",
+        "reviewed_by",
+        "reviewed_at",
+    ])
 
 def _apply_catalog_proposal(proposal, reviewer):
     """
@@ -561,7 +599,7 @@ def review_asset_change_proposal(
         old_value = change.old_value
         proposed_value = change.proposed_value
 
-        if field_name == "location":
+        if field_name == "locationid":
             if asset.location_id != old_value.get("id"):
                 raise ValidationError(
                     "The asset location has changed since the proposal "
@@ -583,7 +621,6 @@ def review_asset_change_proposal(
 
             current_combined_model_id = CombinedModels.objects.filter(
                 existing=asset.modelid).first().pk
-            print('models', current_combined_model_id, old_value.get('id'))
             if current_combined_model_id != old_value.get("id"):
                 raise ValidationError(
                     "The asset model has changed since the proposal "
@@ -667,11 +704,11 @@ def review_asset_change_proposal(
 @transaction.atomic
 def record_discovered_asset(
     *,
-    audit_location_id,
     proposed_by,
     changes,
     notes="",
-    proposal_id=None,
+    audit_location_id,
+    proposal=None,
     audit_item=None,
 ):
     audit_location = AuditLocation.objects.select_related(
@@ -689,12 +726,15 @@ def record_discovered_asset(
         )
 
 
-    proposal = AssetChangeProposal.objects.create(
-        audit_item=audit_item,
-        reason='New asset found',
-        proposed_by=proposed_by,
-        status="pending",
-    )
+    if proposal:
+        proposal.changes.all().delete()
+    else:
+        proposal = AssetChangeProposal.objects.create(
+            audit_item=audit_item,
+            reason='New asset found',
+            proposed_by=proposed_by,
+            status="pending",
+        )
     
     AssetFieldChange.objects.create(
         proposal=proposal,
@@ -704,8 +744,8 @@ def record_discovered_asset(
         decision="pending",
     )
 
-    for field_name, proposed_value in changes.items():
 
+    for field_name, proposed_value in changes.items():
         if field_name == "modelid":
             if proposed_value is None:
                 raise ValidationError("The proposed model or model proposal does not exist.")
@@ -716,6 +756,15 @@ def record_discovered_asset(
 
             old_value = {"value" : ''}
 
+        elif field_name == "customerid":
+            if proposed_value is None:
+                raise ValidationError("The proposed customer does not exist.")
+
+            proposed_value = {
+                "value": proposed_value.pk
+            }
+
+            old_value = {"value" : ''}
         else:
             # Scalar fields such as asset_number or serial_number.
             if not isinstance(proposed_value, str):
@@ -735,6 +784,181 @@ def record_discovered_asset(
             proposed_value=proposed_value,
             decision="pending",
         )
+
+    return proposal
+
+
+@transaction.atomic
+def review_new_asset_proposal(
+    *,
+    proposal_id,
+    reviewer,
+    decision,
+):
+    """
+    One-step review for an asset change proposal.
+
+    decision:
+        "approve" -> validate and update the asset
+        "reject"  -> reject without changing the asset
+    """
+
+    if decision not in {"approve", "reject"}:
+        raise ValidationError("Decision must be approve or reject.")
+
+    proposal = AssetChangeProposal.objects.select_for_update().get(
+        pk=proposal_id
+    )
+
+    if proposal.status != "pending":
+        raise ValidationError(
+            "This asset change proposal has already been reviewed."
+        )
+
+    if decision == "reject":
+        proposal.status = "rejected"
+        proposal.reviewed_by = reviewer
+        proposal.save(update_fields=["status", "reviewed_by"])
+
+        proposal.field_changes.filter(
+            decision="pending"
+        ).update(decision="rejected")
+
+        return proposal
+
+    item = proposal.audit_item
+    if item.asset_id:
+        raise ValidationError(
+            "This audit item references an existing asset."
+        )
+
+
+    changes = list(
+        proposal.changes.select_for_update().all()
+    )
+
+    if not changes:
+        raise ValidationError("The proposal contains no changes.")
+
+    has_customer_id = proposal.changes.filter(field_name='customerid').exists()
+    # First validate every change. Do not mutate the asset until
+    # all validation succeeds.
+    updates = {}
+
+    for change in changes:
+        if change.decision != "pending":
+            raise ValidationError(
+                "All fields must still be pending review."
+            )
+
+        field_name = change.field_name
+
+        if field_name not in {
+            "locationid",
+            "modelid",
+            "customerassetnumber",
+            "serialnumber",
+            "customerid",
+        }:
+            raise ValidationError(
+                f"Unsupported asset field: {field_name}"
+            )
+
+        proposed_value = change.proposed_value
+
+        if field_name == "customerid":
+
+            from assets.models import Tblcustomer
+
+            customer = Tblcustomer.objects.filter(
+                pk=proposed_value.get("value")
+            ).first()
+
+            if location is None:
+                raise ValidationError("The proposed location is invalid.")
+
+            updates[field_name] = customer
+
+        elif field_name == "locationid":
+
+            from assets.models import Tbllocations
+
+            location = Tbllocations.objects.filter(
+                pk=proposed_value.get("value")
+            ).first()
+
+            if location is None:
+                raise ValidationError("The proposed location is invalid.")
+
+            updates[field_name] = location
+
+            if not has_customer_id:
+                updates['customerid'] = location.customerid.pk
+
+
+        elif field_name == "modelid":
+
+
+            combined_model = CombinedModels.objects.get(pk=proposed_value.get('value'))
+            if combined_model.existing:
+                model = Tblmodel.objects.filter(
+                    pk=combined_model.existing.pk
+                ).first()
+
+                if model is None:
+                    raise ValidationError(
+                        "The selected official model does not exist."
+                    )
+
+            elif combined_model.proposed:
+                catalog_proposal = CatalogProposal.objects.filter(
+                    pk=combined_model.proposed.pk,
+                    entity_type=CatalogProposal.EntityType.MODEL,
+                    status=CatalogProposal.Status.APPLIED,
+                ).first()
+
+                if (
+                    catalog_proposal is None
+                    or catalog_proposal.approved_model_id is None
+                ):
+                    raise ValidationError(
+                        "The proposed model must be approved"
+                        "before it can be assigned to an asset."
+                    )
+
+                model = catalog_proposal.approved_model
+
+            else:
+                raise ValidationError("Invalid model reference.")
+
+            updates[field_name] = model
+
+        else:
+
+            value = proposed_value.get("value")
+
+            if not isinstance(value, str):
+                raise ValidationError(
+                    f"The proposed {field_name} must be text."
+                )
+
+            updates[field_name] = value.strip()
+
+    # All validation passed. Apply all changes.
+    asset = Tblassets(**updates)
+    asset.save()
+
+    AssetFieldChange.objects.bulk_update(
+        [change for change in changes],
+        ["decision"],
+    )
+
+    proposal.status = "applied"
+    proposal.reviewed_by = reviewer
+    proposal.save(update_fields=["status", "reviewed_by"])
+
+    item.status = 'resolved'
+    item.save(update_fields=['status'])
 
     return proposal
 

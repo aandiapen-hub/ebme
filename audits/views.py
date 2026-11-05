@@ -36,6 +36,9 @@ from .forms import (
     AssetChangeProposalForm,
     EmptyForm,
     NewAssetProposalForm,
+    ReplacementBrand,
+    ReplacementCategory,
+    ReplacementModel,
 )
 from . import services
 
@@ -154,6 +157,7 @@ class AuditItemVerifiedView(
     template_name = 'audits/audit_item_verified.html'
     form_class = EmptyForm
     permission_required = "audits.change_audititem"
+
 
     def form_valid(self, form):
         audit_item_id = self.kwargs.get('pk')
@@ -317,6 +321,7 @@ class CatalogProposalListView(
     LoginRequiredMixin,
     FilteredTableView,
 ):
+    title = 'Catalog Proposals'
     model = CatalogProposal
     open_column = 'proposed_name'
     permission_required = "audits.view_catalogproposal"
@@ -331,9 +336,32 @@ class CatalogProposalDetailView(
     model = CatalogProposal
     template_name = 'audits/catalog_proposal_detail.html'
     context_object_name = 'proposal'
+    entity_replacement_map = {
+        'brand': ReplacementBrand,
+        'category': ReplacementCategory,
+        'model': ReplacementModel,
+    }
+    
+    def get_replacement_form(self):
+       return self.entity_replacement_map[self.object.entity_type] 
+        
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        replacement_form_class = self.get_replacement_form()
+        context['form'] = replacement_form_class()
+
+        if self.object.can_be_approved():
+            approve_button_status = ''
+            message = 'Proposal can be approved'
+            approve_button_color = 'primary'
+        else:
+            approve_button_status = 'disabled'
+            approve_button_color = 'secondary'
+            message = 'Proposal cannot be approved because of outstanding dependencies. Approve or replace any related brand or categories first.'
+        context['approve_button_status'] = approve_button_status
+        context['approve_button_color'] = approve_button_color
+        context['message'] = message
         return context
 
 class CatalogProposalReviewView(
@@ -344,12 +372,14 @@ class CatalogProposalReviewView(
 
     def post(self, request, pk):
         decision = request.POST.get("decision")
+        replacement = request.POST.get('replacement')
 
         try:
             services.review_catalog_proposal(
                 proposal_id=pk,
                 reviewer=request.user,
                 decision=decision,
+                replacement=replacement,
             )
         except ValidationError as exc:
             messages.error(request, " ".join(exc.messages))
@@ -456,14 +486,24 @@ class AssetChangeProposalReviewView(
 ):
     permission_required = "audits.change_assetchangeproposal"
     
+    def _get_update_function(self):
+        print('get fund runing')
+        pk = self.kwargs['pk']
+        proposal = get_object_or_404(AssetChangeProposal, pk=pk)
+        if proposal.audit_item.asset:
+            print('this is running')
+            return services.review_asset_change_proposal
+        else:
+            print('new asset running')
+            return services.review_new_asset_proposal
+
 
     def post(self, request, pk):
         proposal = get_object_or_404(AssetChangeProposal, pk=pk)
         decision = request.POST.get("decision")
-        print(self.request.POST.dict())
 
         try:
-            services.review_asset_change_proposal(
+            self._get_update_function()(
                 proposal_id=pk,
                 reviewer=request.user,
                 decision=decision,
@@ -521,5 +561,51 @@ class NewAssetProposalCreateView(
         messages.success(
             self.request,
             "New Asset proposal submitted for review.",
+        )
+        return redirect("audits:audit_item_detail", pk=proposal.audit_item.pk)
+
+
+class NewAssetProposalUpdateView(
+    LoginRequiredMixin,
+    FormView,
+):
+    form_class = NewAssetProposalForm
+    template_name = "audits/audit_location_new_asset.html"
+    permission_required = "audits.add_assetchangeproposal"
+
+    def get_initial(self):
+        initial = super().get_initial()
+        id = self.kwargs['pk']
+        proposal = AssetChangeProposal.objects.get(pk=id)
+        initial['proposal_id'] = proposal.pk
+        for changes in proposal.changes.all():
+            initial[changes.field_name] = changes.proposed_value.get('value')
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        id = self.kwargs['pk']
+        context['proposal'] = AssetChangeProposal.objects.get(pk=id)
+        return context
+        
+
+    def form_valid(self, form):
+        id = form.cleaned_data['proposal_id']
+        proposal = AssetChangeProposal.objects.get(pk=id)
+        try:
+            proposal = services.record_discovered_asset(
+                proposal=proposal,
+                audit_item=proposal.audit_item,
+                audit_location_id=proposal.audit_item.audit_location.pk,
+                proposed_by=self.request.user,
+                changes=form.cleaned_data["changes"],
+            )
+        except ValidationError as exc:
+            form.add_error(None, exc)
+            return self.form_invalid(form)
+
+        messages.success(
+            self.request,
+            "New Asset proposal updated and submitted for review.",
         )
         return redirect("audits:audit_item_detail", pk=proposal.audit_item.pk)

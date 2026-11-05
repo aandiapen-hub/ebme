@@ -160,6 +160,7 @@
                                 hx-target="#{{ widget.results_id }}"
                                 hx-indicator="#{{ widget.modal_id }}_spinner"
                                 hx-vals='{"fieldname":"{{widget.name}}"}'
+                                onkeydown="if (event.key === 'Enter') event.preventDefault()"
                             >
                             
                         </div>

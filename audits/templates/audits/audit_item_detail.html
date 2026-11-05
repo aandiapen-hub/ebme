@@ -8,12 +8,16 @@
 
     <div class="row  bg-white p-4 rounded"> 
       <div class="col">
-        <p><small class="text-muted">Status: </small>{{audit_item.status}}</p>
+        {% if audit_item.asset %}
         <p><small class="text-muted">Customer Asset No: </small>{{audit_item.original_asset_number}}</p>
         <p><small class="text-muted">Serial No: </small>{{audit_item.original_serial_number}}</p>
         <p><small class="text-muted">Model: </small>{{audit_item.original_model}}</p>
         <p><small class="text-muted">Brand: </small>{{audit_item.original_model.brandid}}</p>
         <p><small class="text-muted">Category: </small>{{audit_item.original_model.categoryid}}</p>
+        {% else %}
+        <p>New Asset Proposal<p>
+        {% endif %}
+        <p><small class="text-muted">Status: </small>{{audit_item.status}}</p>
 
       </div>
     </div>
@@ -40,7 +44,13 @@
        {% if audit_item.change_proposals.all %}
           {% for proposal in audit_item.change_proposals.all %}
           {{proposal.status}}
-            <a class='btn btn-secondary' href="{% url 'audits:asset_change_update' proposal.pk %}">Update Proposal</a>
+
+            {% if audit_item.asset %}
+              <a class='btn btn-secondary' href="{% url 'audits:asset_change_update' proposal.pk %}">Update</a>
+            {% else %}
+              <a class='btn btn-secondary' href="{% url 'audits:new_asset_update' proposal.pk %}">Update</a>
+            {% endif %}
+
             {% for change in proposal.changes.all %}
             <ul>
               <li>{{change.field_name}}: {{change.old_display_value}} --> {{change.proposed_display_value}}</li>

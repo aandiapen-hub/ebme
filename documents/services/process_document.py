@@ -65,10 +65,9 @@ def extract_information_from_temp_group(group_id):
     ai_data = group.extracted_json.get('ai', None)
     if ai_data in ['', None]:
         try:
-            print('using ai to enhence extracted data')
             ai_data = extract_group_info_with_ai(group)
         except Exception as e:
-            ai_data = {}
+            ai_data = {'ai_extraction_error': str(e)}
             pass
         group.extracted_json.update(
             {"ai": ai_data, }
