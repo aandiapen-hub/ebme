@@ -1,9 +1,9 @@
 {% load django_bootstrap5 %}
   <form id='add_image{{ group_id }}' enctype="multipart/form-data" method="post"
     novalidate
-    action="{{scan_url}}?group={{ group_id }}"
+    action="{{scan_url}}"
     {% if not quick_scanner %}
-    hx-post="{{scan_url}}?group={{ group_id }}"
+    hx-post="{{scan_url}}"
     hx-swap="afterbegin"
     hx-trigger='submit'
     hx-disabled-elt='#inputs_{{group_id}} input, #inputs_{{group_id}} button'
@@ -33,7 +33,7 @@
             spellcheck="false"
             {% if not quick_scanner %} inputmode='none' {% endif %}
             class='form-control {{scanner_input_class}}'
-            placeholder='Quick Search'
+            placeholder={{ scan_placeholder|default:"Search" }}
           _="on change debounced at 500ms
 
               set form to #add_image{{ group_id }}

@@ -107,7 +107,6 @@
           <div class="card-header d-flex justify-content-between align-items-center">
 
               <div>
-                        {% url 'documents:create_temp_file' as scan_url %}
                         {% with scanner_input_class='visually-hidden' group_id=group.pk %}
                           {% include 'documents/partials/temp_upload_create.html' %}
                         {% endwith %}

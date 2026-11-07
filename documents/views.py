@@ -641,8 +641,15 @@ class TempUploadGroupView(LoginRequiredMixin, PermissionRequiredMixin, DetailVie
             ]
         return ["documents/temp_file_group.html"]
 
+    def add_scanner_context(self, context):
+        base_add_url = reverse('documents:create_temp_file')
+        context['scan_url'] = f"{base_add_url}?group={self.object.pk}"
+        
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args, **kwargs)
+
+        self.add_scanner_context(context)
+
         context.update(
             **build_document_context(user=self.request.user, temp_group=self.object)
         )
@@ -725,9 +732,13 @@ class TempUploadListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
         qs = super().get_queryset()
         return qs.filter(user=self.request.user)
 
+    def add_scanner_context(self, context):
+        base_add_url = reverse('documents:create_temp_file')
+        context['scan_url'] = f"{base_add_url}?group=new"
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["success_url"] = self.request.GET.get("success_url")
+        self.add_scanner_context(context)
         context["target"] = self.request.GET.get("target")
         return context
 
