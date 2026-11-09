@@ -732,6 +732,7 @@ class FilteredTableView(
         context['session_filter'] = self.session_filter_active
         context['filters_active'] = self.filter_active
         context['base_template'] = settings.DJANGO_TABLE.get('base_template') or 'django_filter_table/base.html'
+        context['default_columns'] = self.default_columns
         return context
 
 
@@ -973,22 +974,30 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
 
         UserProfiles = get_user_profile_model()
         profile = UserProfiles.objects.filter(user_id=user).first()
+
         available_columns = []
+        visible_columns = []
+        all_column_names = [c.name for c in all_columns]
+        visible_column_names = []
+
         if profile and model_name:
-            visible_columns_names = get_preference(profile, model_name, 'visible_columns')
-            all_column_names = [c.name for c in all_columns]
-            visible_columns = []
-            for col_name in visible_columns_names:
-                if col_name in all_column_names:
-                    visible_columns.append(all_columns[all_column_names.index(col_name)]) 
+            visible_column_names = get_preference(profile, model_name, 'visible_columns')
+
+        if not visible_column_names:
+            visible_column_names = self.request.GET.get(
+                "default_columns", ""
+            ).split(",")
+
+        for col_name in visible_column_names:
+            if col_name in all_column_names:
+                visible_columns.append(all_columns[all_column_names.index(col_name)]) 
 
 
-            if visible_columns:
-                context['visible_columns'] = visible_columns
-                available_columns = [f for f in all_columns if f not in visible_columns]
+        if visible_columns:
+            available_columns = [f for f in all_columns if f not in visible_columns]
 
+        context['visible_columns'] = visible_columns
         context["available_columns"] = available_columns or all_columns
-
         context['request_model'] = model_name
 
         next_url = self.request.GET.get("next_path")
@@ -1003,7 +1012,7 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
         user = User.objects.get(pk=user_id)
         UserProfiles = get_user_profile_model()
         profile, created = UserProfiles.objects.get_or_create(
-            user_id=user.pk, defaults={"table_settings": {}}
+            user_id=user, defaults={"table_settings": {}}
         )
 
         columns = request.POST.getlist('columns', None)

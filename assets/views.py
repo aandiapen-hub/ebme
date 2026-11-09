@@ -80,7 +80,7 @@ class FilteredAssetTableView(
         "assetid",
         "serialnumber",
         "modelid",
-        "brandid"
+        "brandid",
         "ppm_compliance",
     ]
     actions = [
