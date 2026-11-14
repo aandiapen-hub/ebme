@@ -342,7 +342,61 @@ class CustomFilterSet(FilterSet):
         ),
     )
 
+
     def my_custom_filter(self, queryset, name, value):
+        import re
+
+        # Split on commas, spaces, or a combination of both
+        values_list = [
+            term.strip()
+            for term in re.split(r"[,\s]+", value.strip())
+            if term.strip()
+        ]
+
+        if not values_list:
+            return queryset
+
+        model = queryset.model
+
+        for term in values_list:
+
+            # For search terms shorter than 2 characters,
+            # use Q objects (logic from filter2)
+            if len(term) < 3:
+                term_q = reduce(
+                    lambda acc, field: acc | models.Q(**{field: term}),
+                    self.universal_search_fields,
+                    models.Q(),
+                )
+
+                print('short query running')
+                queryset = queryset.filter(term_q)
+
+            # For search terms of 2 or more characters,
+            # use UNION logic (logic from filter1)
+            else:
+                matching_queries = []
+
+                for field in self.universal_search_fields:
+                    matching_ids = (
+                        model._default_manager
+                        .filter(**{field: term})
+                        .values("pk")
+                    )
+
+                    matching_queries.append(matching_ids)
+
+                matching_jobs = matching_queries[0].union(
+                    *matching_queries[1:],
+                    all=True
+                )
+                
+                print('long query running')
+                queryset = queryset.filter(pk__in=matching_jobs)
+
+        return queryset
+
+    def my_custom_filter2(self, queryset, name, value):
         values_list = value.split(",") if "," in value else value.split()
 
         q_object = models.Q()
@@ -355,7 +409,6 @@ class CustomFilterSet(FilterSet):
             q_object &= term_q
 
         return queryset.filter(q_object)
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

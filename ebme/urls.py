@@ -41,6 +41,10 @@ urlpatterns = [
     # htmx search url
     path('filter_table/', include('django_filter_table.urls')),
     # set home page
-    path('', DashboardTemplateView.as_view(), name='home')
+    path('', DashboardTemplateView.as_view(), name='home'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += [path("__debug__/", include("debug_toolbar.urls")),]
+
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

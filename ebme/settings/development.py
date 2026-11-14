@@ -15,6 +15,13 @@ DEBUG = os.getenv('DEBUG', 'FALSE') == 'True'
 
 ALLOWED_HOSTS = ['127.0.0.1','192.168.1.241', '10.152.19.112','192.168.100.138']
 
+INSTALLED_APPS += ["debug_toolbar"]
+
+MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
+    *MIDDLEWARE,
+]
+
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -37,3 +44,12 @@ DATABASES = {
     }
 }
 
+
+import socket
+
+hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+    "localhost",
+] + [ip[:ip.rfind(".")] + ".1" for ip in ips]

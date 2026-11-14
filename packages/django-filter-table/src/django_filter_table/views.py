@@ -56,7 +56,6 @@ from django.http import Http404
 
 EXPORT_LIMIT = 300
 
-
 # get visible columns for a model for a user
 # define table actions
 
@@ -692,8 +691,9 @@ class FilteredTableView(
             self.session_filter_active = bool(session_filter)
 
         # return empty qs if request if not HTMX for faster initial loading time 
-
-
+        #print('*******************************************************************88')
+        #print(queryset.explain(analyze=True, buffers=True))
+        #print(queryset.query)
         return queryset
 
     @property
@@ -1009,10 +1009,10 @@ class ColumnChooser(LoginRequiredMixin, TemplateView):
         request_model = request.POST.get('request_model')
         user_id = self.request.user.pk
         User = get_user_model()
-        user = User.objects.get(pk=user_id)
         UserProfiles = get_user_profile_model()
+
         profile, created = UserProfiles.objects.get_or_create(
-            user_id=user, defaults={"table_settings": {}}
+            user_id=user_id, defaults={"table_settings": {}}
         )
 
         columns = request.POST.getlist('columns', None)

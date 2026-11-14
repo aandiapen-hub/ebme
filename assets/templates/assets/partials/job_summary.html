@@ -50,7 +50,7 @@
 
 <div id='all_jobs' class="row g-3 m-1">
 
-    {% for job in asset.asset.job_view.all  %}
+    {% for job in jobs  %}
         {% if job not in open_jobs %}
                 <div class="card border-success ">
                     <div class="card-header">

@@ -170,5 +170,3 @@ DJANGO_TABLE= {
     'user_profile_model': "users.UserProfiles",
     'base_template': 'base.html'
 }
-
-

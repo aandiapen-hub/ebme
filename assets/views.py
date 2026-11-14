@@ -155,6 +155,7 @@ class AssetDetailView(
         context["open_jobs"] = self.object.asset.jobs.filter(
             jobstatusid__in=[0, 2, 3, 5]
         )
+        context["jobs"] = self.object.asset.job_view.all().order_by('-enddate')
         context["tasks"] = get_equipment_tasks(self.object)
 
         return context
