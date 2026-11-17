@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from functools import cached_property
 from urllib.parse import urlencode
 
 
@@ -30,6 +31,7 @@ class BaseDocumentContextBuilder(ABC):
         if self.temp_group and self.temp_group.pk:
             return urlencode({'temp_group_id': self.temp_group.pk})
 
+    @cached_property
     def get_temp_group_id(self):
         if self.temp_group:
             return self.temp_group.pk

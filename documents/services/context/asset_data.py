@@ -287,7 +287,7 @@ class AssetDataContext(
        return 'documents/document_processor/asset_data.html' 
 
     def get_extra_context(self):
-        temp_group = self.get_temp_group_id()
+        temp_group = self.get_temp_group_id
 
         exact_match_group = MatchedGroup(
             title='Exact Matches',
@@ -295,13 +295,13 @@ class AssetDataContext(
             items=[],
             color='success')
         exact_match_group.items += get_fully_matched_asset(
-            self.resolved_data,  self.get_temp_group_id()
+            self.resolved_data,  self.get_temp_group_id
         )
         exact_match_group.items += get_model(
-            self.resolved_data,  self.get_temp_group_id()
+            self.resolved_data,  self.get_temp_group_id
         )
         exact_match_group.items += get_part(
-            self.resolved_data,  self.get_temp_group_id()
+            self.resolved_data,  self.get_temp_group_id
         )
 
         suggested_actions = MatchedGroup(

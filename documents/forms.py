@@ -1,5 +1,6 @@
 from django import forms
 from  django_filter_table.forms  import HTMXMultiPickerWidget
+from audits.models import AuditLocation
 
 from .models import (
     TblDocuments,
@@ -221,5 +222,11 @@ def get_temp_group_data_update_formclass(group_type):
     return GROUP_TYPE_FORM_MAP.get(group_type, AssetDataUpdate)
 
 class TempUploadGroupCreateForm(forms.Form):
-    pass
+    audit_location = forms.ModelChoiceField(
+        queryset=AuditLocation.objects.filter(
+            status__in=['pending', 'in_progress']
+        ),
+        empty_label="(None)",
+        required=False
+    )
 

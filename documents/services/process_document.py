@@ -58,7 +58,6 @@ def extract_information_from_temp_group(group_id):
     group = TempUploadGroup.objects.get(pk=group_id)
 
     # extract text and barcode data from images
-    print('extracting barcode and text information')
     extract_data(group)
 
     # process group documents with ai
@@ -73,11 +72,9 @@ def extract_information_from_temp_group(group_id):
             {"ai": ai_data, }
         )
 
-    print('merging barcode/text data with ai data')
     merged_gs1_ai_data = merge_gs1_ai_data(group, ai_data)
 
     # merge ai and barcode data
-    print('saving extracted information')
     group.extracted_json.update(
         {"merged_gs1_ai": merged_gs1_ai_data}
     )

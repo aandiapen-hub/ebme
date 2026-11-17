@@ -55,7 +55,6 @@ def create_document_from_file(
 ):
     file_hash = None
 
-    print('document type id in service start', document_type_id)
     # check if no document or content has been passed for create or update
     if (
         document is None
@@ -88,7 +87,7 @@ def create_document_from_file(
         file_hash = hashlib.sha256(content).hexdigest()
 
     # resize if content is an image
-    if mime_type:
+    if uploaded_file or temp_file:
         if "image/" in mime_type:
             img = resizeimg(content)
 
@@ -109,6 +108,7 @@ def create_document_from_file(
             duplicates = duplicates.exclude(pk=document.pk)
         duplicate_exists = duplicates.exists()
 
+
     # assign customer to document
     customer = resolve_customer(content_object)
 
@@ -118,29 +118,18 @@ def create_document_from_file(
         # Updating an existing document
         # ------------------------------------------------
         if document:
+            document.document_name = document_name
+            document.description = document_description
+            document.document_type_id = document_type_id
+
             if content:
-                if duplicate_exists:
-                    raise ValidationError(
-                        f"Document already exists in database, duplicate:{duplicates.first()}"
-                    )
-                else:
-                    document.document_name = document_name
-                    document.mime_type = mime_type
-                    document.description = document_description
-                    document.document_type_id = document_type_id
-                    document.set_content(content, file_hash=file_hash)
+                document.mime_type = mime_type
+                document.set_content(content, file_hash=file_hash)
 
-            else:
-                # update without new content
-                document.document_name = document_name
-                document.document_type_id = document_type_id
-                document.description = document_description
-
+        # ------------------------------------------------
+        # creating new document
+        # ------------------------------------------------
         else:
-            # ------------------------------------------------
-            # creating new document
-            # ------------------------------------------------
-
             # content already exists in dababase
             if duplicate_exists:
                 document = duplicates.first()
@@ -301,7 +290,6 @@ def save_temp_document(user, group_id=None, file=None, scanned_code=None):
     if scanned:
         quick_group_processor(scanned)
 
-        print(group.extracted_json.get("resolved", {}))
         # update group document type
         group.refresh_from_db()
         is_asset_data = (

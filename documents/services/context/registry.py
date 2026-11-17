@@ -2,7 +2,9 @@ from .service_report import ServiceReportContext
 from .delivery_note import DeliveryNoteContext
 from .asset_data import AssetDataContext
 from .non_staff import NonStaffContext
+from .audit_data import AuditDataContext
 from documents.models import DocumentTypes
+
 
 
 CONTEXT_BUILDERS = {
@@ -11,6 +13,7 @@ CONTEXT_BUILDERS = {
     'asset_data': AssetDataContext,
     'global_search': AssetDataContext,
     'non_staff': NonStaffContext,
+    'audit': AuditDataContext,
 }
 
 

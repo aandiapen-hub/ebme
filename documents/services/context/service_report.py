@@ -94,7 +94,7 @@ class ServiceReportContext(
             color='success')
 
         assets.items += get_assets_from_resolved_data(
-                    self.resolved_data, self.get_temp_group_id()
+                    self.resolved_data, self.get_temp_group_id
                 )
 
 

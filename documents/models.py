@@ -21,25 +21,6 @@ from django.core.files.base import ContentFile
 from PIL import Image, ImageOps
 
 
-'''
-class DocumentTypes(models.IntegerChoices):
-    UNKNOWN = 0, "UNKNOWN"
-    USER_MANUAL = 10, "User Manual"
-    SERVICE_MANUAL = 20, "Service Manual"
-    INVOICE = 30, "Invoice"
-    DELIVERY_NOTE = 40, "Delivery Note"
-    SERVICE_REPORT = 50, "Service Report"
-    ASSET_DATA = 60, "Asset Data"
-
-
-PROCESSABLE_DOCUMENTS = [
-    DocumentTypes.ASSET_DATA,
-    DocumentTypes.SERVICE_REPORT,
-    DocumentTypes.DELIVERY_NOTE,
-
-]
-    '''
-
 class DocumentTypes(models.Model):
     document_type_id = models.BigAutoField(primary_key=True)
     document_type_name = models.CharField()
@@ -113,6 +94,13 @@ class TempUploadGroup(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     task_result_id = models.TextField(null=True, blank=True)
+    audit_location = models.ForeignKey(
+        'audits.AuditLocation',
+        models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='scanned_item'
+    )
 
     class Meta:
         managed = False

@@ -6,8 +6,21 @@
     <small>Audit</small>
     <h1>{{audit_location}}</h1>
 
-    <a class='btn btn-outline-secondary' href='{% url "audits:audit_item_list" %}?audit_location__iexact={{audit_location.pk}}'>View Items</a>
-    <a class='btn btn-outline-secondary' href='{% url "audits:new_asset_create" audit_location.pk %}'>Add New Asset</a>
+    <div class='row'>
+      <div class='col'>
+      <a class='btn btn-outline-secondary' href='{% url "audits:audit_item_list" %}?audit_location__iexact={{audit_location.pk}}'>View Items</a>
+      <a class='btn btn-outline-secondary' href='{% url "audits:new_asset_create" audit_location.pk %}'>Add New Asset</a>
+      <button
+          class='btn btn-outline-primary'
+          hx-post='{% url "documents:temp_group_create" %}'
+          hx-swap='none'
+          hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'
+          hx-target='this'
+          name='audit_location'
+          value={{audit_location.pk}}
+        >Scan Item</button>
+      </div>
+    </div>
 
   </div>
 {% endblock %}

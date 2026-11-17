@@ -93,6 +93,8 @@ def get_visible_columns(
     except Exception:
         # fallback to all model fields
         return None
+
+
     return user_columns
 
 
@@ -298,9 +300,9 @@ class FilteredTableView(
         
     '''
     def dispatch(self, request, *args, **kwargs):
-        self.visible_columns = (
-            get_visible_columns(self.request, self.model, open_column=self.open_column) or self.default_columns or []
-        )
+        #self.visible_columns = (
+        #    get_visible_columns(self.request, self.model, open_column=self.open_column) or self.default_columns or []
+        #)
 
         # --- check what type of request---#
         # request options are  summary data, new filter, remove session filter or  actual filter result data
@@ -322,6 +324,15 @@ class FilteredTableView(
 
         # fallback is to return of filtered table data
         return response
+
+    @cached_property
+    def visible_columns(self):
+        user_cols = (
+                get_visible_columns(self.request, self.model, open_column=self.open_column) or self.default_columns or []
+            )
+        all_cols = [field.name for field in self.model._meta.get_fields()]
+        user_cols = [col for col in user_cols if col in all_cols]
+        return user_cols
 
     def create_export(self, export_format):
         queryset = self.get_table_data()
@@ -666,6 +677,15 @@ class FilteredTableView(
                 return filter(qs)
         return qs
 
+    def get_visible_fkey_columns(self):
+        fk_fields = [
+            field_name
+            for field_name in self.visible_columns
+            if isinstance(self.model._meta.get_field(field_name), ForeignKey)
+
+        ]
+        return fk_fields
+
     def get_table_data(self):
         self.session_filter_active = False
         # check is there are session filter active
@@ -675,6 +695,8 @@ class FilteredTableView(
 
         self.filterset = self.get_filterset(self.get_filterset_class())
         queryset = self.filterset.qs
+
+        queryset = queryset.select_related(*self.get_visible_fkey_columns())
 
         session_filter = self.request.session.get(self.request.path, {})
         if session_filter:

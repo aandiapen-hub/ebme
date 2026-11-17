@@ -101,7 +101,7 @@ class DeliveryNoteContext(
 
 
         purchase_order.items += get_purchase_order_from_resolved_data(
-                    self.resolved_data, self.get_temp_group_id()
+                    self.resolved_data, self.get_temp_group_id
                 )
 
 

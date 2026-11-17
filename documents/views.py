@@ -520,8 +520,14 @@ class TempUploadGroupCreateView(LoginRequiredMixin, PermissionRequiredMixin, For
         return reverse("documents:temp_group", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
+        if form.cleaned_data['audit_location']:
+            group_type = DocumentTypes.objects.get(code='audit')
+        else:
+            group_type = None # use model default
         self.object = TempUploadGroup.objects.create(
             user=self.request.user,
+            audit_location=form.cleaned_data['audit_location'],
+            document_type_id=group_type
         )
         if self.request.htmx:
             response = HttpResponse()
